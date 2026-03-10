@@ -1,18 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchRecentTransactionsAction, deleteTransactionAction, Transaction } from "@/lib/actions/transactions";
-import { ArrowDownRight, ArrowUpRight, Clock, AlertTriangle, Trash2 } from "lucide-react";
+import { fetchRecentTransactionsAction, deleteTransactionAction, updateTransactionCategoryAction, Transaction } from "@/lib/actions/transactions";
+import { fetchCategorySummariesAction } from "@/lib/actions/categories";
+import { ArrowDownRight, ArrowUpRight, Clock, AlertTriangle, Trash2, CheckCircle2 } from "lucide-react";
 
 export function RecentTransactionsFeed() {
     const [transactions, setTransactions] = useState<Transaction[] | null>(null);
+    const [categories, setCategories] = useState<{ id: string, name: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const load = async () => {
-            const res = await fetchRecentTransactionsAction();
+            setLoading(true);
+            const [res, catRes] = await Promise.all([
+                fetchRecentTransactionsAction(),
+                fetchCategorySummariesAction()
+            ]);
+
             if (res.transactions) {
                 setTransactions(res.transactions);
+            }
+            if (catRes.categories) {
+                setCategories(catRes.categories);
             }
             setLoading(false);
         };
@@ -29,6 +39,23 @@ export function RecentTransactionsFeed() {
         if (res.error) {
             alert(res.error);
             // On error we should idealistically rollback, but reloading is safer
+            const reloadRes = await fetchRecentTransactionsAction();
+            if (reloadRes.transactions) setTransactions(reloadRes.transactions);
+        }
+    };
+
+    const handleCategoryChange = async (txId: string, categoryId: string, categoryName: string) => {
+        // Optimistic UI update
+        setTransactions(prev => prev ? prev.map(t => {
+            if (t.id === txId) {
+                return { ...t, categoryName, needsReview: false, confidenceScore: 1.0 };
+            }
+            return t;
+        }) : null);
+
+        const res = await updateTransactionCategoryAction(txId, categoryId);
+        if (res.error) {
+            alert(res.error);
             const reloadRes = await fetchRecentTransactionsAction();
             if (reloadRes.transactions) setTransactions(reloadRes.transactions);
         }
@@ -71,7 +98,24 @@ export function RecentTransactionsFeed() {
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium mt-1">
                                     <span>{new Date(tx.date).toLocaleDateString("pt-BR", { day: '2-digit', month: 'short' })} às {new Date(tx.date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</span>
                                     <span>•</span>
-                                    <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded-md">{tx.categoryName}</span>
+                                    <div className="relative inline-block">
+                                        <select
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            value=""
+                                            onChange={(e) => {
+                                                const sel = categories.find(c => c.id === e.target.value);
+                                                if (sel) handleCategoryChange(tx.id, sel.id, sel.name);
+                                            }}
+                                        >
+                                            <option value="" disabled>Trocar de Categoria</option>
+                                            {categories.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                        <span className="bg-primary/20 text-primary hover:bg-primary/30 cursor-pointer px-1.5 py-0.5 rounded-md transition-colors relative pointer-events-none">
+                                            {tx.categoryName} <span className="text-[10px] opacity-70 ml-1">▼</span>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

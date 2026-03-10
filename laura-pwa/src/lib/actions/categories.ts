@@ -44,7 +44,32 @@ export async function addCategoryAction(formData: FormData) {
         revalidatePath("/dashboard");
         return { success: true };
     } catch (err) {
-        console.error("Save Category Error:", err);
-        return { error: "Erro ao salvar o orçamento." };
+        console.error("Save category error:", err);
+        return { error: "Erro interno ao salvar." };
+    }
+}
+
+export async function fetchCategorySummariesAction(): Promise<{ error?: string, categories?: { id: string, name: string }[] }> {
+    try {
+        const session = await getSession();
+        if (!session || !session.userId) {
+            return { error: "Não autorizado." };
+        }
+
+        const client = await pool.connect();
+        try {
+            const userRes = await client.query("SELECT workspace_id FROM users WHERE id = $1", [session.userId]);
+            if (userRes.rowCount === 0) return { error: "Workspace não encontrado." };
+
+            const workspaceId = userRes.rows[0].workspace_id;
+            const catRes = await client.query("SELECT id, name FROM categories WHERE workspace_id = $1 ORDER BY name ASC", [workspaceId]);
+
+            return { categories: catRes.rows.map(r => ({ id: r.id, name: r.name })) };
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error("Fetch categories summaries error:", err);
+        return { error: "Erro interno ao buscar." };
     }
 }

@@ -90,3 +90,36 @@ export async function deleteTransactionAction(transactionId: string): Promise<{ 
         return { error: "Erro ao excluir transação." };
     }
 }
+
+export async function updateTransactionCategoryAction(transactionId: string, categoryId: string): Promise<{ success?: boolean, error?: string }> {
+    try {
+        const session = await getSession();
+        if (!session || !session.userId) {
+            return { error: "Não autorizado" };
+        }
+
+        const client = await pool.connect();
+        try {
+            const userRes = await client.query("SELECT workspace_id FROM users WHERE id = $1", [session.userId]);
+            if (userRes.rowCount === 0) return { error: "Workspace inválido" };
+
+            const workspaceId = userRes.rows[0].workspace_id;
+
+            const res = await client.query(
+                "UPDATE transactions SET category_id = $1, needs_review = false WHERE id = $2 AND workspace_id = $3",
+                [categoryId, transactionId, workspaceId]
+            );
+
+            if (res.rowCount === 0) {
+                return { error: "Transação não encontrada ou sem permissão." };
+            }
+
+            return { success: true };
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error("Update transaction category error:", err);
+        return { error: "Erro ao atualizar a categoria." };
+    }
+}

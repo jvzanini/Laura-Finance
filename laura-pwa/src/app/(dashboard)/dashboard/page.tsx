@@ -2,6 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardWizard } from "@/components/features/CardWizard";
 import { CategoryBudget } from "@/components/features/CategoryBudget";
+import { MemberWizard } from "@/components/features/MemberWizard";
 
 export default function DashboardPage() {
     return (
@@ -13,7 +14,8 @@ export default function DashboardPage() {
                         Bem-vindo de volta! Aqui está o resumo das suas finanças.
                     </p>
                 </div>
-                <div>
+                <div className="flex gap-2 items-center flex-col sm:flex-row w-full md:w-auto">
+                    <MemberWizard />
                     <CardWizard />
                 </div>
             </div>

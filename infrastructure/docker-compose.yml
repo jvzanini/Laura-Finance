@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: ankane/pgvector:latest
+    environment:
+      POSTGRES_USER: laura
+      POSTGRES_PASSWORD: laura_password
+      POSTGRES_DB: laura_finance
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:

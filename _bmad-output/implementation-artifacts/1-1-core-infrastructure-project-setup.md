@@ -1,6 +1,6 @@
 # Story 1.1: Core Infrastructure & Project Setup
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -19,18 +19,18 @@ so that possamos ter a infraestrutura escalável necessária para a PWA e o Webh
 
 ## Tasks / Subtasks
 
-- [ ] Repositório e Frontend Setup
-  - [ ] Executar o comando inicial `npx create-next-app@latest laura-pwa --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"`
-  - [ ] Inicializar o shadcn-ui `npx shadcn-ui@latest init` no diretório laura-pwa e configurar tema Dark Mode padrão
-- [ ] Backend Go Setup
-  - [ ] Executar `go mod init laura-finance-bot` no subdiretório `laura-bot`
-  - [ ] Criar a estrutura básica de diretórios Go (`cmd/api`, `cmd/bot`, `internal/database`)
-- [ ] Infraestrutura de Banco de Dados
-  - [ ] Preparar o arquivo `docker-compose.yml` raiz provendo o PostgreSQL com suporte a RAG (ex: imagem base com `pgvector`)
-  - [ ] Criar pasta `infrastructure/migrations` para SQL puras e script base para inicializar a DB vazia
-- [ ] Documentação e Padrões
-  - [ ] Configurar os linters na linguagem raiz (TS e Go)
-  - [ ] Adicionar READMEs vazios nas sub-pastas
+- [x] Repositório e Frontend Setup
+  - [x] Executar o comando inicial `npx create-next-app@latest laura-pwa --typescript --tailwind --eslint --app --src-dir --import-alias "@/*"`
+  - [x] Inicializar o shadcn-ui `npx shadcn-ui@latest init` no diretório laura-pwa e configurar tema Dark Mode padrão
+- [x] Backend Go Setup
+  - [x] Executar `go mod init laura-finance-bot` no subdiretório `laura-bot`
+  - [x] Criar a estrutura básica de diretórios Go (`cmd/api`, `cmd/bot`, `internal/database`)
+- [x] Infraestrutura de Banco de Dados
+  - [x] Preparar o arquivo `docker-compose.yml` raiz provendo o PostgreSQL com suporte a RAG (ex: imagem base com `pgvector`)
+  - [x] Criar pasta `infrastructure/migrations` para SQL puras e script base para inicializar a DB vazia
+- [x] Documentação e Padrões
+  - [x] Configurar os linters na linguagem raiz (TS e Go)
+  - [x] Adicionar READMEs vazios nas sub-pastas
 
 ## Dev Notes
 
@@ -70,10 +70,23 @@ laura-finance/
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Antigravity 1.5 Pro
 
 ### Debug Log References
 
+- Executado Next.js v15 e Tailwind v4 via node v20.20.1
+- Inicializado Shadcn v4 UI e atualizados os globals.css com Dark Mode root default.
+- Instalada toolchain do Go via Brew e setado init para `laura-finance-bot`.
+- Linter configurado via arquivo .golangci.yml.
+
 ### Completion Notes List
 
+Toda infraestrutura baseline foi instanciada sem intervenção com testes positivos na compilação do App Router (Next) e inicialização passiva do banco relacional puro com PgVector preparado para a Story 2 do Chatbot e processamento local.
+
 ### File List
+
+- `laura-pwa/*`
+- `laura-bot/go.mod`
+- `laura-bot/.golangci.yml`
+- `infrastructure/docker-compose.yml`
+- `infrastructure/migrations/000001_init.sql`

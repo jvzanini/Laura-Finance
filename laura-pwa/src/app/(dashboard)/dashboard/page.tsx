@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardWizard } from "@/components/features/CardWizard";
 import { CategoryBudget } from "@/components/features/CategoryBudget";
 import { MemberWizard } from "@/components/features/MemberWizard";
+import { RecentTransactionsFeed } from "@/components/features/RecentTransactionsFeed";
 
 export default function DashboardPage() {
     return (
@@ -68,6 +69,8 @@ export default function DashboardPage() {
                     </Card>
                 </div>
             </div>
+
+            <RecentTransactionsFeed />
         </div>
     );
 }

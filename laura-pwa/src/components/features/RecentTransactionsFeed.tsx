@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchRecentTransactionsAction, Transaction } from "@/lib/actions/transactions";
-import { ArrowDownRight, ArrowUpRight, Clock, AlertTriangle } from "lucide-react";
+import { fetchRecentTransactionsAction, deleteTransactionAction, Transaction } from "@/lib/actions/transactions";
+import { ArrowDownRight, ArrowUpRight, Clock, AlertTriangle, Trash2 } from "lucide-react";
 
 export function RecentTransactionsFeed() {
     const [transactions, setTransactions] = useState<Transaction[] | null>(null);
@@ -18,6 +18,21 @@ export function RecentTransactionsFeed() {
         };
         load();
     }, []);
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Tem certeza que deseja excluir esta transação?")) return;
+
+        // Optimistic UI update
+        setTransactions(prev => prev ? prev.filter(t => t.id !== id) : null);
+
+        const res = await deleteTransactionAction(id);
+        if (res.error) {
+            alert(res.error);
+            // On error we should idealistically rollback, but reloading is safer
+            const reloadRes = await fetchRecentTransactionsAction();
+            if (reloadRes.transactions) setTransactions(reloadRes.transactions);
+        }
+    };
 
     if (loading) {
         return (
@@ -73,6 +88,14 @@ export function RecentTransactionsFeed() {
                                 {tx.type === "expense" ? "-" : "+"}
                                 {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(tx.amount)}
                             </span>
+
+                            <button
+                                onClick={() => handleDelete(tx.id)}
+                                className="p-2 text-muted-foreground hover:bg-destructive/20 hover:text-destructive rounded-md transition-colors"
+                                title="Desfazer/Excluir Transação"
+                            >
+                                <Trash2 size={16} />
+                            </button>
                         </div>
                     </div>
                 ))}

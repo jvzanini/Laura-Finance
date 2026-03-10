@@ -53,8 +53,8 @@ development_status:
   epic-2: in-progress
   2-1-cadastro-seguro-multiplos-numeros: done
   2-2-conexao-websocket-whatsapp-api-go: done
-  2-3-conversao-de-audio-para-texto: in-progress
-  2-4-nlp-parsing-estruturacao-e-log: backlog
+  2-3-conversao-de-audio-para-texto: done
+  2-4-nlp-parsing-estruturacao-e-log: in-progress
   2-5-painel-conectores-instancias-whatsapp: done
   epic-2-retrospective: optional
 

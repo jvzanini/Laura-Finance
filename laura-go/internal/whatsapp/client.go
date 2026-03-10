@@ -10,8 +10,12 @@ import (
 	"github.com/jvzanini/laura-finance/laura-go/internal/services"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
+
+	waProto "go.mau.fi/whatsmeow/binary/proto"
+	"google.golang.org/protobuf/proto"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -122,6 +126,29 @@ func HandleIncomingMessage(msg *events.Message) {
 		return
 	}
 
+	replyFunc := func(replyText string) {
+		jid, parseErr := types.ParseJID(senderNumberStr + "@s.whatsapp.net")
+		if parseErr == nil && Client != nil {
+			msgProto := &waProto.Message{
+				Conversation: proto.String(replyText),
+			}
+			Client.SendMessage(context.Background(), jid, msgProto)
+		}
+	}
+
 	// Fire async workflow process!
-	go services.ProcessMessageFlow(workspaceId, senderNumberStr, text, audioBytes)
+	go services.ProcessMessageFlow(workspaceId, senderNumberStr, text, audioBytes, replyFunc)
+}
+
+// SendTextMessage is an exported utility to allow outside services (like Cron) to send messages
+func SendTextMessage(phoneNumber string, text string) {
+	if Client == nil {
+		return
+	}
+	jid, err := types.ParseJID(phoneNumber + "@s.whatsapp.net")
+	if err == nil {
+		Client.SendMessage(context.Background(), jid, &waProto.Message{
+			Conversation: proto.String(text),
+		})
+	}
 }

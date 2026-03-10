@@ -65,10 +65,10 @@ development_status:
   3-4-sistema-customizado-tags-multivariadas: backlog
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-desambiguacao-ativa-nlp: backlog
-  4-2-nudges-lembretes-estaticos-preditivos: backlog
-  4-3-semaforos-orcamentarios-alertas-dinamicos: backlog
+  epic-4: done
+  4-1-desambiguacao-ativa-nlp: done
+  4-2-nudges-lembretes-estaticos-preditivos: done
+  4-3-semaforos-orcamentarios-alertas-dinamicos: done
   epic-4-retrospective: optional
 
   epic-5: backlog

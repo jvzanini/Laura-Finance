@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
+	"github.com/jvzanini/laura-finance/laura-go/internal/services"
 	"github.com/jvzanini/laura-finance/laura-go/internal/whatsapp"
 )
 
@@ -39,6 +40,9 @@ func main() {
 	// Start WhatsApp Client
 	log.Println("Starting Whatsmeow Client...")
 	whatsapp.InitWhatsmeow()
+
+	// Start AI/Budget Cron Tasks
+	services.StartBudgetAlertCron(whatsapp.SendTextMessage)
 
 	port := os.Getenv("PORT")
 	if port == "" {

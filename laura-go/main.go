@@ -10,7 +10,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
-	"github.com/jvzanini/laura-finance/laura-go/internal/handlers"
+	"github.com/jvzanini/laura-finance/laura-go/internal/whatsapp"
 )
 
 func main() {
@@ -36,8 +36,9 @@ func main() {
 		return c.SendString("Laura Finance Go API is healthy!")
 	})
 
-	// Webhook from WhatsApp Partner (Evolution API / Whats1000 / Z-API)
-	app.Post("/webhook/whatsapp", handlers.HandleWhatsappWebhook)
+	// Start WhatsApp Client
+	log.Println("Starting Whatsmeow Client...")
+	whatsapp.InitWhatsmeow()
 
 	port := os.Getenv("PORT")
 	if port == "" {

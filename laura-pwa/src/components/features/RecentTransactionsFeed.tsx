@@ -112,10 +112,13 @@ export function RecentTransactionsFeed() {
                                                 <option key={c.id} value={c.id}>{c.name}</option>
                                             ))}
                                         </select>
-                                        <span className="bg-primary/20 text-primary hover:bg-primary/30 cursor-pointer px-1.5 py-0.5 rounded-md transition-colors relative pointer-events-none">
+                                        <span className="bg-primary/20 text-primary hover://bg-primary/30 cursor-pointer px-1.5 py-0.5 rounded-md transition-colors relative pointer-events-none">
                                             {tx.categoryName} <span className="text-[10px] opacity-70 ml-1">▼</span>
                                         </span>
                                     </div>
+                                    {tx.tags && tx.tags.length > 0 && tx.tags.map((tag, i) => (
+                                        <span key={i} className="bg-accent/40 text-accent-foreground px-1.5 py-0.5 rounded-md truncate max-w-[80px]">#{tag}</span>
+                                    ))}
                                 </div>
                             </div>
                         </div>

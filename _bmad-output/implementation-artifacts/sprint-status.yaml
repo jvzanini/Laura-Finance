@@ -61,7 +61,7 @@ development_status:
   epic-3: in-progress
   3-1-visualizacao-transacoes-instantaneas: done
   3-2-botao-desfazer-un-do-via-chat: done
-  3-3-curadoria-especializada-manual: backlog
+  3-3-curadoria-especializada-manual: done
   3-4-sistema-customizado-tags-multivariadas: backlog
   epic-3-retrospective: optional
 

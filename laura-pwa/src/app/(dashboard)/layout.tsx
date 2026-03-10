@@ -25,9 +25,6 @@ export default async function DashboardLayout({
                     <a href="/dashboard" className="h-10 flex items-center px-4 rounded-md bg-muted/50 text-white font-semibold">
                         Dashboard
                     </a>
-                    <a href="/whatsapp" className="h-10 flex items-center px-4 rounded-md hover:bg-muted/50 text-muted-foreground transition-colors">
-                        WhatsApp Connect
-                    </a>
                     <div className="h-10 bg-muted/20 rounded-md animate-pulse mt-4" />
                     <a href="/settings" className="h-10 mt-6 flex items-center justify-center rounded-md border border-destructive/50 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors">
                         Meus Dados / LGPD

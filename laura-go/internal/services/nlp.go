@@ -21,11 +21,12 @@ type GroqCompletionRequest struct {
 }
 
 type ParsedTransactionDef struct {
-	Amount      float64 `json:"amount"`
-	Description string  `json:"description"`
-	Type        string  `json:"type"` // "expense" or "income"
-	Confidence  float64 `json:"confidence"`
-	NeedsReview bool    `json:"needs_review"`
+	Amount      float64  `json:"amount"`
+	Description string   `json:"description"`
+	Type        string   `json:"type"` // "expense" or "income"
+	Labels      []string `json:"labels"`
+	Confidence  float64  `json:"confidence"`
+	NeedsReview bool     `json:"needs_review"`
 	// Futuramente map categories and cards ids by name based on workspace context
 }
 
@@ -46,17 +47,19 @@ O JSON deve seguir a estrutura exata:
   "amount": <number, use positive absolute value, use dot . for float>,
   "description": "<string, extraia o local/motivo do gasto>",
   "type": "<string, 'expense' ou 'income'>",
+  "labels": ["<string>", "<string>"], // extraia contextos como tags simples sem #, max 3. Exemplo: ["viagem", "refeição"]
   "confidence": <number, 0.0 to 1.0 de certeza sobre os dados extraídos>,
   "needs_review": <boolean, true se o texto for confuso ou incompleto>
 }
 
 Exemplo:
-USER: "Gastei 25.50 no ifood"
+USER: "Gastei 25.50 no ifood #lanche"
 RESPOSTA:
 {
   "amount": 25.50,
   "description": "Ifood",
   "type": "expense",
+  "labels": ["lanche"],
   "confidence": 0.95,
   "needs_review": false
 }`

@@ -12,6 +12,7 @@ export type Transaction = {
     confidenceScore: number;
     needsReview: boolean;
     categoryName?: string;
+    tags?: string[];
 };
 
 export async function fetchRecentTransactionsAction(): Promise<{ error?: string, transactions?: Transaction[] }> {
@@ -31,7 +32,7 @@ export async function fetchRecentTransactionsAction(): Promise<{ error?: string,
             const txRes = await client.query(`
                 SELECT 
                     t.id, t.amount, t.description, t.type, t.transaction_date, 
-                    t.confidence_score, t.needs_review,
+                    t.confidence_score, t.needs_review, t.tags,
                     c.name as category_name
                 FROM transactions t
                 LEFT JOIN categories c ON t.category_id = c.id
@@ -48,7 +49,8 @@ export async function fetchRecentTransactionsAction(): Promise<{ error?: string,
                 date: r.transaction_date.toISOString(),
                 confidenceScore: r.confidence_score ? parseFloat(r.confidence_score) : 1.0,
                 needsReview: r.needs_review,
-                categoryName: r.category_name || "Geral"
+                categoryName: r.category_name || "Geral",
+                tags: r.tags || []
             }));
 
             return { transactions };

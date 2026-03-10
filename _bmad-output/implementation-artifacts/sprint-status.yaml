@@ -45,7 +45,7 @@ development_status:
   1-2-cadastro-inicial-de-administradores: done
   1-3-assinatura-e-integracao-checkout-saas: done
   1-4-disparo-acessos-e-comprovantes: done
-  1-5-wizard-cadastro-de-emissores: backlog
+  1-5-wizard-cadastro-de-emissores: done
   1-6-setup-de-categorias-e-orcamentos: backlog
   1-7-painel-privacidade-compliance-lgpd: backlog
   epic-1-retrospective: optional

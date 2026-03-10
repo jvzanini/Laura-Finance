@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laura Finance - UX Prototype</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#0f172a', // Tailwind slate-900 or use custom #1E1E2E
+                        foreground: '#f8fafc',
+                        card: '#1e293b', // slate-800
+                        primary: '#7C3AED', // Violet
+                        success: '#10B981', // Green
+                        warning: '#F59E0B', // Amber
+                        danger: '#EF4444', // Red
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons for elegant UI icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Smooth progress bar animation */
+        .progress-fill {
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground min-h-screen flex justify-center bg-[#0B0F19]">
+
+    <!-- Mobile Device Container (Mobile-First approach simulating a phone screen on Desktop) -->
+    <div class="w-full max-w-md bg-background min-h-screen relative shadow-2xl overflow-hidden flex flex-col border-x border-slate-800/50">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center p-6 pb-2">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-400 p-[2px]">
+                    <img src="https://i.pravatar.cc/150?u=mariana" alt="Profile" class="w-full h-full rounded-full border-2 border-background object-cover">
+                </div>
+                <div>
+                    <h2 class="text-sm text-slate-400 font-medium">Olá, Mariana</h2>
+                    <p class="font-semibold text-white tracking-tight">Dashboard Familiar</p>
+                </div>
+            </div>
+            <button class="w-10 h-10 rounded-full bg-card flex items-center justify-center border border-slate-700 hover:bg-slate-700 transition">
+                <i class="ph ph-bell text-xl"></i>
+                <span class="absolute top-6 right-6 w-2.5 h-2.5 bg-primary rounded-full border-2 border-background"></span>
+            </button>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-6 pt-4 space-y-6 pb-24 scrollbar-hide">
+            
+            <!-- Balance Card -->
+            <section class="glass-panel p-6 rounded-3xl relative overflow-hidden">
+                <!-- Abstract Glow -->
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl"></div>
+                
+                <div class="flex justify-between items-start mb-2 relative z-10">
+                    <p class="text-indigo-200/80 text-sm font-medium flex items-center gap-2">
+                        Saldo Disponível 
+                        <i class="ph ph-eye hover:text-white cursor-pointer transition"></i>
+                    </p>
+                    <span class="px-2.5 py-1 rounded-full bg-success/20 text-success text-xs font-bold">+ Saúde Financeira</span>
+                </div>
+                
+                <h1 class="text-4xl font-bold tracking-tighter mb-1 relative z-10">
+                    <span class="text-slate-400 text-2xl font-medium mr-1">R$</span>12.450<span class="text-xl text-slate-400">,00</span>
+                </h1>
+                <p class="text-sm text-slate-400 mb-6 relative z-10">Até o final do mês (12 dias)</p>
+
+                <div class="flex gap-3 relative z-10">
+                    <button class="flex-1 bg-primary hover:bg-violet-500 text-white font-medium py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-primary/25">
+                        <i class="ph-bold ph-plus"></i> Receita
+                    </button>
+                    <button class="flex-1 bg-card hover:bg-slate-700 border border-slate-700 text-white font-medium py-3 rounded-xl transition flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-file-text"></i> Extrato
+                    </button>
+                </div>
+            </section>
+
+            <!-- Categories / Budget -->
+            <section>
+                <div class="flex justify-between items-end mb-4">
+                    <h3 class="text-lg font-semibold tracking-tight">Seus Tetos</h3>
+                    <button class="text-primary text-sm font-medium hover:underline">Ver DRE</button>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- Category 1: Good -->
+                    <div class="bg-card/50 p-4 rounded-2xl border border-slate-800">
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">
+                                    <i class="ph-fill ph-house"></i>
+                                </div>
+                                <span class="font-medium text-slate-200">Moradia</span>
+                            </div>
+                            <span class="font-semibold text-sm">R$ 2.100 / <span class="text-slate-500">3.000</span></span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-success progress-fill" style="width: 70%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Category 2: Warning -->
+                    <div class="bg-card/50 p-4 rounded-2xl border border-slate-800 relative overflow-hidden">
+                        <div class="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-warning/5 to-transparent"></div>
+                        <div class="flex justify-between items-center mb-3 relative z-10">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center text-lg">
+                                    <i class="ph-fill ph-fork-knife"></i>
+                                </div>
+                                <span class="font-medium text-slate-200">Alimentação</span>
+                            </div>
+                            <span class="font-semibold text-sm text-warning tracking-tight">R$ 1.850 / <span class="text-slate-500">2.000</span></span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-800 rounded-full overflow-hidden relative z-10">
+                            <!-- Amber color for warning -->
+                            <div class="h-full bg-warning progress-fill animate-pulse" style="width: 92%"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Latest Transactions (Feed) -->
+            <section>
+                <h3 class="text-lg font-semibold tracking-tight mb-4">Últimas Transações</h3>
+                
+                <div class="space-y-3">
+                    <!-- Transaction 1 -->
+                    <div class="flex items-center justify-between p-3 rounded-2xl hover:bg-card/40 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+                                <i class="ph ph-shopping-cart text-lg text-orange-400"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-sm text-slate-100">Supermercado Zaffari</p>
+                                <p class="text-xs text-slate-500">Hoje, 14:32 • Alimentação</p>
+                            </div>
+                        </div>
+                        <span class="font-semibold text-sm">- R$ 342,90</span>
+                    </div>
+
+                    <!-- Transaction 2 -->
+                    <div class="flex items-center justify-between p-3 rounded-2xl hover:bg-card/40 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center border border-success/20">
+                                <i class="ph ph-trend-up text-lg text-success"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-sm text-slate-100">Pix Recebido (João)</p>
+                                <p class="text-xs text-slate-500">Ontem, 09:15 • Transferências</p>
+                            </div>
+                        </div>
+                        <span class="font-semibold text-sm text-success">+ R$ 1.250,00</span>
+                    </div>
+
+                     <!-- Transaction 3 -->
+                     <div class="flex items-center justify-between p-3 rounded-2xl hover:bg-card/40 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                <i class="ph ph-car text-lg text-blue-400"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-sm text-slate-100">Uber do Thiago</p>
+                                <p class="text-xs text-slate-500">12 Mar, 18:40 • Transporte</p>
+                            </div>
+                        </div>
+                        <span class="font-semibold text-sm">- R$ 32,50</span>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Bottom Navigation with "Laura WhatsApp" prominent action -->
+        <nav class="absolute bottom-0 w-full glass-panel border-t border-slate-800 rounded-t-3xl px-6 py-4 pb-6 flex justify-between items-center z-50">
+            <button class="flex flex-col items-center gap-1 text-primary">
+                <i class="ph-fill ph-squares-four text-2xl"></i>
+                <span class="text-[10px] font-medium">Início</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition">
+                <i class="ph ph-chart-pie-slice text-2xl"></i>
+                <span class="text-[10px] font-medium">Relatórios</span>
+            </button>
+            
+            <!-- Floating FAB overlapping nav -->
+            <div class="relative -top-6">
+                <button class="w-14 h-14 bg-gradient-to-tr from-green-500 to-emerald-400 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30 text-white hover:scale-105 transition-transform">
+                    <i class="ph-fill ph-whatsapp-logo text-3xl"></i>
+                </button>
+            </div>
+
+            <button class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition">
+                <i class="ph ph-target text-2xl"></i>
+                <span class="text-[10px] font-medium">Metas</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition">
+                <i class="ph ph-gear text-2xl"></i>
+                <span class="text-[10px] font-medium">Ajustes</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- Script to simulate initial progress animation -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const bars = document.querySelectorAll('.progress-fill');
+            bars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 100);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laura Finance - Desktop Prototype</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#7C3AED', // Violet
+                        success: '#10B981', // Green
+                        warning: '#F59E0B', // Amber
+                        danger: '#EF4444', // Red
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom scrollbar for desktop */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .hidden-tab {
+            display: none;
+        }
+
+        .active-tab {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .modal {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .modal.open {
+            display: flex;
+            opacity: 1;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-50 dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-300 flex">
+
+    <!-- Sidebar -->
+    <aside
+        class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-colors duration-300 z-10 hidden md:flex">
+        <!-- Logo -->
+        <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
+            <div class="flex items-center gap-2 text-primary font-bold text-xl tracking-tight">
+                <i class="ph-fill ph-infinity"></i>
+                Laura Finance
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 p-4 space-y-1">
+            <button onclick="switchTab('dashboard')"
+                class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition active bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary">
+                <i class="ph ph-squares-four text-lg"></i> Dashboard
+            </button>
+            <button onclick="switchTab('categorias')"
+                class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100">
+                <i class="ph ph-chart-pie-slice text-lg"></i> Categorias & Tetos
+            </button>
+            <button onclick="switchTab('cartoes')"
+                class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100">
+                <i class="ph ph-credit-card text-lg"></i> Gerir Cartões
+            </button>
+            <button onclick="switchTab('familia')"
+                class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100">
+                <i class="ph ph-users text-lg"></i> Membros da Família
+            </button>
+        </nav>
+
+        <!-- User bottom -->
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+            <div
+                class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+                <img src="https://i.pravatar.cc/150?u=mariana" alt="Profile" class="w-8 h-8 rounded-full">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium truncate">Mariana</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate">Administradora</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main ContentWrapper -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+
+        <!-- Top Header -->
+        <header
+            class="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10">
+            <h1 id="page-title" class="text-lg font-semibold">Dashboard Familiar</h1>
+
+            <div class="flex items-center gap-4">
+                <div
+                    class="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
+                    <button
+                        class="px-3 py-1 text-xs font-medium bg-white dark:bg-slate-700 shadow-sm rounded-full text-slate-900 dark:text-white">PF</button>
+                    <button
+                        class="px-3 py-1 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full">PJ</button>
+                </div>
+
+                <button onclick="toggleTheme()"
+                    class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 transition">
+                    <i id="theme-icon" class="ph-fill ph-moon text-lg"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <main class="flex-1 overflow-auto p-6 md:p-8">
+            <div class="max-w-6xl mx-auto">
+
+                <!-- DASHBOARD TAB -->
+                <div id="tab-dashboard" class="active-tab">
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <!-- Balance -->
+                        <div
+                            class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+                            <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">Saldo Total</p>
+                            <h2 class="text-3xl font-bold mb-4">R$ 12.450,00</h2>
+                            <div class="flex gap-2">
+                                <button
+                                    class="bg-primary hover:bg-violet-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition flex items-center gap-2 shadow-sm">
+                                    <i class="ph-bold ph-plus"></i> Receita
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Spendings -->
+                        <div
+                            class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">Deseas no Mês</p>
+                            <h2 class="text-3xl font-bold mb-1">R$ 4.230,90</h2>
+                            <p class="text-sm text-warning font-medium flex items-center gap-1">
+                                <i class="ph-bold ph-trend-up"></i> 12% a mais que mês passado
+                            </p>
+                        </div>
+
+                        <!-- Health Score -->
+                        <div
+                            class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-6">
+                            <div class="relative w-24 h-24">
+                                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                    <path class="text-slate-100 dark:text-slate-700" stroke-width="3"
+                                        stroke="currentColor" fill="none"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <path class="text-success" stroke-dasharray="85, 100" stroke-width="3"
+                                        stroke-linecap="round" stroke="currentColor" fill="none"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span class="text-xl font-bold">85</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg">Score Saudável</h3>
+                                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Gasto alinhado com orçamentos
+                                    estipulados.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layout: Charts & Table -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Main DRE Table / Transactions -->
+                        <div
+                            class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col">
+                            <div
+                                class="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                <h3 class="font-semibold text-lg">Últimas Transações</h3>
+                                <button class="text-sm font-medium text-primary hover:underline">Ver Extrato
+                                    Completo</button>
+                            </div>
+                            <div class="p-0 overflow-x-auto">
+                                <table class="w-full text-left text-sm whitespace-nowrap">
+                                    <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400">
+                                        <tr>
+                                            <th class="px-6 py-3 font-medium">Data</th>
+                                            <th class="px-6 py-3 font-medium">Descrição</th>
+                                            <th class="px-6 py-3 font-medium">Categoria</th>
+                                            <th class="px-6 py-3 font-medium">Responsável</th>
+                                            <th class="px-6 py-3 font-medium text-right">Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                                            <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Hoje, 14:32</td>
+                                            <td class="px-6 py-4 font-medium">Supermercado Zaffari</td>
+                                            <td class="px-6 py-4"><span
+                                                    class="px-2.5 py-1 bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400 rounded-full text-xs font-medium">Alimentação</span>
+                                            </td>
+                                            <td class="px-6 py-4">Mariana</td>
+                                            <td class="px-6 py-4 text-right font-semibold">- R$ 342,90</td>
+                                        </tr>
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                                            <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Hoje, 09:15</td>
+                                            <td class="px-6 py-4 font-medium">Pix Recebido</td>
+                                            <td class="px-6 py-4"><span
+                                                    class="px-2.5 py-1 bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-success rounded-full text-xs font-medium">Transferências</span>
+                                            </td>
+                                            <td class="px-6 py-4">Sistema</td>
+                                            <td class="px-6 py-4 text-right font-semibold text-success">+ R$ 1.250,00
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                                            <td class="px-6 py-4 text-slate-500 dark:text-slate-400">12 Mar</td>
+                                            <td class="px-6 py-4 font-medium">Uber (Escola)</td>
+                                            <td class="px-6 py-4"><span
+                                                    class="px-2.5 py-1 bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 rounded-full text-xs font-medium">Transporte</span>
+                                            </td>
+                                            <td class="px-6 py-4">Thiago</td>
+                                            <td class="px-6 py-4 text-right font-semibold">- R$ 32,50</td>
+                                        </tr>
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                                            <td class="px-6 py-4 text-slate-500 dark:text-slate-400">11 Mar</td>
+                                            <td class="px-6 py-4 font-medium">Assinatura Netflix</td>
+                                            <td class="px-6 py-4"><span
+                                                    class="px-2.5 py-1 bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 rounded-full text-xs font-medium">Assinaturas</span>
+                                            </td>
+                                            <td class="px-6 py-4">Mariana</td>
+                                            <td class="px-6 py-4 text-right font-semibold">- R$ 55,90</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar Budgets -->
+                        <div
+                            class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+                            <h3 class="font-semibold text-lg mb-4">Estado dos Tetos</h3>
+
+                            <div class="space-y-5">
+                                <div>
+                                    <div class="flex justify-between text-sm mb-2">
+                                        <span class="font-medium">Moradia</span>
+                                        <span class="font-medium">R$ 2.100 / 3.000</span>
+                                    </div>
+                                    <div class="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-success rounded-full" style="width: 70%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-2">
+                                        <span class="font-medium text-warning">Alimentação</span>
+                                        <span class="font-medium text-warning">R$ 1.850 / 2.000</span>
+                                    </div>
+                                    <div class="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-warning rounded-full" style="width: 92%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-2">
+                                        <span class="font-medium text-danger">Lazer</span>
+                                        <span class="font-medium text-danger">R$ 600 / 500</span>
+                                    </div>
+                                    <div class="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-danger rounded-full" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <img src="https://illustrations.popsy.co/amber/finance-app.svg"
+                                class="w-full mt-6 opacity-80" alt="Finance Graphic">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CATEGORIAS TAB -->
+                <div id="tab-categorias" class="hidden-tab">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold">Gestão de Categorias</h2>
+                        <button onclick="openModal('modal-categoria')"
+                            class="bg-primary hover:bg-violet-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center gap-2">
+                            <i class="ph-bold ph-plus"></i> Nova Categoria
+                        </button>
+                    </div>
+
+                    <div
+                        class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead
+                                class="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                                <tr>
+                                    <th class="px-6 py-4 font-medium">Nome da Categoria</th>
+                                    <th class="px-6 py-4 font-medium">Teto Estipulado</th>
+                                    <th class="px-6 py-4 font-medium">Gasto Atual</th>
+                                    <th class="px-6 py-4 font-medium text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                <tr>
+                                    <td class="px-6 py-4 font-medium flex items-center gap-2"><i
+                                            class="ph ph-house text-lg text-slate-400"></i> Moradia</td>
+                                    <td class="px-6 py-4">R$ 3.000,00</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <span>R$ 2.100,00</span>
+                                            <div class="w-20 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full">
+                                                <div class="h-full bg-success rounded-full" style="width:70%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-primary transition mr-2"><i
+                                                class="ph ph-pencil-simple text-lg"></i></button>
+                                        <button class="text-slate-400 hover:text-danger transition"><i
+                                                class="ph ph-trash text-lg"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 font-medium flex items-center gap-2"><i
+                                            class="ph ph-fork-knife text-lg text-slate-400"></i> Alimentação</td>
+                                    <td class="px-6 py-4">R$ 2.000,00</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-warning font-medium">R$ 1.850,00</span>
+                                            <div class="w-20 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full">
+                                                <div class="h-full bg-warning rounded-full" style="width:92%"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-primary transition mr-2"><i
+                                                class="ph ph-pencil-simple text-lg"></i></button>
+                                        <button class="text-slate-400 hover:text-danger transition"><i
+                                                class="ph ph-trash text-lg"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- CARTOES TAB -->
+                <div id="tab-cartoes" class="hidden-tab">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold">Meus Cartões</h2>
+                        <button onclick="openModal('modal-cartao')"
+                            class="bg-primary hover:bg-violet-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center gap-2">
+                            <i class="ph-bold ph-plus"></i> Adicionar Cartão
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- CC 1 -->
+                        <div
+                            class="bg-gradient-to-br from-violet-600 to-indigo-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group hover:scale-[1.02] transition">
+                            <div class="absolute top-0 right-0 p-4 opacity-30"><i
+                                    class="ph-fill ph-contactless-payment text-4xl"></i></div>
+                            <p class="font-medium opacity-80 mb-6">Nubank Ultravioleta</p>
+                            <div class="text-2xl font-mono tracking-widest mb-4">**** 4912</div>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-xs opacity-60">Titular</p>
+                                    <p class="font-medium text-sm">Mariana Costa</p>
+                                </div>
+                                <div
+                                    class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm shadow-sm">
+                                    Principal
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CC 2 -->
+                        <div
+                            class="bg-gradient-to-br from-slate-700 to-slate-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group hover:scale-[1.02] transition">
+                            <div class="absolute top-0 right-0 p-4 opacity-30"><i
+                                    class="ph-fill ph-contactless-payment text-4xl"></i></div>
+                            <p class="font-medium opacity-80 mb-6">Itaú Personnalité</p>
+                            <div class="text-2xl font-mono tracking-widest mb-4">**** 8831</div>
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-xs opacity-60">Titular</p>
+                                    <p class="font-medium text-sm">Thiago Costa</p>
+                                </div>
+                            </div>
+                            <!-- Delete overlay -->
+                            <div
+                                class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                <button
+                                    class="text-danger bg-danger/10 p-3 rounded-full hover:bg-danger hover:text-white transition">
+                                    <i class="ph ph-trash text-xl"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAMÍLIA TAB -->
+                <div id="tab-familia" class="hidden-tab">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold">Membros da Família</h2>
+                        <button onclick="openModal('modal-usuario')"
+                            class="bg-primary hover:bg-violet-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center gap-2">
+                            <i class="ph-bold ph-plus"></i> Convidar Membro
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- User 1 -->
+                        <div
+                            class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col items-center text-center">
+                            <img src="https://i.pravatar.cc/150?u=mariana" alt="Profile"
+                                class="w-20 h-20 rounded-full mb-4 ring-4 ring-primary/20">
+                            <h3 class="font-bold text-lg">Mariana Costa</h3>
+                            <p class="text-slate-500 dark:text-slate-400 text-sm mb-4">Administradora • PF & PJ</p>
+                            <span class="px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full">Conta
+                                Criadora</span>
+                        </div>
+
+                        <!-- User 2 -->
+                        <div
+                            class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col items-center text-center">
+                            <img src="https://i.pravatar.cc/150?u=thiago" alt="Profile"
+                                class="w-20 h-20 rounded-full mb-4 ring-4 ring-slate-100 dark:ring-slate-700">
+                            <h3 class="font-bold text-lg">Thiago Costa</h3>
+                            <p class="text-slate-500 dark:text-slate-400 text-sm mb-4">Membro • PF</p>
+                            <button
+                                class="text-sm font-medium border border-slate-300 dark:border-slate-600 px-4 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">Gerenciar</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Modal: Adicionar Categoria -->
+    <div id="modal-categoria" class="modal fixed inset-0 z-50 items-center justify-center">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModals()"></div>
+        <div
+            class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl relative z-10 border border-slate-200 dark:border-slate-700">
+            <div class="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <h3 class="font-bold text-lg">Nova Categoria</h3>
+                <button onclick="closeModals()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i
+                        class="ph ph-x text-xl"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nome da Categoria</label>
+                    <input type="text" placeholder="Ex: Viagens"
+                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Teto Mensal (Opcional)</label>
+                    <input type="number" placeholder="R$ 0,00"
+                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div class="pt-2">
+                    <button onclick="closeModals()"
+                        class="w-full bg-primary hover:bg-violet-700 text-white font-medium py-2.5 rounded-lg transition shadow-md shadow-primary/20">Salvar
+                        Categoria</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Adicionar Cartão -->
+    <div id="modal-cartao" class="modal fixed inset-0 z-50 items-center justify-center">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModals()"></div>
+        <div
+            class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl relative z-10 border border-slate-200 dark:border-slate-700">
+            <div class="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <h3 class="font-bold text-lg">Adicionar Cartão</h3>
+                <button onclick="closeModals()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i
+                        class="ph ph-x text-xl"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Apelido do Cartão</label>
+                    <input type="text" placeholder="Ex: Nubank Roxinho"
+                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Últimos 4 dígitos</label>
+                    <input type="text" maxlength="4" placeholder="1234"
+                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div class="pt-2">
+                    <button onclick="closeModals()"
+                        class="w-full bg-primary hover:bg-violet-700 text-white font-medium py-2.5 rounded-lg transition shadow-md shadow-primary/20">Adicionar
+                        à Laura</button>
+                    <p class="text-center text-xs text-slate-500 mt-3"><i class="ph-fill ph-lock-key"></i> Nunca pedimos
+                        senhas ou CCV.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Convidar Usuário -->
+    <div id="modal-usuario" class="modal fixed inset-0 z-50 items-center justify-center">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModals()"></div>
+        <div
+            class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl relative z-10 border border-slate-200 dark:border-slate-700">
+            <div class="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <h3 class="font-bold text-lg">Convidar para a Família</h3>
+                <button onclick="closeModals()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i
+                        class="ph ph-x text-xl"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Telefone (WhatsApp)</label>
+                    <div class="flex">
+                        <span
+                            class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 text-sm">
+                            +55
+                        </span>
+                        <input type="text" placeholder="(11) 99999-9999"
+                            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-r-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">A Laura enviará uma mensagem convite para este número.</p>
+                </div>
+                <div class="pt-2">
+                    <button onclick="closeModals()"
+                        class="w-full bg-success hover:bg-emerald-600 text-white font-medium py-2.5 rounded-lg transition shadow-md shadow-success/20 flex items-center justify-center gap-2">
+                        <i class="ph-fill ph-whatsapp-logo text-xl"></i> Enviar Convite
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Logic -->
+    <script>
+        // Theme toggler
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.classList.remove('ph-moon');
+                icon.classList.add('ph-sun');
+            } else {
+                html.classList.add('dark');
+                icon.classList.remove('ph-sun');
+                icon.classList.add('ph-moon');
+            }
+        }
+
+        // Tab Navigation
+        const titles = {
+            'dashboard': 'Dashboard Familiar',
+            'categorias': 'Categorias & Tetos',
+            'cartoes': 'Gerenciamento de Cartões',
+            'familia': 'Membros da Família'
+        };
+
+        function switchTab(tabId) {
+            // Update title
+            document.getElementById('page-title').innerText = titles[tabId];
+
+            // Hide all tabs
+            const tabs = document.querySelectorAll('main > div > div[id^="tab-"]');
+            tabs.forEach(t => {
+                t.classList.remove('active-tab');
+                t.classList.add('hidden-tab');
+            });
+
+            // Show selected tab
+            const target = document.getElementById(`tab-${tabId}`);
+            target.classList.remove('hidden-tab');
+            target.classList.add('active-tab');
+
+            // Update nav active states
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = 'nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100';
+            });
+            event.currentTarget.className = "nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition active bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary";
+        }
+
+        // Modals Logic
+        function openModal(id) {
+            document.getElementById(id).classList.add('open');
+        }
+
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
+        }
+    </script>
+</body>
+
+</html>

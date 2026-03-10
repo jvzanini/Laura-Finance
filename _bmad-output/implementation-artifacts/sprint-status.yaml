@@ -41,7 +41,7 @@ story_location: "{project-root}/_bmad-output/implementation-artifacts"
 
 development_status:
   epic-1: in-progress
-  1-1-core-infrastructure-project-setup: review
+  1-1-core-infrastructure-project-setup: done
   1-2-cadastro-inicial-de-administradores: backlog
   1-3-assinatura-e-integracao-checkout-saas: backlog
   1-4-disparo-acessos-e-comprovantes: backlog

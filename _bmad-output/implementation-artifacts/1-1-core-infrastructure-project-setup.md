@@ -1,6 +1,6 @@
 # Story 1.1: Core Infrastructure & Project Setup
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -82,6 +82,11 @@ Antigravity 1.5 Pro
 ### Completion Notes List
 
 Toda infraestrutura baseline foi instanciada sem intervenção com testes positivos na compilação do App Router (Next) e inicialização passiva do banco relacional puro com PgVector preparado para a Story 2 do Chatbot e processamento local.
+
+- ✅ Resolved review finding [High]: Cores Estritas Violadas
+- ✅ Resolved review finding [High]: Tema Obrigatório
+- ✅ Resolved review finding [Medium]: Falsa Alegação no GIT
+- ✅ Resolved review finding [Low]: README genérico e Metadados sujos
 
 ### File List
 

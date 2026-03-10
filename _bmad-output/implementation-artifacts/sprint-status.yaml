@@ -50,16 +50,16 @@ development_status:
   1-7-painel-privacidade-compliance-lgpd: done
   epic-1-retrospective: done
 
-  epic-2: in-progress
+  epic-2: done
   2-1-cadastro-seguro-multiplos-numeros: done
   2-2-conexao-websocket-whatsapp-api-go: done
   2-3-conversao-de-audio-para-texto: done
-  2-4-nlp-parsing-estruturacao-e-log: in-progress
+  2-4-nlp-parsing-estruturacao-e-log: done
   2-5-painel-conectores-instancias-whatsapp: done
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-visualizacao-transacoes-instantaneas: backlog
+  epic-3: in-progress
+  3-1-visualizacao-transacoes-instantaneas: in-progress
   3-2-botao-desfazer-un-do-via-chat: backlog
   3-3-curadoria-especializada-manual: backlog
   3-4-sistema-customizado-tags-multivariadas: backlog

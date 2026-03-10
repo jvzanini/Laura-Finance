@@ -92,5 +92,38 @@ func ProcessMessageFlow(workspaceID, phoneNumber, text, base64Audio string) {
 	}
 
 	fmt.Printf("[Background Goroutine Started] Passing to Brain/LLM... [%s]\n", finalText)
-	// Integration to Groq / NLP goes here in the next stories.
+
+	// Extraction with LLM
+	rawJsonStr, parsedTx, err := services.ExtractTransactionFromText(finalText)
+
+	// 1. Save Log Always
+	if db.Pool != nil {
+		logStatus := "processed"
+		if err != nil {
+			logStatus = "error"
+			log.Printf("[NLP Parsing Error]: %v\n", err)
+		} else if parsedTx.NeedsReview {
+			logStatus = "needs_review"
+		}
+
+		db.Pool.Exec(context.Background(),
+			`INSERT INTO message_logs (workspace_id, phone_number, raw_message, processed_json, status)
+			 VALUES ($1, $2, $3, $4, $5)`,
+			workspaceID, phoneNumber, finalText, rawJsonStr, logStatus,
+		)
+
+		// 2. Creates the Transaction if strictly extracted
+		if err == nil && parsedTx != nil {
+			_, insertErr := db.Pool.Exec(context.Background(),
+				`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date, confidence_score, needs_review)
+				 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6)`,
+				workspaceID, parsedTx.Amount, parsedTx.Type, parsedTx.Description, parsedTx.Confidence, parsedTx.NeedsReview,
+			)
+			if insertErr != nil {
+				log.Printf("[Transaction Insertion Error]: %v\n", insertErr)
+			} else {
+				log.Printf("✅ Transaction saved successfully: %s - $%.2f\n", parsedTx.Description, parsedTx.Amount)
+			}
+		}
+	}
 }

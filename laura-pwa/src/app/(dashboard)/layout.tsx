@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
+import { UpgradeDialog } from "@/components/features/UpgradeDialog";
 
 export default async function DashboardLayout({
     children,
@@ -25,6 +26,9 @@ export default async function DashboardLayout({
                         <div key={i} className="h-10 bg-muted/50 rounded-md animate-pulse" />
                     ))}
                 </nav>
+                <div className="p-4 border-t border-border mt-auto">
+                    <UpgradeDialog />
+                </div>
             </aside>
 
             {/* Main Content Area */}

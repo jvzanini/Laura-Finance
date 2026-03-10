@@ -7,7 +7,7 @@ export async function POST(req: Request) {
         const session = await getSession();
 
         if (!session || !session.userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const { origin } = new URL(req.url);
@@ -32,6 +32,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ url: stripeSession.url });
     } catch (error) {
         console.error("[STRIPE_ERROR]", error);
-        return new NextResponse("Internal Error", { status: 500 });
+        return NextResponse.json({ error: "Internal Error", message: error instanceof Error ? error.message : "Desconhecido" }, { status: 500 });
     }
 }

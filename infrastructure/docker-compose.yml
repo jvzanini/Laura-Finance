@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: laura_password
       POSTGRES_DB: laura_finance
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped

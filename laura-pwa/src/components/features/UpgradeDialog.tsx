@@ -15,9 +15,12 @@ export function UpgradeDialog() {
             const data = await response.json();
             if (data.url) {
                 window.location.href = data.url;
+            } else if (data.error) {
+                alert(`API Error: ${data.message || data.error}`);
             }
         } catch (error) {
-            console.error(error);
+            console.error("Erro inesperado no Request / Stripe:", error);
+            alert("Falha de Comunicação! (Verifique Console)");
         } finally {
             setLoading(false);
         }

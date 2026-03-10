@@ -20,11 +20,14 @@ export default async function DashboardLayout({
                 <div className="p-6 border-b border-border">
                     <h2 className="text-lg font-bold text-white tracking-widest uppercase">Laura</h2>
                 </div>
-                <nav className="flex-1 p-4 space-y-2">
+                <nav className="flex-1 p-4 space-y-2 flex flex-col">
                     {/* Menu Items skeleton map */}
-                    {[1, 2, 3, 4].map((i) => (
+                    {[1, 2, 3].map((i) => (
                         <div key={i} className="h-10 bg-muted/50 rounded-md animate-pulse" />
                     ))}
+                    <a href="/settings" className="h-10 mt-6 flex items-center justify-center rounded-md border border-destructive/50 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors">
+                        Meus Dados / LGPD
+                    </a>
                 </nav>
                 <div className="p-4 border-t border-border mt-auto">
                     <UpgradeDialog />

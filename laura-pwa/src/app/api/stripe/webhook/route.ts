@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import Stripe from "stripe";
+import { sendReceiptEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
     const body = await req.text();
@@ -50,7 +51,19 @@ export async function POST(req: Request) {
                 [subscription.id, subscription.customer as string, "active", workspaceId]
             );
 
+            // Fetch user email to send receipt
+            const emailRes = await client.query("SELECT email FROM users WHERE id = $1", [userId]);
+            const userEmail = emailRes.rows[0].email;
+
             await client.query("COMMIT");
+
+            // Send Receipt Email async post-commit
+            let amountFormatted = "R$ ...";
+            if (session.amount_total) {
+                amountFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(session.amount_total / 100);
+            }
+            await sendReceiptEmail(userEmail, "Plano Pro", amountFormatted);
+
         } catch (dbError) {
             await client.query("ROLLBACK");
             console.error("Failed to commit stripe details to DB", dbError);

@@ -4,6 +4,8 @@ import { CardWizard } from "@/components/features/CardWizard";
 import { CategoryBudget } from "@/components/features/CategoryBudget";
 import { MemberWizard } from "@/components/features/MemberWizard";
 import { RecentTransactionsFeed } from "@/components/features/RecentTransactionsFeed";
+import { DashboardChart } from "@/components/features/DashboardChart";
+import { DashboardHero } from "@/components/features/DashboardHero";
 
 export default function DashboardPage() {
     return (
@@ -21,32 +23,13 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Empty States (Skeletons based on Acceptance Criteria 1.2) */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {[1, 2, 3, 4].map((i) => (
-                    <Card key={i} className="bg-card">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <Skeleton className="h-4 w-[100px]" />
-                        </CardHeader>
-                        <CardContent>
-                            <Skeleton className="h-6 w-[80px]" />
-                            <div className="mt-4">
-                                <Skeleton className="h-2 w-full" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+            {/* Dynamic Dashboard Metrics Hero Section */}
+            <DashboardHero />
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-4 bg-card">
-                    <CardHeader>
-                        <CardTitle>Histórico Recente</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <Skeleton className="h-[250px] w-full" />
-                    </CardContent>
-                </Card>
+                {/* Visual Area Chart for expenditures history */}
+                <DashboardChart />
+
                 {/* WhatsApp mock moved or kept under it */}
                 <div className="col-span-3 space-y-4">
                     <CategoryBudget />

@@ -10,7 +10,7 @@ import (
 
 var Pool *pgxpool.Pool
 
-func ConnectDB() error {
+func GetDSN() string {
 	user := os.Getenv("POSTGRES_USER")
 	if user == "" {
 		user = "laura"
@@ -32,7 +32,11 @@ func ConnectDB() error {
 		dbName = "laura_finance"
 	}
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", user, password, host, port, dbName)
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, password, host, port, dbName)
+}
+
+func ConnectDB() error {
+	dsn := GetDSN()
 
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {

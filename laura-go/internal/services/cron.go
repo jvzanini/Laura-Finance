@@ -43,12 +43,12 @@ func runDailyBudgetCheck(sendMessageFunc func(to string, msg string)) {
 			  AND EXTRACT(YEAR FROM t.transaction_date) = EXTRACT(YEAR FROM CURRENT_DATE)
 			GROUP BY t.workspace_id, t.category_id
 		)
-		SELECT cs.workspace_id, c.name, cs.total_spent, c.budget_limit, u.phone_number
+		SELECT cs.workspace_id, c.name, cs.total_spent, c.monthly_limit_cents, u.phone_number
 		FROM current_spending cs
 		JOIN categories c ON c.id = cs.category_id
 		JOIN users u ON u.workspace_id = cs.workspace_id
-		WHERE cs.total_spent > c.budget_limit
-		  AND c.budget_limit > 0
+		WHERE cs.total_spent > c.monthly_limit_cents
+		  AND c.monthly_limit_cents > 0
 		  AND u.phone_number IS NOT NULL
 	`
 
@@ -61,8 +61,10 @@ func runDailyBudgetCheck(sendMessageFunc func(to string, msg string)) {
 
 	for rows.Next() {
 		var ws, catName, phone string
-		var spent, limit float64
-		if err := rows.Scan(&ws, &catName, &spent, &limit, &phone); err == nil {
+		var spentCents, limitCents int
+		if err := rows.Scan(&ws, &catName, &spentCents, &limitCents, &phone); err == nil {
+			spent := float64(spentCents) / 100.0
+			limit := float64(limitCents) / 100.0
 			msg := fmt.Sprintf("🚨 *Aviso Diário Limit:* Você já ultrapassou o teto previsto para *%s*! \nGastos Totais Mês: R$%.2f (Seu Teto: R$%.2f). \nTente segurar os gastos nesta categoria!", catName, spent, limit)
 			sendMessageFunc(phone, msg)
 		}

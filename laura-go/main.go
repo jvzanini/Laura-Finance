@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -37,6 +39,21 @@ func main() {
 		return c.SendString("Laura Finance Go API is healthy!")
 	})
 
+	app.Post("/api/whatsapp/validate", func(c *fiber.Ctx) error {
+		type ValidateReq struct {
+			Phone string `json:"phone"`
+		}
+		var req ValidateReq
+		if err := c.BodyParser(&req); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})
+		}
+		jid, err := whatsapp.ValidateWhatsAppNumber(req.Phone)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"jid": jid})
+	})
+
 	// Start WhatsApp Client
 	log.Println("Starting Whatsmeow Client...")
 	whatsapp.InitWhatsmeow()
@@ -50,7 +67,21 @@ func main() {
 	}
 
 	log.Printf("Starting Laura Go Server on port %s...", port)
-	if err := app.Listen(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+
+	go func() {
+		if err := app.Listen(":" + port); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	// Graceful Shutdown to preserve WhatsApp Persistent Connection (crucial for Whatsmeow)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+
+	log.Println("\n[System] Gracefully shutting down...")
+	if whatsapp.Client != nil {
+		whatsapp.Client.Disconnect()
 	}
+	log.Println("[WhatsApp] Successfully disconnected.")
 }

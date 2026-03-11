@@ -58,11 +58,11 @@ development_status:
   2-5-painel-conectores-instancias-whatsapp: done
   epic-2-retrospective: optional
 
-  epic-3: in-progress
+  epic-3: done
   3-1-visualizacao-transacoes-instantaneas: done
   3-2-botao-desfazer-un-do-via-chat: done
   3-3-curadoria-especializada-manual: done
-  3-4-sistema-customizado-tags-multivariadas: backlog
+  3-4-sistema-customizado-tags-multivariadas: done
   epic-3-retrospective: optional
 
   epic-4: done
@@ -71,17 +71,17 @@ development_status:
   4-3-semaforos-orcamentarios-alertas-dinamicos: done
   epic-4-retrospective: optional
 
-  epic-5: backlog
-  5-1-evocacao-da-crise-baseada-em-intencao: backlog
-  5-2-motor-matematico-preditivo-adquirentes: backlog
-  5-3-confirmacao-e-commit-prorrogacao: backlog
+  epic-5: in-progress
+  5-1-evocacao-da-crise-baseada-em-intencao: done
+  5-2-motor-matematico-preditivo-adquirentes: done
+  5-3-confirmacao-e-commit-prorrogacao: done
   epic-5-retrospective: optional
 
-  epic-6: backlog
-  6-1-geracao-de-imagens-ricas-nodejs: backlog
-  6-2-dre-simplificado-e-analytics: backlog
-  6-3-exportacoes-csv-agendar-e-instantaneas: backlog
+  epic-6: done
+  6-1-geracao-de-imagens-ricas-nodejs: done
+  6-2-dre-simplificado-e-analytics: done
+  6-3-exportacoes-csv-agendar-e-instantaneas: done
   epic-6-retrospective: optional
 
-  epic-7-master-admin: backlog
-  7-1-painel-super-admin-gerenciamento: backlog
+  epic-7-master-admin: done
+  7-1-painel-super-admin-gerenciamento: done

@@ -26,6 +26,28 @@ export async function addPhoneAction(formData: FormData) {
             return { error: "Número inválido. Insira código do país, DDD e telefone." };
         }
 
+        // Validate number via the Laura-Go endpoint
+        try {
+            const validateRes = await fetch("http://127.0.0.1:8080/api/whatsapp/validate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: phone_number })
+            });
+
+            if (!validateRes.ok) {
+                const msg = await validateRes.json();
+                return { error: msg.error || "Este número não possui WhatsApp associado ou foi digitado incorretamente." };
+            }
+
+            const data = await validateRes.json();
+            if (data.jid) {
+                phone_number = data.jid;
+            }
+        } catch (apiErr) {
+            console.error("WhatsApp validation API failed:", apiErr);
+            return { error: "Falha ao validar o número. A interface backend (Laura-Go) está offline ou inacessível." };
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query("SELECT workspace_id, role FROM users WHERE id = $1", [session.userId]);
@@ -56,5 +78,52 @@ export async function addPhoneAction(formData: FormData) {
     } catch (err) {
         console.error("DB Save Phone Error:", err);
         return { error: "Erro ao cadastrar autorização do número. " };
+    }
+}
+
+export async function fetchPhonesAction() {
+    try {
+        const session = await getSession();
+        if (!session || !session.userId) return { error: "Sem sessão." };
+
+        const res = await pool.query(
+            `SELECT p.id, p.name, p.phone_number, p.role 
+             FROM phones p
+             JOIN users u ON u.workspace_id = p.workspace_id
+             WHERE u.id = $1
+             ORDER BY p.created_at ASC`,
+            [session.userId]
+        );
+        return { phones: res.rows };
+    } catch (err) {
+        console.error("Fetch phones error:", err);
+        return { error: "Erro ao buscar membros." };
+    }
+}
+
+export async function deletePhoneAction(id: string) {
+    try {
+        const session = await getSession();
+        if (!session || !session.userId) return { error: "Acesso negado." };
+
+        const client = await pool.connect();
+        try {
+            const userRes = await client.query("SELECT workspace_id, role FROM users WHERE id = $1", [session.userId]);
+            const { workspace_id, role } = userRes.rows[0];
+
+            if (role !== "proprietário" && role !== "administrador") {
+                return { error: "Sem privilégios." };
+            }
+
+            await client.query("DELETE FROM phones WHERE id = $1 AND workspace_id = $2", [id, workspace_id]);
+        } finally {
+            client.release();
+        }
+
+        revalidatePath("/dashboard");
+        return { success: true };
+    } catch (err) {
+        console.error("Delete phone error:", err);
+        return { error: "Erro ao excluir." };
     }
 }

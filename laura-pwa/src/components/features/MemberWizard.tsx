@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addPhoneAction } from "@/lib/actions/phones";
-import { Users } from "lucide-react";
+import { addPhoneAction, fetchPhonesAction, deletePhoneAction } from "@/lib/actions/phones";
+import { Users, Trash2 } from "lucide-react";
 
 export function MemberWizard() {
     const [open, setOpen] = useState(false);
@@ -18,6 +18,18 @@ export function MemberWizard() {
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
     const [role, setRole] = useState("membro");
+
+    const [members, setMembers] = useState<any[]>([]);
+
+    const loadMembers = async () => {
+        const res = await fetchPhonesAction();
+        if (res.phones) setMembers(res.phones);
+    };
+
+    // Load list when modal opens
+    if (open && members.length === 0) {
+        loadMembers();
+    }
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -37,13 +49,20 @@ export function MemberWizard() {
             setErrorMsg(res.error);
         } else {
             setSuccess(true);
+            loadMembers();
             setTimeout(() => {
-                setOpen(false);
                 setSuccess(false);
                 setName("");
                 setPhone("");
+                setOpen(false);
             }, 2000);
         }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Remover acesso ao WhatsApp deste membro?")) return;
+        setMembers(prev => prev.filter(m => m.id !== id));
+        await deletePhoneAction(id);
     };
 
     return (
@@ -55,7 +74,7 @@ export function MemberWizard() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Membros do PWA</DialogTitle>
+                    <DialogTitle>Cadastrar Membro</DialogTitle>
                     <DialogDescription>
                         Associe um novo número do WhatsApp que estará liberado para interagir com a Laura neste orçamento compartilhado.
                     </DialogDescription>
@@ -74,8 +93,8 @@ export function MemberWizard() {
                                 </div>
                             )}
                             <div className="space-y-2">
-                                <Label>Nome Completo / Parentesco</Label>
-                                <Input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Esposa" />
+                                <Label>Nome do Membro</Label>
+                                <Input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Esposa, Filho, João..." />
                             </div>
                             <div className="space-y-2">
                                 <Label>WhatsApp Formato Internacional</Label>
@@ -83,7 +102,7 @@ export function MemberWizard() {
                                 <p className="text-xs text-muted-foreground">Digite apenas números com DDI. Ex: Brasil (55) + DDD (11) + Número</p>
                             </div>
                             <div className="space-y-2">
-                                <Label>Permissão de Acesso PWA / Laura</Label>
+                                <Label>Permissão de Acesso</Label>
                                 <Select value={role} onValueChange={(val) => setRole(val as string)}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
@@ -95,12 +114,31 @@ export function MemberWizard() {
                             </div>
                         </form>
                     )}
+
+                    {!success && members.length > 0 && (
+                        <div className="mt-6 border-t pt-4">
+                            <Label className="mb-2 block text-muted-foreground">Membros Autorizados ({members.length})</Label>
+                            <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
+                                {members.map(m => (
+                                    <div key={m.id} className="flex justify-between items-center text-sm p-2 bg-muted/20 rounded-md">
+                                        <div>
+                                            <p className="font-bold">{m.name}</p>
+                                            <p className="text-xs text-muted-foreground">+{m.phone_number} • {m.role}</p>
+                                        </div>
+                                        <button onClick={() => handleDelete(m.id)} className="text-muted-foreground hover:text-destructive p-1" title="Excluir Membro">
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter>
                     {!success && (
                         <Button form="memberForm" type="submit" disabled={loading} className="w-full">
-                            {loading ? "Liberando Chave..." : "Liberar WhatsApp deste Usuário"}
+                            {loading ? "Validando e Cadastrando..." : "Cadastrar Membro"}
                         </Button>
                     )}
                 </DialogFooter>

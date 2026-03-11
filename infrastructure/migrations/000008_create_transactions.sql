@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
     card_id UUID REFERENCES cards(id) ON DELETE SET NULL, -- Se foi num cartão, qual cartão
     category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
-    amount DECIMAL(12,2) NOT NULL, -- Valores em modulo (positivos)
+    amount INTEGER NOT NULL, -- Valores em modulo (positivos) em centavos
     type VARCHAR(20) NOT NULL, -- "expense" ou "income"
     description VARCHAR(255) NOT NULL,
     transaction_date TIMESTAMP WITH TIME ZONE NOT NULL,

@@ -21,12 +21,14 @@ type GroqCompletionRequest struct {
 }
 
 type ParsedTransactionDef struct {
-	Amount      float64  `json:"amount"`
-	Description string   `json:"description"`
-	Type        string   `json:"type"` // "expense" or "income"
-	Labels      []string `json:"labels"`
-	Confidence  float64  `json:"confidence"`
-	NeedsReview bool     `json:"needs_review"`
+	Amount       float64  `json:"amount"`
+	Description  string   `json:"description"`
+	Type         string   `json:"type"` // "expense" or "income"
+	Labels       []string `json:"labels"`
+	Confidence   float64  `json:"confidence"`
+	NeedsReview  bool     `json:"needs_review"`
+	IsCrisis     bool     `json:"is_crisis"`
+	CrisisReason string   `json:"crisis_reason,omitempty"`
 	// Futuramente map categories and cards ids by name based on workspace context
 }
 
@@ -49,7 +51,9 @@ O JSON deve seguir a estrutura exata:
   "type": "<string, 'expense' ou 'income'>",
   "labels": ["<string>", "<string>"], // extraia contextos como tags simples sem #, max 3. Exemplo: ["viagem", "refeição"]
   "confidence": <number, 0.0 to 1.0 de certeza sobre os dados extraídos>,
-  "needs_review": <boolean, true se o texto for confuso ou incompleto>
+  "needs_review": <boolean, true se o texto for confuso ou incompleto>,
+  "is_crisis": <boolean, true se o usuário disser que não vai conseguir pagar, está endividado ou pedindo para adiar/rolar dívida>,
+  "crisis_reason": "<string, extraia o motivo da crise se houver>"
 }
 
 Exemplo:
@@ -61,7 +65,22 @@ RESPOSTA:
   "type": "expense",
   "labels": ["lanche"],
   "confidence": 0.95,
-  "needs_review": false
+  "needs_review": false,
+  "is_crisis": false
+}
+
+Exemplo 2:
+USER: "Não vou conseguir pagar o Itaú, a fatura veio 6000 e só tenho 2000"
+RESPOSTA:
+{
+  "amount": 6000,
+  "description": "Fatura Itaú",
+  "type": "expense",
+  "labels": ["fatura"],
+  "confidence": 0.98,
+  "needs_review": false,
+  "is_crisis": true,
+  "crisis_reason": "Só tem 2000 para pagar a fatura de 6000"
 }`
 
 	reqBody := GroqCompletionRequest{

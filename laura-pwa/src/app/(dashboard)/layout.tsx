@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { UpgradeDialog } from "@/components/features/UpgradeDialog";
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 
 export default async function DashboardLayout({
     children,
@@ -14,31 +16,18 @@ export default async function DashboardLayout({
     }
 
     return (
-        <div className="flex h-screen bg-background text-foreground overflow-hidden">
-            {/* Sidebar Placeholder */}
-            <aside className="w-64 border-r border-border hidden md:flex flex-col bg-card/30 backdrop-blur-sm">
-                <div className="p-6 border-b border-border">
-                    <h2 className="text-lg font-bold text-white tracking-widest uppercase">Laura</h2>
+        <SidebarProvider>
+            <AppSidebar />
+            <main className="flex-1 overflow-y-auto w-full pt-4 md:p-8">
+                <div className="md:hidden p-4 mb-2 flex justify-between items-center border-b pb-4">
+                    <SidebarTrigger />
+                    <h2 className="text-xl font-black text-primary tracking-widest uppercase">Laura</h2>
+                    <div />
                 </div>
-                <nav className="flex-1 p-4 space-y-2 flex flex-col">
-                    {/* Menu Items */}
-                    <a href="/dashboard" className="h-10 flex items-center px-4 rounded-md bg-muted/50 text-white font-semibold">
-                        Dashboard
-                    </a>
-                    <div className="h-10 bg-muted/20 rounded-md animate-pulse mt-4" />
-                    <a href="/settings" className="h-10 mt-6 flex items-center justify-center rounded-md border border-destructive/50 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors">
-                        Meus Dados / LGPD
-                    </a>
-                </nav>
-                <div className="p-4 border-t border-border mt-auto">
-                    <UpgradeDialog />
+                <div className="px-4">
+                    {children}
                 </div>
-            </aside>
-
-            {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto p-4 md:p-8">
-                {children}
             </main>
-        </div>
+        </SidebarProvider>
     );
 }

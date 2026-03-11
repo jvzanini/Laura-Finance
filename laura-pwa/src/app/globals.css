@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -38,6 +38,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -71,7 +73,9 @@
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --radius: 0.625rem;
+  --radius: 0.75rem;
+  --warning: #F59E0B;
+  --success: #10B981;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -82,48 +86,97 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* ==============================================
+   DARK THEME — Laura Finance Premium Palette
+   Based on UX Design Specification
+   Violeta #7C3AED | Verde-Money #10B981
+   Deep-Slate #0A0A0F | Card #0F0F17
+   ============================================== */
 .dark {
   --background: #0A0A0F;
   --foreground: #FAFAFA;
-  --card: #12121A;
+  --card: #0F0F17;
   --card-foreground: #FAFAFA;
-  --popover: #12121A;
+  --popover: #0F0F17;
   --popover-foreground: #FAFAFA;
   --primary: #7C3AED;
   --primary-foreground: #FFFFFF;
-  --secondary: #10B981;
-  --secondary-foreground: #FFFFFF;
+  --secondary: #1A1A28;
+  --secondary-foreground: #FAFAFA;
   --muted: #1A1A24;
-  --muted-foreground: #A1A1AA;
-  --accent: #1A1A24;
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --muted-foreground: #9B9BA8;
+  --accent: #1E1E2E;
+  --accent-foreground: #FAFAFA;
+  --destructive: #EF4444;
+  --border: #262633;
+  --input: #262633;
+  --ring: #7C3AED;
+  --warning: #F59E0B;
+  --success: #10B981;
+  --chart-1: #7C3AED;
+  --chart-2: #10B981;
+  --chart-3: #3B82F6;
+  --chart-4: #F59E0B;
+  --chart-5: #EF4444;
+  --sidebar: #0A0A12;
+  --sidebar-foreground: #FAFAFA;
+  --sidebar-primary: #7C3AED;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1E1E2E;
+  --sidebar-accent-foreground: #FAFAFA;
+  --sidebar-border: #262633;
+  --sidebar-ring: #7C3AED;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-variant-numeric: tabular-nums;
   }
+
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
+}
+
+/* Scrollbar styling for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0A0A0F;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #262633;
+  border-radius: 999px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3a3a4a;
+}
+
+/* Glow effects for cards */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.15), 0 0 60px rgba(124, 58, 237, 0.05);
+}
+
+.glow-success {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15), 0 0 60px rgba(16, 185, 129, 0.05);
+}
+
+.glow-warning {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.15), 0 0 60px rgba(245, 158, 11, 0.05);
+}
+
+.glow-destructive {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.15), 0 0 60px rgba(239, 68, 68, 0.05);
 }

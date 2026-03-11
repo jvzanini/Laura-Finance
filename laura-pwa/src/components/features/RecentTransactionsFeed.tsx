@@ -1,13 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchRecentTransactionsAction, deleteTransactionAction, updateTransactionCategoryAction, Transaction } from "@/lib/actions/transactions";
+import {
+    fetchRecentTransactionsAction,
+    deleteTransactionAction,
+    updateTransactionCategoryAction,
+    Transaction,
+} from "@/lib/actions/transactions";
 import { fetchCategorySummariesAction } from "@/lib/actions/categories";
-import { ArrowDownRight, ArrowUpRight, Clock, AlertTriangle, Trash2, CheckCircle2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    ArrowDownRight,
+    ArrowUpRight,
+    Clock,
+    AlertTriangle,
+    Trash2,
+    MessageCircle,
+} from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function RecentTransactionsFeed() {
     const [transactions, setTransactions] = useState<Transaction[] | null>(null);
-    const [categories, setCategories] = useState<{ id: string, name: string }[]>([]);
+    const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -15,15 +29,10 @@ export function RecentTransactionsFeed() {
             setLoading(true);
             const [res, catRes] = await Promise.all([
                 fetchRecentTransactionsAction(),
-                fetchCategorySummariesAction()
+                fetchCategorySummariesAction(),
             ]);
-
-            if (res.transactions) {
-                setTransactions(res.transactions);
-            }
-            if (catRes.categories) {
-                setCategories(catRes.categories);
-            }
+            if (res.transactions) setTransactions(res.transactions);
+            if (catRes.categories) setCategories(catRes.categories);
             setLoading(false);
         };
         load();
@@ -31,28 +40,25 @@ export function RecentTransactionsFeed() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("Tem certeza que deseja excluir esta transação?")) return;
-
-        // Optimistic UI update
-        setTransactions(prev => prev ? prev.filter(t => t.id !== id) : null);
-
+        setTransactions((prev) => (prev ? prev.filter((t) => t.id !== id) : null));
         const res = await deleteTransactionAction(id);
         if (res.error) {
             alert(res.error);
-            // On error we should idealistically rollback, but reloading is safer
             const reloadRes = await fetchRecentTransactionsAction();
             if (reloadRes.transactions) setTransactions(reloadRes.transactions);
         }
     };
 
     const handleCategoryChange = async (txId: string, categoryId: string, categoryName: string) => {
-        // Optimistic UI update
-        setTransactions(prev => prev ? prev.map(t => {
-            if (t.id === txId) {
-                return { ...t, categoryName, needsReview: false, confidenceScore: 1.0 };
-            }
-            return t;
-        }) : null);
-
+        setTransactions((prev) =>
+            prev
+                ? prev.map((t) =>
+                    t.id === txId
+                        ? { ...t, categoryName, needsReview: false, confidenceScore: 1.0 }
+                        : t
+                )
+                : null
+        );
         const res = await updateTransactionCategoryAction(txId, categoryId);
         if (res.error) {
             alert(res.error);
@@ -61,92 +67,138 @@ export function RecentTransactionsFeed() {
         }
     };
 
+    const fmt = (v: number) =>
+        new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
     if (loading) {
         return (
-            <div className="w-full h-48 bg-muted/20 animate-pulse rounded-box mt-6" />
+            <Card className="border-border/50 bg-card">
+                <CardHeader><Skeleton className="h-5 w-40" /></CardHeader>
+                <CardContent className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center gap-3 p-3">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-24" />
+                            </div>
+                            <Skeleton className="h-5 w-20" />
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
         );
     }
 
     if (!transactions || transactions.length === 0) {
         return (
-            <div className="w-full mt-6 bg-card border border-border p-8 rounded-xl text-center flex flex-col items-center">
-                <Clock className="w-12 h-12 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-bold text-white mb-2">Nenhum Lançamento Encontrado</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">Mande a sua primeira mensagem de gasto via WhatsApp para exibir aqui sua primeira transação automática AI.</p>
-            </div>
+            <Card className="border-border/50 bg-card border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                        <MessageCircle className="h-7 w-7 text-primary" />
+                    </div>
+                    <h3 className="text-base font-semibold mb-1">Nenhuma transação ainda</h3>
+                    <p className="text-sm text-muted-foreground max-w-xs">
+                        Mande seu primeiro gasto para a Laura no WhatsApp e ele aparecerá aqui automaticamente.
+                    </p>
+                </CardContent>
+            </Card>
         );
     }
 
     return (
-        <div className="w-full mt-6 bg-card border border-border rounded-xl overflow-hidden shadow-lg">
-            <div className="p-4 border-b border-border bg-muted/10 font-bold flex justify-between items-center">
-                Lançamentos Recentes
-                <span className="text-xs font-normal text-muted-foreground">Últimas {transactions.length}</span>
-            </div>
-
-            <div className="divide-y divide-border">
-                {transactions.map(tx => (
-                    <div key={tx.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-muted/10 transition-colors gap-4">
-                        <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <div className={`p-3 rounded-full flex-shrink-0 ${tx.type === "expense" ? "bg-red-500/20 text-red-500" : "bg-emerald-500/20 text-emerald-500"
-                                }`}>
-                                {tx.type === "expense" ? <ArrowDownRight size={20} /> : <ArrowUpRight size={20} />}
+        <Card className="border-border/50 bg-card">
+            <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-semibold">Últimas Transações</CardTitle>
+                    <span className="text-xs text-muted-foreground font-mono">
+                        {transactions.length} registros
+                    </span>
+                </div>
+            </CardHeader>
+            <CardContent className="p-0">
+                <div className="divide-y divide-border/50">
+                    {transactions.map((tx) => (
+                        <div
+                            key={tx.id}
+                            className="flex items-center gap-3 px-5 py-3.5 hover:bg-accent/50 transition-colors group"
+                        >
+                            {/* Icon */}
+                            <div
+                                className={`flex items-center justify-center h-9 w-9 rounded-full shrink-0 ${tx.type === "expense"
+                                        ? "bg-red-500/10 text-red-400"
+                                        : "bg-emerald-500/10 text-emerald-400"
+                                    }`}
+                            >
+                                {tx.type === "expense" ? (
+                                    <ArrowDownRight className="h-4 w-4" />
+                                ) : (
+                                    <ArrowUpRight className="h-4 w-4" />
+                                )}
                             </div>
 
-                            <div>
-                                <h4 className="font-semibold text-white capitalize">{tx.description}</h4>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium mt-1">
-                                    <span>{new Date(tx.date).toLocaleDateString("pt-BR", { day: '2-digit', month: 'short' })} às {new Date(tx.date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</span>
-                                    <span>•</span>
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate capitalize">{tx.description}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-[11px] text-muted-foreground">
+                                        {new Date(tx.date).toLocaleDateString("pt-BR", {
+                                            day: "2-digit",
+                                            month: "short",
+                                        })}
+                                    </span>
+                                    <span className="text-muted-foreground/40">·</span>
+                                    {/* Category selector */}
                                     <div className="relative inline-block">
                                         <select
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                             value=""
                                             onChange={(e) => {
-                                                const sel = categories.find(c => c.id === e.target.value);
+                                                const sel = categories.find((c) => c.id === e.target.value);
                                                 if (sel) handleCategoryChange(tx.id, sel.id, sel.name);
                                             }}
                                         >
-                                            <option value="" disabled>Trocar de Categoria</option>
-                                            {categories.map(c => (
+                                            <option value="" disabled>Trocar</option>
+                                            {categories.map((c) => (
                                                 <option key={c.id} value={c.id}>{c.name}</option>
                                             ))}
                                         </select>
-                                        <span className="bg-primary/20 text-primary hover://bg-primary/30 cursor-pointer px-1.5 py-0.5 rounded-md transition-colors relative pointer-events-none">
-                                            {tx.categoryName} <span className="text-[10px] opacity-70 ml-1">▼</span>
+                                        <span className="text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium cursor-pointer hover:bg-primary/20 transition-colors">
+                                            {tx.categoryName}
+                                            <span className="ml-0.5 opacity-60 text-[9px]">▼</span>
                                         </span>
                                     </div>
-                                    {tx.tags && tx.tags.length > 0 && tx.tags.map((tag, i) => (
-                                        <span key={i} className="bg-accent/40 text-accent-foreground px-1.5 py-0.5 rounded-md truncate max-w-[80px]">#{tag}</span>
-                                    ))}
+                                    {/* Review badge */}
+                                    {(tx.needsReview || tx.confidenceScore < 0.8) && (
+                                        <span className="flex items-center gap-0.5 text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded font-bold">
+                                            <AlertTriangle className="h-2.5 w-2.5" />
+                                            IA
+                                        </span>
+                                    )}
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0">
-                            {(tx.needsReview || tx.confidenceScore < 0.8) && (
-                                <div className="text-amber-500 flex items-center gap-1 text-xs font-bold animate-pulse bg-amber-500/10 px-2 py-1 rounded-md" title="Média Confiança IA">
-                                    <AlertTriangle size={14} /> AI Review
-                                </div>
-                            )}
-
-                            <span className={`font-mono font-bold whitespace-nowrap text-lg ${tx.type === "expense" ? "text-white" : "text-emerald-400"
-                                }`}>
+                            {/* Amount */}
+                            <span
+                                className={`text-sm font-mono font-bold whitespace-nowrap ${tx.type === "expense" ? "text-foreground" : "text-emerald-400"
+                                    }`}
+                            >
                                 {tx.type === "expense" ? "-" : "+"}
-                                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(tx.amount)}
+                                {fmt(tx.amount)}
                             </span>
 
+                            {/* Delete */}
                             <button
                                 onClick={() => handleDelete(tx.id)}
-                                className="p-2 text-muted-foreground hover:bg-destructive/20 hover:text-destructive rounded-md transition-colors"
-                                title="Desfazer/Excluir Transação"
+                                className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-all"
+                                title="Excluir"
                             >
-                                <Trash2 size={16} />
+                                <Trash2 className="h-3.5 w-3.5" />
                             </button>
                         </div>
-                    </div>
-                ))}
-            </div>
-        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
     );
 }

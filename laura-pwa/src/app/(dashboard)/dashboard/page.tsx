@@ -1,5 +1,3 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardWizard } from "@/components/features/CardWizard";
 import { CategoryBudget } from "@/components/features/CategoryBudget";
 import { MemberWizard } from "@/components/features/MemberWizard";
@@ -9,50 +7,38 @@ import { DashboardHero } from "@/components/features/DashboardHero";
 
 export default function DashboardPage() {
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex flex-col space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
-                    <p className="text-muted-foreground">
-                        Bem-vindo de volta! Aqui está o resumo das suas finanças.
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Page Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                        Visão geral das suas finanças em tempo real.
                     </p>
                 </div>
-                <div className="flex gap-2 items-center flex-col sm:flex-row w-full md:w-auto">
+                <div className="flex gap-2 flex-wrap">
                     <MemberWizard />
                     <CardWizard />
                 </div>
             </div>
 
-            {/* Dynamic Dashboard Metrics Hero Section */}
+            {/* Metric Cards */}
             <DashboardHero />
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                {/* Visual Area Chart for expenditures history */}
-                <DashboardChart />
+            {/* Charts + Sidebar Grid */}
+            <div className="grid gap-6 lg:grid-cols-5">
+                {/* Main Chart — 3 cols */}
+                <div className="lg:col-span-3">
+                    <DashboardChart />
+                </div>
 
-                {/* WhatsApp mock moved or kept under it */}
-                <div className="col-span-3 space-y-4">
+                {/* Category Budgets — 2 cols */}
+                <div className="lg:col-span-2">
                     <CategoryBudget />
-
-                    <Card className="bg-card">
-                        <CardHeader>
-                            <CardTitle>Últimas Movimentações via WhatsApp</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {[1, 2].map((i) => (
-                                <div key={i} className="flex items-center space-x-4">
-                                    <Skeleton className="h-10 w-10 rounded-full" />
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-4 w-[150px]" />
-                                        <Skeleton className="h-3 w-[100px]" />
-                                    </div>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
                 </div>
             </div>
 
+            {/* Recent Transactions */}
             <RecentTransactionsFeed />
         </div>
     );

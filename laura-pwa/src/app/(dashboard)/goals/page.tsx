@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Target, Plus, Plane, Car, Home, Smartphone, PiggyBank, GraduationCap, Heart, Trophy, X } from "lucide-react";
+import { Target, Plus, Plane, Car, Home, Smartphone, PiggyBank, GraduationCap, Heart, Trophy, X, Loader2 } from "lucide-react";
+import { fetchGoalsAction, addGoalAction } from "@/lib/actions/goals";
 
 type Goal = {
     id: string;
     name: string;
     icon: string;
+    emoji?: string;
     targetAmount: number;
     currentAmount: number;
     deadline: string;
@@ -30,26 +32,7 @@ const PRESET_GOALS = [
     { name: "Investimento Inicial", icon: "🏆", color: "#F97316" },
 ];
 
-const MOCK_GOALS: Goal[] = [
-    {
-        id: "1", name: "Viagem para Europa", icon: "✈️",
-        targetAmount: 2500000, currentAmount: 1820000,
-        deadline: "2026-12-15", description: "Viagem de 15 dias pela Europa com a Maria Laura",
-        color: "#3B82F6",
-    },
-    {
-        id: "2", name: "Fundo de Emergência", icon: "🐷",
-        targetAmount: 5000000, currentAmount: 3250000,
-        deadline: "2027-06-01", description: "Reserva de 6 meses de gastos essenciais",
-        color: "#EF4444",
-    },
-    {
-        id: "3", name: "MacBook Pro", icon: "📱",
-        targetAmount: 1800000, currentAmount: 450000,
-        deadline: "2026-08-01", description: "MacBook Pro M4 para produtividade",
-        color: "#8B5CF6",
-    },
-];
+
 
 function fmt(cents: number) {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -74,7 +57,7 @@ function GoalCard({ goal }: { goal: Goal }) {
                         className="h-12 w-12 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-lg"
                         style={{ backgroundColor: `${goal.color}15`, boxShadow: `0 4px 16px ${goal.color}15` }}
                     >
-                        {goal.icon}
+                        {goal.icon || goal.emoji}
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-bold truncate">{goal.name}</h3>
@@ -127,7 +110,9 @@ function GoalCard({ goal }: { goal: Goal }) {
 }
 
 export default function GoalsPage() {
-    const [goals] = useState(MOCK_GOALS);
+    const [goals, setGoals] = useState<Goal[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
     const [goalName, setGoalName] = useState("");
@@ -135,9 +120,54 @@ export default function GoalsPage() {
     const [goalDeadline, setGoalDeadline] = useState("");
     const [goalDesc, setGoalDesc] = useState("");
 
+    useEffect(() => {
+        loadGoals();
+    }, []);
+
+    const loadGoals = async () => {
+        setLoading(true);
+        const res = await fetchGoalsAction();
+        if (res.goals) {
+            setGoals(res.goals.map((g: any) => ({ ...g, icon: g.emoji || "🎯" })) as Goal[]);
+        }
+        setLoading(false);
+    };
+
     const handlePresetSelect = (preset: typeof PRESET_GOALS[0]) => {
         setSelectedPreset(preset.name);
         setGoalName(preset.name);
+    };
+
+    const handleSubmit = async () => {
+        if (!goalName || !goalTarget || !goalDeadline) return;
+        setSubmitting(true);
+        
+        const presetObj = PRESET_GOALS.find(p => p.name === selectedPreset);
+        
+        const formData = new FormData();
+        formData.append("name", goalName);
+        formData.append("target", goalTarget);
+        formData.append("deadline", goalDeadline);
+        if (goalDesc) formData.append("description", goalDesc);
+        if (presetObj) {
+            formData.append("emoji", presetObj.icon);
+            formData.append("color", presetObj.color);
+        }
+
+        const res = await addGoalAction(formData);
+        
+        setSubmitting(false);
+        if (res?.success) {
+            await loadGoals();
+            setShowForm(false);
+            setGoalName("");
+            setGoalTarget("");
+            setGoalDeadline("");
+            setGoalDesc("");
+            setSelectedPreset(null);
+        } else {
+            alert(res?.error || "Erro ao criar meta");
+        }
     };
 
     return (
@@ -230,47 +260,61 @@ export default function GoalsPage() {
                         </div>
 
                         <div className="flex gap-2 justify-end">
-                            <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>
+                            <Button variant="ghost" size="sm" onClick={() => setShowForm(false)} disabled={submitting}>
                                 Cancelar
                             </Button>
-                            <Button size="sm">Criar Objetivo</Button>
+                            <Button size="sm" onClick={handleSubmit} disabled={submitting}>
+                                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Criar Objetivo
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
             )}
 
-            {/* Summary Cards */}
-            <div className="grid gap-4 sm:grid-cols-3">
-                <Card className="border-border/50 bg-card">
-                    <CardContent className="p-4 text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Total Acumulado</p>
-                        <p className="text-xl font-bold font-mono text-emerald-500">
-                            {fmt(goals.reduce((s, g) => s + g.currentAmount, 0))}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card className="border-border/50 bg-card">
-                    <CardContent className="p-4 text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Meta Total</p>
-                        <p className="text-xl font-bold font-mono text-primary">
-                            {fmt(goals.reduce((s, g) => s + g.targetAmount, 0))}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card className="border-border/50 bg-card">
-                    <CardContent className="p-4 text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Objetivos Ativos</p>
-                        <p className="text-xl font-bold font-mono">{goals.length}</p>
-                    </CardContent>
-                </Card>
-            </div>
+            {loading ? (
+                <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            ) : (
+                <>
+                    {/* Summary Cards */}
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        <Card className="border-border/50 bg-card">
+                            <CardContent className="p-4 text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Total Acumulado</p>
+                                <p className="text-xl font-bold font-mono text-emerald-500">
+                                    {fmt(goals.reduce((s, g) => s + g.currentAmount, 0))}
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-border/50 bg-card">
+                            <CardContent className="p-4 text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Meta Total</p>
+                                <p className="text-xl font-bold font-mono text-primary">
+                                    {fmt(goals.reduce((s, g) => s + g.targetAmount, 0))}
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-border/50 bg-card">
+                            <CardContent className="p-4 text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Objetivos Ativos</p>
+                                <p className="text-xl font-bold font-mono">{goals.length}</p>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-            {/* Goals Grid */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {goals.map((goal) => (
-                    <GoalCard key={goal.id} goal={goal} />
-                ))}
-            </div>
+                    {/* Goals Grid */}
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        {goals.length === 0 && !showForm && (
+                           <div className="col-span-full py-12 text-center text-muted-foreground border-2 border-dashed rounded-2xl">
+                               Nenhum objetivo cadastrado.
+                           </div>
+                        )}
+                        {goals.map((goal) => (
+                            <GoalCard key={goal.id} goal={goal} />
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 }

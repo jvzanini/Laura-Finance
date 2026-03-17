@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,8 @@ import {
     Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
     DialogTrigger, DialogFooter
 } from "@/components/ui/dialog";
-import { CreditCard, Plus, Calendar, AlertCircle, Building2, User, Trash2, Edit2 } from "lucide-react";
+import { CreditCard, Plus, Calendar, AlertCircle, Building2, User, Trash2, Edit2, Loader2 } from "lucide-react";
+import { fetchCardsAction, deleteCardAction, addCardAction } from "@/lib/actions/cards";
 
 type CardData = {
     id: string;
@@ -25,13 +26,6 @@ type CardData = {
     holder: string;
     creditLimit: number;
 };
-
-const INITIAL_CARDS: CardData[] = [
-    { id: "1", name: "Nubank JV", brand: "Mastercard", type: "ambos", color: "#8B5CF6", lastFour: "4455", closingDay: 20, dueDay: 27, bankBroker: "Nubank", holder: "João Vitor", creditLimit: 800000 },
-    { id: "2", name: "Inter PJ", brand: "Visa", type: "credito", color: "#F97316", lastFour: "7891", closingDay: 15, dueDay: 22, bankBroker: "Banco Inter", holder: "João Vitor", creditLimit: 500000 },
-    { id: "3", name: "C6 ML", brand: "Mastercard", type: "ambos", color: "#1F2937", lastFour: "3322", closingDay: 5, dueDay: 12, bankBroker: "C6 Bank", holder: "Maria Laura", creditLimit: 300000 },
-    { id: "4", name: "Nubank ML", brand: "Mastercard", type: "ambos", color: "#A855F7", lastFour: "9012", closingDay: 20, dueDay: 27, bankBroker: "Nubank", holder: "Maria Laura", creditLimit: 400000 },
-];
 
 const BANKS = [
     "Nubank", "Banco Inter", "C6 Bank", "Bradesco", "Itaú", "Santander",
@@ -51,7 +45,6 @@ function CreditCardVisual({ card }: { card: CardData }) {
                 background: `linear-gradient(135deg, ${card.color}, ${card.color}CC, ${card.color}88)`,
             }}
         >
-            {/* Decorative circles */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-6 -translate-x-6" />
 
@@ -89,8 +82,10 @@ function CreditCardVisual({ card }: { card: CardData }) {
 }
 
 export default function CardsPage() {
-    const [cards, setCards] = useState(INITIAL_CARDS);
+    const [cards, setCards] = useState<CardData[]>([]);
+    const [loading, setLoading] = useState(true);
     const [open, setOpen] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
     // Form states
     const [name, setName] = useState("");
@@ -104,26 +99,45 @@ export default function CardsPage() {
     const [holder, setHolder] = useState("João Vitor");
     const [creditLimit, setCreditLimit] = useState("");
 
-    const handleSave = () => {
+    useEffect(() => {
+        loadCards();
+    }, []);
+
+    const loadCards = async () => {
+        setLoading(true);
+        const res = await fetchCardsAction();
+        if (res.cards) {
+            setCards(res.cards as CardData[]);
+        }
+        setLoading(false);
+    };
+
+    const handleSave = async () => {
         if (!name || !closingDay || !dueDay || !bankBroker) return;
+        setSubmitting(true);
 
-        const newCard: CardData = {
-            id: Date.now().toString(),
-            name,
-            brand,
-            type: type as CardData["type"],
-            color,
-            lastFour,
-            closingDay: parseInt(closingDay),
-            dueDay: parseInt(dueDay),
-            bankBroker,
-            holder,
-            creditLimit: creditLimit ? Math.round(parseFloat(creditLimit) * 100) : 0,
-        };
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("brand", brand);
+        formData.append("type", type);
+        formData.append("color", color);
+        formData.append("closingDay", closingDay);
+        formData.append("dueDay", dueDay);
+        formData.append("lastFour", lastFour);
+        formData.append("bankBroker", bankBroker);
+        formData.append("holder", holder);
+        formData.append("creditLimit", creditLimit);
 
-        setCards([...cards, newCard]);
-        resetForm();
-        setOpen(false);
+        const res = await addCardAction(formData);
+        
+        setSubmitting(false);
+        if (res?.success) {
+            await loadCards();
+            resetForm();
+            setOpen(false);
+        } else {
+            alert(res?.error || "Erro ao salvar cartão");
+        }
     };
 
     const resetForm = () => {
@@ -139,9 +153,15 @@ export default function CardsPage() {
         setCreditLimit("");
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (!confirm("Tem certeza que deseja remover este cartão?")) return;
-        setCards(cards.filter((c) => c.id !== id));
+        
+        const res = await deleteCardAction(id);
+        if (res?.success) {
+            await loadCards();
+        } else {
+            alert(res?.error || "Erro ao remover cartão");
+        }
     };
 
     return (
@@ -157,11 +177,9 @@ export default function CardsPage() {
                     </p>
                 </div>
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button size="sm" className="gap-2">
-                            <Plus className="h-4 w-4" />
-                            Novo Cartão
-                        </Button>
+                    <DialogTrigger render={<Button size="sm" className="gap-2" />}>
+                        <Plus className="h-4 w-4" />
+                        Novo Cartão
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[500px]">
                         <DialogHeader>
@@ -179,7 +197,7 @@ export default function CardsPage() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Banco / Instituição</Label>
-                                    <Select value={bankBroker} onValueChange={setBankBroker}>
+                                    <Select value={bankBroker} onValueChange={(val) => setBankBroker(val || "")}>
                                         <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                         <SelectContent>
                                             {BANKS.map((b) => (
@@ -190,7 +208,7 @@ export default function CardsPage() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Bandeira</Label>
-                                    <Select value={brand} onValueChange={setBrand}>
+                                    <Select value={brand} onValueChange={(val) => setBrand(val || "")}>
                                         <SelectTrigger className="h-9 bg-background"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="mastercard">Mastercard</SelectItem>
@@ -202,7 +220,7 @@ export default function CardsPage() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Tipo</Label>
-                                    <Select value={type} onValueChange={setType}>
+                                    <Select value={type} onValueChange={(v) => setType(v || "")}>
                                         <SelectTrigger className="h-9 bg-background"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="credito">💳 Crédito</SelectItem>
@@ -213,7 +231,7 @@ export default function CardsPage() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Titular</Label>
-                                    <Select value={holder} onValueChange={setHolder}>
+                                    <Select value={holder} onValueChange={(v) => setHolder(v || "")}>
                                         <SelectTrigger className="h-9 bg-background"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="João Vitor">João Vitor</SelectItem>
@@ -248,37 +266,43 @@ export default function CardsPage() {
                         </div>
 
                         <DialogFooter className="flex gap-2">
-                            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                            <Button onClick={handleSave}>Salvar Cartão</Button>
+                            <Button variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Cancelar</Button>
+                            <Button onClick={handleSave} disabled={submitting}>
+                                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Salvar Cartão
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
             </div>
 
-            {/* Cards Grid */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {cards.map((card) => (
-                    <div key={card.id} className="relative group">
-                        <CreditCardVisual card={card} />
-                        {/* Delete overlay */}
-                        <button
-                            onClick={() => handleDelete(card.id)}
-                            className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 h-8 w-8 rounded-lg bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-red-500/80 transition-all z-20"
-                        >
-                            <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                    </div>
-                ))}
+            {loading ? (
+                <div className="flex items-center justify-center p-12">
+                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            ) : (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {cards.map((card) => (
+                        <div key={card.id} className="relative group">
+                            <CreditCardVisual card={card} />
+                            <button
+                                onClick={() => handleDelete(card.id)}
+                                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 h-8 w-8 rounded-lg bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-red-500/80 transition-all z-20"
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    ))}
 
-                {/* Add new card slot */}
-                <button
-                    onClick={() => setOpen(true)}
-                    className="w-full aspect-[1.586/1] rounded-2xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors cursor-pointer"
-                >
-                    <Plus className="h-8 w-8" />
-                    <span className="text-sm font-medium">Adicionar Cartão</span>
-                </button>
-            </div>
+                    <button
+                        onClick={() => setOpen(true)}
+                        className="w-full aspect-[1.586/1] rounded-2xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors cursor-pointer"
+                    >
+                        <Plus className="h-8 w-8" />
+                        <span className="text-sm font-medium">Adicionar Cartão</span>
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

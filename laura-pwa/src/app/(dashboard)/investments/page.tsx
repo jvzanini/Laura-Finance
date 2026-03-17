@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     TrendingUp, Plus, X, BarChart3, PieChart, Wallet,
-    ArrowUpRight, ArrowDownRight, Building2
+    ArrowUpRight, ArrowDownRight, Building2, Loader2
 } from "lucide-react";
+import { fetchInvestmentsAction, addInvestmentAction } from "@/lib/actions/investments";
 
 type Investment = {
     id: string;
@@ -22,23 +23,7 @@ type Investment = {
     returnPct: number;
 };
 
-const MOCK_INVESTMENTS: Investment[] = [
-    {
-        id: "1", broker: "Nu Invest", brokerEmoji: "🏦", market: "Investimentos",
-        totalInvested: 3500000, currentValue: 3780000, monthlyContribution: 50000,
-        returnPct: 8.0,
-    },
-    {
-        id: "2", broker: "BTG", brokerEmoji: "🏦", market: "Investimentos",
-        totalInvested: 1200000, currentValue: 1350000, monthlyContribution: 100000,
-        returnPct: 12.5,
-    },
-    {
-        id: "3", broker: "Binance", brokerEmoji: "💎", market: "Cripto",
-        totalInvested: 500000, currentValue: 620000, monthlyContribution: 20000,
-        returnPct: 24.0,
-    },
-];
+
 
 const BROKER_OPTIONS = [
     { label: "🏦 Ágora", value: "Ágora" },
@@ -58,8 +43,64 @@ function fmt(cents: number) {
 }
 
 export default function InvestmentsPage() {
-    const [investments] = useState(MOCK_INVESTMENTS);
+    const [investments, setInvestments] = useState<Investment[]>([]);
+    const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    
+    const [broker, setBroker] = useState("");
+    const [market, setMarket] = useState("Investimentos");
+    const [inputInvested, setInputInvested] = useState("");
+    const [inputCurrent, setInputCurrent] = useState("");
+    const [inputMonthly, setInputMonthly] = useState("");
+
+    useEffect(() => {
+        loadInvestments();
+    }, []);
+
+    const loadInvestments = async () => {
+        setLoading(true);
+        const res = await fetchInvestmentsAction();
+        if (res.investments) {
+            setInvestments(res.investments.map((i: any) => ({
+                id: i.id,
+                broker: i.broker,
+                brokerEmoji: i.emoji || "🏦",
+                market: i.type,
+                totalInvested: i.investedAmount,
+                currentValue: i.currentAmount,
+                monthlyContribution: i.monthlyContribution,
+                returnPct: i.investedAmount > 0 ? ((i.currentAmount - i.investedAmount) / i.investedAmount) * 100 : 0
+            })));
+        }
+        setLoading(false);
+    };
+
+    const handleSubmit = async () => {
+        if (!broker || !inputInvested || !inputCurrent) return;
+        setSubmitting(true);
+        
+        const form = new FormData();
+        form.append("name", broker);
+        form.append("broker", broker);
+        form.append("type", market);
+        form.append("invested_amount", inputInvested);
+        form.append("current_amount", inputCurrent);
+        if (inputMonthly) form.append("monthly_contribution", inputMonthly);
+        
+        const res = await addInvestmentAction(form);
+        setSubmitting(false);
+        if (res?.success) {
+            await loadInvestments();
+            setShowForm(false);
+            setBroker("");
+            setInputInvested("");
+            setInputCurrent("");
+            setInputMonthly("");
+        } else {
+            alert(res?.error || "Erro ao adicionar investimento");
+        }
+    };
 
     const totalInvested = investments.reduce((s, i) => s + i.totalInvested, 0);
     const totalCurrent = investments.reduce((s, i) => s + i.currentValue, 0);
@@ -159,7 +200,7 @@ export default function InvestmentsPage() {
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             <div className="space-y-1">
                                 <Label className="text-xs">Corretora</Label>
-                                <Select>
+                                <Select value={broker} onValueChange={(val) => setBroker(val || "")}>
                                     <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                     <SelectContent>
                                         {BROKER_OPTIONS.map((b) => (
@@ -170,67 +211,81 @@ export default function InvestmentsPage() {
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-xs">Total Investido (R$)</Label>
-                                <Input type="number" placeholder="10000.00" className="h-9 bg-background" />
+                                <Input type="number" placeholder="10000.00" value={inputInvested} onChange={(e) => setInputInvested(e.target.value)} className="h-9 bg-background" />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-xs">Valor Atual (R$)</Label>
-                                <Input type="number" placeholder="10500.00" className="h-9 bg-background" />
+                                <Input type="number" placeholder="10500.00" value={inputCurrent} onChange={(e) => setInputCurrent(e.target.value)} className="h-9 bg-background" />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-xs">Aporte Mensal (R$)</Label>
-                                <Input type="number" placeholder="500.00" className="h-9 bg-background" />
+                                <Input type="number" placeholder="500.00" value={inputMonthly} onChange={(e) => setInputMonthly(e.target.value)} className="h-9 bg-background" />
                             </div>
                         </div>
                         <div className="flex gap-2 justify-end">
-                            <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancelar</Button>
-                            <Button size="sm">Salvar</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setShowForm(false)} disabled={submitting}>Cancelar</Button>
+                            <Button size="sm" onClick={handleSubmit} disabled={submitting}>
+                                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Salvar
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
             )}
 
-            {/* Investments List */}
-            <div className="space-y-3">
-                {investments.map((inv) => {
-                    const returnVal = inv.currentValue - inv.totalInvested;
-                    const isPositive = returnVal >= 0;
-                    return (
-                        <Card key={inv.id} className="border-border/50 bg-card hover:border-border transition-colors">
-                            <CardContent className="p-5">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-xl shrink-0">
-                                        {inv.brokerEmoji}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-0.5">
-                                            <p className="text-sm font-bold">{inv.broker}</p>
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent text-muted-foreground font-medium">
-                                                {inv.market}
-                                            </span>
+            {loading ? (
+                <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            ) : (
+                <>
+                    {/* Investments List */}
+                    <div className="space-y-3">
+                        {investments.length === 0 && !showForm && (
+                            <div className="col-span-full py-12 text-center text-muted-foreground border-2 border-dashed rounded-2xl">
+                                Nenhum investimento cadastrado.
+                            </div>
+                        )}
+                        {investments.map((inv) => {
+                            const returnVal = inv.currentValue - inv.totalInvested;
+                            const isPositive = returnVal >= 0;
+                            return (
+                                <Card key={inv.id} className="border-border/50 bg-card hover:border-border transition-colors">
+                                    <CardContent className="p-5">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-xl shrink-0">
+                                                {inv.brokerEmoji}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <p className="text-sm font-bold">{inv.broker}</p>
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent text-muted-foreground font-medium">
+                                                        {inv.market}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Aporte: {fmt(inv.monthlyContribution)}/mês
+                                                </p>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-base font-bold font-mono">{fmt(inv.currentValue)}</p>
+                                                <div className="flex items-center gap-1 justify-end">
+                                                    {isPositive ? (
+                                                        <ArrowUpRight className="h-3 w-3 text-emerald-500" />
+                                                    ) : (
+                                                        <ArrowDownRight className="h-3 w-3 text-red-400" />
+                                                    )}
+                                                    <span className={`text-xs font-mono font-medium ${isPositive ? "text-emerald-500" : "text-red-400"}`}>
+                                                        {isPositive ? "+" : ""}{fmt(returnVal)} ({inv.returnPct.toFixed(1)}%)
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <p className="text-xs text-muted-foreground">
-                                            Aporte: {fmt(inv.monthlyContribution)}/mês
-                                        </p>
-                                    </div>
-                                    <div className="text-right shrink-0">
-                                        <p className="text-base font-bold font-mono">{fmt(inv.currentValue)}</p>
-                                        <div className="flex items-center gap-1 justify-end">
-                                            {isPositive ? (
-                                                <ArrowUpRight className="h-3 w-3 text-emerald-500" />
-                                            ) : (
-                                                <ArrowDownRight className="h-3 w-3 text-red-400" />
-                                            )}
-                                            <span className={`text-xs font-mono font-medium ${isPositive ? "text-emerald-500" : "text-red-400"}`}>
-                                                {isPositive ? "+" : ""}{fmt(returnVal)} ({inv.returnPct}%)
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-            </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                </>
+            )}
         </div>
     );
 }

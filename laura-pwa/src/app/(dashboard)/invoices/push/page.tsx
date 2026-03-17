@@ -141,7 +141,7 @@ export default function PushInvoicePage() {
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div className="space-y-1">
                             <Label className="text-xs">Cartão da Fatura</Label>
-                            <Select value={card} onValueChange={setCard}>
+                            <Select value={card} onValueChange={(val) => setCard(val || "")}>
                                 <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                 <SelectContent>
                                     {CARDS_OPTIONS.map((c) => (
@@ -172,7 +172,7 @@ export default function PushInvoicePage() {
                         </div>
                         <div className="space-y-1">
                             <Label className="text-xs">Instituição (Maquininha)</Label>
-                            <Select value={institution} onValueChange={setInstitution}>
+                            <Select value={institution} onValueChange={(val) => setInstitution(val || "")}>
                                 <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                 <SelectContent>
                                     {INSTITUTIONS.map((i) => (
@@ -183,7 +183,7 @@ export default function PushInvoicePage() {
                         </div>
                         <div className="space-y-1">
                             <Label className="text-xs">Parcelamento</Label>
-                            <Select value={installments} onValueChange={setInstallments}>
+                            <Select value={installments} onValueChange={(val) => setInstallments(val || "")}>
                                 <SelectTrigger className="h-9 bg-background"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {["1x", "2x", "3x", "4x", "5x", "6x", "10x", "12x"].map((p) => (

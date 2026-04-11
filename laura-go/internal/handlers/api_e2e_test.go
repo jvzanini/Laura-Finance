@@ -17,6 +17,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
+	"github.com/jvzanini/laura-finance/laura-go/internal/services"
 	"github.com/testcontainers/testcontainers-go"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -616,6 +617,173 @@ func TestAPIE2E_Dashboard_UpcomingBills_ComInvoices(t *testing.T) {
 	bills, _ := body["bills"].([]interface{})
 	if len(bills) != 1 {
 		t.Errorf("esperava 1 bill, veio %d", len(bills))
+	}
+}
+
+func TestAPIE2E_Invoices_ComStatusDerivado(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	var cardID string
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO cards (workspace_id, name, color, closing_day, due_day, card_type, credit_limit_cents)
+		 VALUES ($1, 'Test', '#8B5CF6', 1, 10, 'credito', 500000) RETURNING id`,
+		workspaceID,
+	).Scan(&cardID)
+
+	// Paga
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO invoices (workspace_id, card_id, month_ref, total_cents, due_date, paid_at)
+		 VALUES ($1, $2, '2026-03-01', 100000, '2026-03-15', NOW())`,
+		workspaceID, cardID,
+	)
+	// Atrasada
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO invoices (workspace_id, card_id, month_ref, total_cents, due_date)
+		 VALUES ($1, $2, '2025-12-01', 200000, '2025-12-15')`,
+		workspaceID, cardID,
+	)
+	// Aberta
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO invoices (workspace_id, card_id, month_ref, total_cents, due_date)
+		 VALUES ($1, $2, DATE_TRUNC('month', CURRENT_DATE)::date, 300000, CURRENT_DATE + INTERVAL '10 days')`,
+		workspaceID, cardID,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/invoices", cookie)
+	if status != 200 {
+		t.Errorf("invoices: status = %d", status)
+	}
+	invs, _ := body["invoices"].([]interface{})
+	if len(invs) != 3 {
+		t.Fatalf("esperava 3 invoices, veio %d", len(invs))
+	}
+	// Conta status diferentes
+	statusSet := map[string]bool{}
+	for _, raw := range invs {
+		inv := raw.(map[string]interface{})
+		statusSet[inv["status"].(string)] = true
+	}
+	for _, s := range []string{"paid", "overdue", "open"} {
+		if !statusSet[s] {
+			t.Errorf("esperava status %q no resultado", s)
+		}
+	}
+}
+
+func TestAPIE2E_DebtRollovers_ComSeed(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	var cardID string
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO cards (workspace_id, name, color, closing_day, due_day, card_type, credit_limit_cents)
+		 VALUES ($1, 'Card', '#fff', 1, 10, 'credito', 500000) RETURNING id`,
+		workspaceID,
+	).Scan(&cardID)
+
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO debt_rollovers (workspace_id, card_id, institution, invoice_value_cents, total_fees_cents, total_operations, installments, fee_percentage, operations_json)
+		 VALUES ($1, $2, 'InfinitePay', 100000, 4500, 2, '2x', 4.5, '[]'::jsonb)`,
+		workspaceID, cardID,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/debt-rollovers", cookie)
+	if status != 200 {
+		t.Errorf("debt-rollovers: status = %d", status)
+	}
+	rs, _ := body["rollovers"].([]interface{})
+	if len(rs) != 1 {
+		t.Errorf("esperava 1 rollover, veio %d", len(rs))
+	}
+}
+
+func TestAPIE2E_Score_Current_RetornaFallbackSemDados(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/score/current", cookie)
+	if status != 200 {
+		t.Errorf("score/current: status = %d", status)
+	}
+	// Sem dados, usa fallback (85/72/65/55) e score ~72
+	if toInt(body["score"]) == 0 {
+		t.Errorf("score = 0, esperava fallback não-zero")
+	}
+}
+
+func TestAPIE2E_Score_History_VazioRetornaArray(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/score/history", cookie)
+	if status != 200 {
+		t.Errorf("score/history: status = %d", status)
+	}
+	if _, ok := body["history"]; !ok {
+		t.Error("history ausente no body")
+	}
+}
+
+func TestAPIE2E_Members_ComSeed(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO phones (workspace_id, name, phone_number, role)
+		 VALUES ($1, 'Maria', '5511988888888', 'membro')`,
+		workspaceID,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/members", cookie)
+	if status != 200 {
+		t.Errorf("members: status = %d", status)
+	}
+	members, _ := body["members"].([]interface{})
+	if len(members) != 1 {
+		t.Errorf("esperava 1 member, veio %d", len(members))
+	}
+}
+
+func TestAPIE2E_PaymentProcessors_Retorna6(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	// Invalidate cache pois o TestE2E_LoadFeeTable anterior pode ter deixado o
+	// fallbackFeeTable cacheado em vez da tabela do Postgres fresh.
+	services.InvalidateFeeCache()
+
+	status, body := performRequest(t, app, "GET", "/api/v1/payment-processors", cookie)
+	if status != 200 {
+		t.Errorf("payment-processors: status = %d", status)
+	}
+	items, _ := body["processors"].([]interface{})
+	if len(items) != 6 {
+		t.Errorf("esperava 6 processors, veio %d", len(items))
 	}
 }
 

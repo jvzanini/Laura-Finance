@@ -37,6 +37,30 @@ function resolveTargetDate(filters: ReportFilters | undefined): string {
 const MONTH_CLAUSE_SQL =
     "EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM $2::date) AND EXTRACT(YEAR FROM t.transaction_date) = EXTRACT(YEAR FROM $2::date)";
 
+// Fragmento SQL que aplica os filtros extras (category e member) de forma
+// condicional: quando $3/$4 são NULL, a cláusula passa a ser sempre TRUE.
+// Uso: toda action de reports temporal passa
+//   [workspaceId, targetDate, categoryIdOrNull, memberIdOrNull]
+// e cola este fragmento na WHERE, permitindo drill-down por categoria e/ou
+// membro sem precisar ramificar a query.
+const EXTRA_FILTERS_SQL = `
+    AND ($3::uuid IS NULL OR t.category_id = $3::uuid)
+    AND ($4::uuid IS NULL OR (t.author_user_id = $4::uuid OR t.author_phone_id = $4::uuid))
+`;
+
+/**
+ * extractMemberId normaliza o memberId recebido no filter — aceita UUID
+ * limpo e retorna null se o formato for inválido, evitando SQL params mal
+ * formados causando erro de cast.
+ */
+function normalizeFilterUuid(v: string | undefined): string | null {
+    if (!v) return null;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) {
+        return v;
+    }
+    return null;
+}
+
 export type DRELine = {
     label: string;
     indent: number;       // 0 = section header, 1 = line item
@@ -66,6 +90,8 @@ export type DRESummary = {
  */
 export async function fetchDREAction(filters?: ReportFilters): Promise<DRESummary> {
     const targetDate = resolveTargetDate(filters);
+    const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
+    const memberIdParam = normalizeFilterUuid(filters?.memberId);
     const emptySummary: DRESummary = {
         month: targetDate.slice(0, 7),
         lines: [],
@@ -97,10 +123,11 @@ export async function fetchDREAction(filters?: ReportFilters): Promise<DRESummar
                  WHERE t.workspace_id = $1
                    AND t.type = 'income'
                    AND ${MONTH_CLAUSE_SQL}
+                   ${EXTRA_FILTERS_SQL}
                  GROUP BY c.name
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY total_cents DESC`,
-                [workspaceId, targetDate]
+                [workspaceId, targetDate, categoryIdParam, memberIdParam]
             );
 
             // Despesas agrupadas por categoria
@@ -112,10 +139,11 @@ export async function fetchDREAction(filters?: ReportFilters): Promise<DRESummar
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
                    AND ${MONTH_CLAUSE_SQL}
+                   ${EXTRA_FILTERS_SQL}
                  GROUP BY c.name
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY total_cents DESC`,
-                [workspaceId, targetDate]
+                [workspaceId, targetDate, categoryIdParam, memberIdParam]
             );
 
             // Aportes mensais em investimentos (contribuição fixa, não mensal de transactions)
@@ -228,6 +256,8 @@ export type CategoryReportRow = {
  */
 export async function fetchCategoryReportAction(filters?: ReportFilters): Promise<CategoryReportRow[]> {
     const targetDate = resolveTargetDate(filters);
+    const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
+    const memberIdParam = normalizeFilterUuid(filters?.memberId);
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -253,10 +283,11 @@ export async function fetchCategoryReportAction(filters?: ReportFilters): Promis
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
                    AND ${MONTH_CLAUSE_SQL}
+                   ${EXTRA_FILTERS_SQL}
                  GROUP BY t.category_id, c.name, c.emoji, c.color
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY spent_cents DESC`,
-                [workspaceId, targetDate]
+                [workspaceId, targetDate, categoryIdParam, memberIdParam]
             );
 
             const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);
@@ -288,6 +319,8 @@ export type SubcategoryReportRow = {
 
 export async function fetchSubcategoryReportAction(filters?: ReportFilters): Promise<SubcategoryReportRow[]> {
     const targetDate = resolveTargetDate(filters);
+    const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
+    const memberIdParam = normalizeFilterUuid(filters?.memberId);
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -314,11 +347,12 @@ export async function fetchSubcategoryReportAction(filters?: ReportFilters): Pro
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
                    AND ${MONTH_CLAUSE_SQL}
+                   ${EXTRA_FILTERS_SQL}
                  GROUP BY t.subcategory_id, sc.name, sc.emoji, c.name
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY spent_cents DESC
                  LIMIT 20`,
-                [workspaceId, targetDate]
+                [workspaceId, targetDate, categoryIdParam, memberIdParam]
             );
 
             const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);
@@ -350,6 +384,8 @@ export type CardReportRow = {
 
 export async function fetchCardReportAction(filters?: ReportFilters): Promise<CardReportRow[]> {
     const targetDate = resolveTargetDate(filters);
+    const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
+    const memberIdParam = normalizeFilterUuid(filters?.memberId);
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -375,10 +411,11 @@ export async function fetchCardReportAction(filters?: ReportFilters): Promise<Ca
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
                    AND ${MONTH_CLAUSE_SQL}
+                   ${EXTRA_FILTERS_SQL}
                  GROUP BY t.card_id, c.name, c.color
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY spent_cents DESC`,
-                [workspaceId, targetDate]
+                [workspaceId, targetDate, categoryIdParam, memberIdParam]
             );
 
             const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);
@@ -416,6 +453,8 @@ export type PaymentMethodReportRow = {
  */
 export async function fetchPaymentMethodReportAction(filters?: ReportFilters): Promise<PaymentMethodReportRow[]> {
     const targetDate = resolveTargetDate(filters);
+    const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
+    const memberIdParam = normalizeFilterUuid(filters?.memberId);
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -438,9 +477,10 @@ export async function fetchPaymentMethodReportAction(filters?: ReportFilters): P
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
                    AND ${MONTH_CLAUSE_SQL}
+                   ${EXTRA_FILTERS_SQL}
                  GROUP BY method
                  ORDER BY spent_cents DESC`,
-                [workspaceId, targetDate]
+                [workspaceId, targetDate, categoryIdParam, memberIdParam]
             );
 
             const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);
@@ -691,6 +731,8 @@ export type MemberReportRow = {
  */
 export async function fetchMemberReportAction(filters?: ReportFilters): Promise<MemberReportRow[]> {
     const targetDate = resolveTargetDate(filters);
+    const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
+    const memberIdParam = normalizeFilterUuid(filters?.memberId);
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -729,10 +771,11 @@ export async function fetchMemberReportAction(filters?: ReportFilters): Promise<
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
                    AND ${MONTH_CLAUSE_SQL}
+                   ${EXTRA_FILTERS_SQL}
                  GROUP BY author_key, author_name, author_type
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY spent_cents DESC`,
-                [workspaceId, targetDate]
+                [workspaceId, targetDate, categoryIdParam, memberIdParam]
             );
 
             const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);

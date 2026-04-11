@@ -3,6 +3,19 @@
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoInvoiceItem = {
+    id: string;
+    card_id: string;
+    card_name: string;
+    card_color: string;
+    total_cents: number;
+    due_date: string;
+    paid_at: string | null;
+    status: "open" | "paid" | "overdue";
+};
+type GoInvoicesResponse = { invoices: GoInvoiceItem[] | null };
 
 // Tipagem para consumo pela UI. Diferente de invoices.ts (que lida com
 // debt_rollovers — "empurrar fatura"). Este módulo cuida das linhas da
@@ -29,6 +42,24 @@ export async function fetchInvoicesAction(): Promise<InvoiceRow[]> {
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
+
+        try {
+            const goResponse = await callLauraGo<GoInvoicesResponse>("/api/v1/invoices");
+            if (goResponse) {
+                return (goResponse.invoices ?? []).map((i): InvoiceRow => ({
+                    id: i.id,
+                    cardId: i.card_id,
+                    cardName: i.card_name,
+                    cardColor: i.card_color,
+                    totalCents: i.total_cents,
+                    dueDate: i.due_date,
+                    paidAt: i.paid_at,
+                    status: i.status,
+                }));
+            }
+        } catch (err) {
+            console.warn("[invoices] laura-go failed, fallback:", err);
+        }
 
         const client = await pool.connect();
         try {

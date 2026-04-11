@@ -1,6 +1,14 @@
 "use server";
 
 import { pool } from "@/lib/db";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoPaymentProcessor = {
+    slug: string;
+    name: string;
+    fees: Record<string, number>;
+};
+type GoPaymentProcessorsResponse = { processors: GoPaymentProcessor[] | null };
 
 export type PaymentProcessor = {
     slug: string;
@@ -22,6 +30,19 @@ const FALLBACK: PaymentProcessor[] = [
 
 export async function fetchPaymentProcessorsAction(): Promise<PaymentProcessor[]> {
     try {
+        try {
+            const goResponse = await callLauraGo<GoPaymentProcessorsResponse>("/api/v1/payment-processors");
+            if (goResponse) {
+                return (goResponse.processors ?? []).map((p) => ({
+                    slug: p.slug,
+                    name: p.name,
+                    fees: p.fees,
+                }));
+            }
+        } catch (err) {
+            console.warn("[payment-processors] laura-go failed, fallback:", err);
+        }
+
         const res = await pool.query(
             "SELECT slug, name, fees FROM payment_processors WHERE active = TRUE ORDER BY name ASC"
         );

@@ -2,6 +2,17 @@
 
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoScoreSnapshot = {
+    date: string;
+    score: number;
+    bills_on_time: number;
+    budget_respect: number;
+    savings_rate: number;
+    debt_level: number;
+};
+type GoScoreHistoryResponse = { history: GoScoreSnapshot[] | null };
 
 export type ScoreSnapshot = {
     date: string; // YYYY-MM-DD
@@ -22,6 +33,24 @@ export async function fetchScoreHistoryAction(limit = 30): Promise<ScoreSnapshot
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
+
+        try {
+            const goResponse = await callLauraGo<GoScoreHistoryResponse>(
+                `/api/v1/score/history?limit=${limit}`
+            );
+            if (goResponse) {
+                return (goResponse.history ?? []).map((s) => ({
+                    date: s.date,
+                    score: s.score,
+                    billsOnTime: s.bills_on_time,
+                    budgetRespect: s.budget_respect,
+                    savingsRate: s.savings_rate,
+                    debtLevel: s.debt_level,
+                }));
+            }
+        } catch (err) {
+            console.warn("[score-history] laura-go failed, fallback:", err);
+        }
 
         const client = await pool.connect();
         try {

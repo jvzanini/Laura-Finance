@@ -3,6 +3,15 @@
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoMemberItem = {
+    id: string;
+    name: string;
+    phone_number: string;
+    role: string;
+};
+type GoMembersResponse = { members: GoMemberItem[] | null };
 
 export async function addPhoneAction(formData: FormData) {
     try {
@@ -85,6 +94,15 @@ export async function fetchPhonesAction() {
     try {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Sem sessão." };
+
+        try {
+            const goResponse = await callLauraGo<GoMembersResponse>("/api/v1/members");
+            if (goResponse) {
+                return { phones: goResponse.members ?? [] };
+            }
+        } catch (err) {
+            console.warn("[members] laura-go failed, fallback:", err);
+        }
 
         const res = await pool.query(
             `SELECT p.id, p.name, p.phone_number, p.role 

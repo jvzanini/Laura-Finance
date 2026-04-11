@@ -3,6 +3,21 @@
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoDebtRolloverItem = {
+    id: string;
+    date: string;
+    card: string;
+    card_color: string;
+    institution: string;
+    invoice_value_cents: number;
+    total_fees_cents: number;
+    total_operations: number;
+    installments: string;
+    status: string;
+};
+type GoDebtRolloversResponse = { rollovers: GoDebtRolloverItem[] | null };
 
 export async function addDebtRolloverAction(data: {
     cardId: string;
@@ -51,6 +66,27 @@ export async function fetchDebtRolloversAction() {
     try {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Sem sessão ativa." };
+
+        try {
+            const goResponse = await callLauraGo<GoDebtRolloversResponse>("/api/v1/debt-rollovers");
+            if (goResponse) {
+                const rollovers = (goResponse.rollovers ?? []).map((r) => ({
+                    id: r.id,
+                    date: r.date,
+                    card: r.card,
+                    cardColor: r.card_color,
+                    institution: r.institution,
+                    invoiceValue: r.invoice_value_cents,
+                    totalFees: r.total_fees_cents,
+                    totalOperations: r.total_operations,
+                    installments: r.installments,
+                    status: r.status,
+                }));
+                return { rollovers };
+            }
+        } catch (err) {
+            console.warn("[debt-rollovers] laura-go failed, fallback:", err);
+        }
 
         const res = await pool.query(
             `SELECT dr.id, dr.created_at as date, c.name as card_name, c.color as card_color, 

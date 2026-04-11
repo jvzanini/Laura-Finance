@@ -2,6 +2,15 @@
 
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoScoreFactors = {
+    bills_on_time: number;
+    budget_respect: number;
+    savings_rate: number;
+    debt_level: number;
+    score: number;
+};
 
 export type ScoreFactors = {
     billsOnTime: number;
@@ -38,6 +47,20 @@ export async function fetchFinancialScoreAction(): Promise<ScoreFactors> {
     try {
         const session = await getSession();
         if (!session || !session.userId) return FALLBACK;
+
+        try {
+            const goResponse = await callLauraGo<GoScoreFactors>("/api/v1/score/current");
+            if (goResponse) {
+                return {
+                    billsOnTime: goResponse.bills_on_time,
+                    budgetRespect: goResponse.budget_respect,
+                    savingsRate: goResponse.savings_rate,
+                    debtLevel: goResponse.debt_level,
+                };
+            }
+        } catch (err) {
+            console.warn("[score-current] laura-go failed, fallback:", err);
+        }
 
         const client = await pool.connect();
         try {

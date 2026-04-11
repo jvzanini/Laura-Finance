@@ -45,21 +45,27 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 		(finalText == "Sim Laura, prorroga" || finalText == "sim laura prorroga" || finalText == "prorroga")
 
 	if isRolloverConfirm {
-		log.Println("[Crisis Engine] User confirmed Rollover! Inserting 2x pending transactions.")
+		log.Println("[Crisis Engine] User confirmed Rollover! Persisting to debt_rollovers.")
 
-		// Ideally we would fetch the last context from memory or redis, but for MVP:
-		db.Pool.Exec(context.Background(),
-			`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date)
-			 VALUES ($1, $2, 'expense', 'Prorrogação Dívida Mês 1', CURRENT_TIMESTAMP + interval '30 days')`,
-			workspaceID, 50000, // Hardcoded snippet value fallback for POC
-		)
-		db.Pool.Exec(context.Background(),
-			`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date)
-			 VALUES ($1, $2, 'expense', 'Prorrogação Dívida Mês 2', CURRENT_TIMESTAMP + interval '60 days')`,
-			workspaceID, 50000,
-		)
+		// MVP: sem state machine ainda, então usamos um valor simbólico R$ 1000
+		// dividido em 2x via InfinitePay. Quando a memória conversacional do 5.1
+		// for implementada, trocar 100_000 por parsedTx.Amount*100 do contexto.
+		sim, err := SimulateRollover(workspaceID, nil, 100_000, "infinitepay", "2x")
+		if err != nil {
+			log.Printf("[Rollover Error] simulate: %v\n", err)
+			replyFunc("❌ Tive um problema ao simular a rolagem. Tente novamente em instantes.")
+			return
+		}
+		if err := PersistRollover(context.Background(), sim); err != nil {
+			log.Printf("[Rollover Error] persist: %v\n", err)
+			replyFunc("❌ Tive um problema ao gravar a rolagem no banco. Tente novamente em instantes.")
+			return
+		}
 
-		replyFunc("✅ Rolagem ativada! Lançamentos futuros foram gravados com sucesso. Seu fluxo de caixa agradece! 🧘")
+		replyFunc(fmt.Sprintf(
+			"✅ Rolagem ativada via %s (%s)! Gravei %d operações totalizando R$%.2f em taxas. Seu fluxo de caixa agradece! 🧘",
+			sim.Institution, sim.Installments, sim.TotalOperations, float64(sim.TotalFeesCts)/100,
+		))
 		return
 	}
 

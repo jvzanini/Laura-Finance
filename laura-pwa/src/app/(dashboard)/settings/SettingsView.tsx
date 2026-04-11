@@ -23,9 +23,8 @@ import {
     updateUserProfileAction,
     updateUserSettingsAction,
     changePasswordAction,
-    type UserProfile,
-    type UserSettings,
 } from "@/lib/actions/userProfile";
+import type { UserProfile, UserSettings } from "@/lib/types/userProfile";
 
 export function SettingsView({ profile }: { profile: UserProfile }) {
     const [name, setName] = useState(profile.name);

@@ -10,11 +10,11 @@ import {
     type UserSettings,
 } from "@/lib/types/userProfile";
 
-// Re-export dos types para que quem importa de "@/lib/actions/userProfile"
-// continue funcionando sem precisar mudar o import path.
-// Arquivos com "use server" no topo (Next 15/16) só podem exportar async
-// functions — por isso o type + const concretos vivem em @/lib/types/userProfile.
-export type { UserProfile, UserSettings };
+// NOTA: Arquivos com "use server" no topo (Next 15/16) só podem
+// exportar async functions. Nem re-export de tipos funciona —
+// Turbopack tenta registrar o nome como server action e falha.
+// Quem precisa dos types UserProfile/UserSettings deve importar
+// diretamente de "@/lib/types/userProfile".
 
 /**
  * fetchUserProfileAction devolve os dados do usuário logado junto com

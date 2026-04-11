@@ -1,6 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import {
+    BarChart,
+    Bar,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    Legend,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +20,7 @@ import {
     Download,
     Filter,
     TrendingUp,
+    TrendingDown,
     Users,
     CreditCard,
     Tag,
@@ -17,8 +30,17 @@ import {
     ArrowLeftRight,
     Construction,
 } from "lucide-react";
-import type { DRESummary } from "@/lib/actions/reports";
-import type { ReportsFilterData } from "@/lib/actions/reports";
+import type {
+    DRESummary,
+    ReportsFilterData,
+    CategoryReportRow,
+    SubcategoryReportRow,
+    CardReportRow,
+    PaymentMethodReportRow,
+    TravelReportRow,
+    ComparativeReport,
+    TrendPoint,
+} from "@/lib/actions/reports";
 
 type ReportTab =
     | "dre"
@@ -35,40 +57,65 @@ function fmt(cents: number) {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
 
-export function ReportsView({ dre, filterData }: { dre: DRESummary; filterData: ReportsFilterData }) {
+type ReportsData = {
+    dre: DRESummary;
+    filterData: ReportsFilterData;
+    categories: CategoryReportRow[];
+    subcategories: SubcategoryReportRow[];
+    cards: CardReportRow[];
+    methods: PaymentMethodReportRow[];
+    travel: TravelReportRow[];
+    comparative: ComparativeReport;
+    trend: TrendPoint[];
+};
+
+export function ReportsView(props: ReportsData) {
+    const { dre, filterData, categories, subcategories, cards, methods, travel, comparative, trend } = props;
     const [activeTab, setActiveTab] = useState<ReportTab>("dre");
     const [selectedMonth, setSelectedMonth] = useState<string>(dre.month);
     const [selectedMember, setSelectedMember] = useState<string>("");
     const [selectedCategory, setSelectedCategory] = useState<string>("");
     const [selectedType, setSelectedType] = useState<string>("");
 
-    const tabs: { id: ReportTab; label: string; icon: React.ElementType; ready: boolean }[] = [
-        { id: "dre", label: "DRE", icon: BarChart3, ready: true },
-        { id: "categorias", label: "Categorias", icon: Tag, ready: false },
-        { id: "subcategorias", label: "Subcategorias", icon: PieChart, ready: false },
-        { id: "membro", label: "Por Membro", icon: Users, ready: false },
-        { id: "cartao", label: "Por Cartão", icon: CreditCard, ready: false },
-        { id: "metodo", label: "Método Pgto", icon: ArrowLeftRight, ready: false },
-        { id: "viagem", label: "Modo Viagem", icon: Plane, ready: false },
-        { id: "comparativo", label: "Comparativo", icon: TrendingUp, ready: false },
-        { id: "tendencia", label: "Tendência", icon: Calendar, ready: false },
+    const tabs: { id: ReportTab; label: string; icon: React.ElementType; wip: boolean }[] = [
+        { id: "dre", label: "DRE", icon: BarChart3, wip: false },
+        { id: "categorias", label: "Categorias", icon: Tag, wip: false },
+        { id: "subcategorias", label: "Subcategorias", icon: PieChart, wip: false },
+        { id: "membro", label: "Por Membro", icon: Users, wip: true },
+        { id: "cartao", label: "Por Cartão", icon: CreditCard, wip: false },
+        { id: "metodo", label: "Método Pgto", icon: ArrowLeftRight, wip: false },
+        { id: "viagem", label: "Modo Viagem", icon: Plane, wip: false },
+        { id: "comparativo", label: "Comparativo", icon: TrendingUp, wip: false },
+        { id: "tendencia", label: "Tendência", icon: Calendar, wip: false },
     ];
 
-    const hasAnyData = dre.lines.length > 0;
-
     const handleCSVExport = () => {
-        if (!hasAnyData) return;
-        const header = "Categoria,Tipo,Valor\n";
-        const rows = dre.lines
-            .filter((l) => l.indent === 1)
-            .map((l) => `"${l.label}","item",${(l.valueCents / 100).toFixed(2)}`)
-            .join("\n");
-        const csv = header + rows;
+        let csv = "";
+        let filename = "report.csv";
+        if (activeTab === "dre") {
+            csv = "Categoria,Tipo,Valor\n" + dre.lines
+                .filter((l) => l.indent === 1)
+                .map((l) => `"${l.label}","item",${(l.valueCents / 100).toFixed(2)}`)
+                .join("\n");
+            filename = `dre-${dre.month}.csv`;
+        } else if (activeTab === "categorias") {
+            csv = "Categoria,Valor,Percentual\n" + categories
+                .map((c) => `"${c.name}",${(c.spentCents / 100).toFixed(2)},${c.percentOfTotal.toFixed(1)}`)
+                .join("\n");
+            filename = "categorias.csv";
+        } else if (activeTab === "cartao") {
+            csv = "Cartão,Transações,Valor\n" + cards
+                .map((c) => `"${c.name}",${c.transactionCount},${(c.totalSpentCents / 100).toFixed(2)}`)
+                .join("\n");
+            filename = "cartoes.csv";
+        } else {
+            return;
+        }
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `dre-${dre.month}.csv`;
+        a.download = filename;
         a.click();
         URL.revokeObjectURL(url);
     };
@@ -91,7 +138,7 @@ export function ReportsView({ dre, filterData }: { dre: DRESummary; filterData: 
                         size="sm"
                         className="gap-2"
                         onClick={handleCSVExport}
-                        disabled={!hasAnyData || activeTab !== "dre"}
+                        disabled={!["dre", "categorias", "cartao"].includes(activeTab)}
                     >
                         <Download className="h-4 w-4" />
                         CSV
@@ -116,7 +163,7 @@ export function ReportsView({ dre, filterData }: { dre: DRESummary; filterData: 
                             >
                                 <Icon className="h-3.5 w-3.5" />
                                 {t.label}
-                                {!t.ready && (
+                                {t.wip && (
                                     <span className="ml-1 text-[9px] px-1 rounded bg-amber-500/20 text-amber-500">
                                         WIP
                                     </span>
@@ -127,7 +174,7 @@ export function ReportsView({ dre, filterData }: { dre: DRESummary; filterData: 
                 </div>
             </div>
 
-            {/* Filters */}
+            {/* Filters (UI only) */}
             <div className="flex flex-wrap gap-3 items-center p-4 rounded-xl border border-border/50 bg-card">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <input
@@ -170,93 +217,465 @@ export function ReportsView({ dre, filterData }: { dre: DRESummary; filterData: 
                     <option value="expense">Saídas</option>
                 </select>
                 <p className="text-[11px] text-muted-foreground ml-auto">
-                    Filtros interativos: disponíveis na próxima iteração (aba DRE mostra o mês corrente).
+                    Filtros visuais. Aplicação server-side é backlog (exige re-fetch por tab).
                 </p>
             </div>
 
-            {/* Content — DRE */}
-            {activeTab === "dre" && (
-                <Card className="border-border/50 bg-card">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">
-                            DRE Simplificada — {new Date(dre.month + "-01").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
-                        </CardTitle>
-                        <CardDescription className="text-xs">
-                            Demonstrativo de Resultado do Exercício calculado sobre transactions e investments reais.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {!hasAnyData && (
-                            <div className="h-[200px] flex flex-col items-center justify-center text-center border border-dashed border-border/30 rounded-lg">
-                                <BarChart3 className="h-8 w-8 text-muted-foreground mb-2" />
-                                <p className="text-sm text-muted-foreground font-medium">
-                                    Sem transações neste mês
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                                    Assim que a Laura processar mensagens no WhatsApp ou você criar transações manualmente, o DRE ganha forma.
-                                </p>
-                            </div>
-                        )}
+            {/* Content: DRE */}
+            {activeTab === "dre" && <DRETab dre={dre} />}
+            {activeTab === "categorias" && <CategoriesTab data={categories} />}
+            {activeTab === "subcategorias" && <SubcategoriesTab data={subcategories} />}
+            {activeTab === "cartao" && <CardTab data={cards} />}
+            {activeTab === "metodo" && <PaymentMethodTab data={methods} />}
+            {activeTab === "viagem" && <TravelTab data={travel} />}
+            {activeTab === "comparativo" && <ComparativeTab data={comparative} />}
+            {activeTab === "tendencia" && <TrendTab data={trend} />}
+            {activeTab === "membro" && <MemberPlaceholder onBack={() => setActiveTab("dre")} />}
+        </div>
+    );
+}
 
-                        {hasAnyData && (
-                            <div className="space-y-1">
-                                {dre.lines.map((line, idx) => {
-                                    const color =
-                                        line.sign === "positive"
-                                            ? "text-emerald-400"
-                                            : line.sign === "negative"
-                                                ? "text-red-400"
-                                                : "text-muted-foreground";
-                                    const weight = line.bold ? "font-bold" : "font-normal";
-                                    const paddingLeft = line.indent === 1 ? "pl-6" : "";
-                                    const borderTop = line.bold && idx > 0 ? "border-t border-border/40 pt-2 mt-2" : "";
-                                    return (
+function DRETab({ dre }: { dre: DRESummary }) {
+    const hasData = dre.lines.length > 0;
+    return (
+        <Card className="border-border/50 bg-card">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base">
+                    DRE Simplificada — {new Date(dre.month + "-01").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+                </CardTitle>
+                <CardDescription className="text-xs">
+                    Demonstrativo de Resultado do Exercício calculado sobre transactions e investments reais.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {!hasData && <EmptyState icon={BarChart3} message="Sem transações neste mês" />}
+                {hasData && (
+                    <div className="space-y-1">
+                        {dre.lines.map((line, idx) => {
+                            const color =
+                                line.sign === "positive"
+                                    ? "text-emerald-400"
+                                    : line.sign === "negative"
+                                        ? "text-red-400"
+                                        : "text-muted-foreground";
+                            const weight = line.bold ? "font-bold" : "font-normal";
+                            const paddingLeft = line.indent === 1 ? "pl-6" : "";
+                            const borderTop = line.bold && idx > 0 ? "border-t border-border/40 pt-2 mt-2" : "";
+                            return (
+                                <div key={idx} className={`flex justify-between ${paddingLeft} ${borderTop}`}>
+                                    <span className={`text-sm ${weight} ${line.bold ? "" : "text-muted-foreground"}`}>
+                                        {line.label}
+                                    </span>
+                                    <span className={`text-sm font-mono ${color} ${weight}`}>
+                                        {fmt(line.valueCents)}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function CategoriesTab({ data }: { data: CategoryReportRow[] }) {
+    const total = data.reduce((s, d) => s + d.spentCents, 0);
+    return (
+        <Card className="border-border/50 bg-card">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base">Despesas por Categoria</CardTitle>
+                <CardDescription className="text-xs">
+                    Total: {fmt(total)} • {data.length} categorias com movimento este mês
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {data.length === 0 ? (
+                    <EmptyState icon={Tag} message="Sem despesas categorizadas neste mês" />
+                ) : (
+                    <div className="space-y-3">
+                        {data.map((c) => (
+                            <div key={c.categoryId ?? c.name} className="space-y-1">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium flex items-center gap-2">
+                                        {c.emoji && <span>{c.emoji}</span>}
+                                        {c.name}
+                                    </span>
+                                    <span className="text-sm font-mono font-bold">{fmt(c.spentCents)}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                                         <div
-                                            key={idx}
-                                            className={`flex justify-between ${paddingLeft} ${borderTop}`}
-                                        >
-                                            <span className={`text-sm ${weight} ${line.bold ? "" : "text-muted-foreground"}`}>
-                                                {line.label}
-                                            </span>
-                                            <span className={`text-sm font-mono ${color} ${weight}`}>
-                                                {fmt(line.valueCents)}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
+                                            className="h-full rounded-full transition-all duration-700"
+                                            style={{
+                                                width: `${c.percentOfTotal}%`,
+                                                backgroundColor: c.color,
+                                            }}
+                                        />
+                                    </div>
+                                    <span className="text-[11px] font-mono text-muted-foreground w-12 text-right">
+                                        {c.percentOfTotal.toFixed(1)}%
+                                    </span>
+                                </div>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
 
-            {/* Other tabs — WIP */}
-            {activeTab !== "dre" && (
-                <Card className="border-border/50 bg-card">
-                    <CardContent className="p-10 text-center space-y-4">
-                        <div className="mx-auto h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center">
-                            <Construction className="h-7 w-7 text-amber-500" />
-                        </div>
+function SubcategoriesTab({ data }: { data: SubcategoryReportRow[] }) {
+    return (
+        <Card className="border-border/50 bg-card">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base">Top 20 Subcategorias do Mês</CardTitle>
+                <CardDescription className="text-xs">
+                    Drill-down da árvore de categorias (Epic 8.1). Top 20 por valor gasto.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {data.length === 0 ? (
+                    <EmptyState icon={PieChart} message="Sem despesas em subcategorias neste mês" />
+                ) : (
+                    <div className="space-y-2">
+                        {data.map((s) => (
+                            <div
+                                key={s.subcategoryId ?? s.name}
+                                className="flex items-center gap-3 p-2.5 rounded-lg border border-border/30 bg-background/50"
+                            >
+                                {s.emoji && <span className="text-base">{s.emoji}</span>}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{s.name}</p>
+                                    <p className="text-[11px] text-muted-foreground">{s.categoryName}</p>
+                                </div>
+                                <span className="text-sm font-mono font-bold shrink-0">{fmt(s.spentCents)}</span>
+                                <span className="text-[11px] font-mono text-muted-foreground w-12 text-right">
+                                    {s.percentOfTotal.toFixed(1)}%
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function CardTab({ data }: { data: CardReportRow[] }) {
+    const total = data.reduce((s, d) => s + d.totalSpentCents, 0);
+    return (
+        <Card className="border-border/50 bg-card">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base">Gastos por Cartão / Método</CardTitle>
+                <CardDescription className="text-xs">
+                    Total: {fmt(total)} • {data.length} origens de pagamento este mês
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {data.length === 0 ? (
+                    <EmptyState icon={CreditCard} message="Sem despesas neste mês" />
+                ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        {data.map((c) => (
+                            <div
+                                key={c.cardId ?? c.name}
+                                className="p-4 rounded-xl border border-border/30 bg-background/50"
+                            >
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div
+                                        className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
+                                        style={{ backgroundColor: `${c.color}20` }}
+                                    >
+                                        <CreditCard className="h-5 w-5" style={{ color: c.color }} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold truncate">{c.name}</p>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            {c.transactionCount} transação{c.transactionCount !== 1 ? "ões" : ""}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-baseline justify-between">
+                                    <span className="text-xl font-bold font-mono">{fmt(c.totalSpentCents)}</span>
+                                    <span className="text-[11px] font-mono text-muted-foreground">
+                                        {c.percentOfTotal.toFixed(1)}%
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function PaymentMethodTab({ data }: { data: PaymentMethodReportRow[] }) {
+    return (
+        <Card className="border-border/50 bg-card">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base">Despesas por Método de Pagamento</CardTitle>
+                <CardDescription className="text-xs">
+                    Inferido pela presença de card_id: com cartão = Crédito, sem cartão = Dinheiro/PIX.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {data.length === 0 ? (
+                    <EmptyState icon={ArrowLeftRight} message="Sem despesas neste mês" />
+                ) : (
+                    <div className="space-y-3">
+                        {data.map((m) => (
+                            <div
+                                key={m.method}
+                                className="p-4 rounded-xl border border-border/30 bg-background/50 flex items-center gap-4"
+                            >
+                                <div
+                                    className={`h-11 w-11 rounded-lg flex items-center justify-center shrink-0 ${
+                                        m.method === "crédito" ? "bg-primary/15 text-primary" : "bg-emerald-500/15 text-emerald-500"
+                                    }`}
+                                >
+                                    {m.method === "crédito" ? (
+                                        <CreditCard className="h-5 w-5" />
+                                    ) : (
+                                        <ArrowLeftRight className="h-5 w-5" />
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-semibold">{m.label}</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {m.transactionCount} transações
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-lg font-bold font-mono">{fmt(m.totalSpentCents)}</p>
+                                    <p className="text-[11px] font-mono text-muted-foreground">
+                                        {m.percentOfTotal.toFixed(1)}%
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function TravelTab({ data }: { data: TravelReportRow[] }) {
+    return (
+        <Card className="border-border/50 bg-card">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base">Modo Viagem — Despesas com tag viagem*</CardTitle>
+                <CardDescription className="text-xs">
+                    Qualquer transação com tag contendo "viagem" (ex: "viagem-sp", "viagem-ferias").
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {data.length === 0 ? (
+                    <EmptyState
+                        icon={Plane}
+                        message="Nenhuma tag viagem encontrada"
+                        hint="Adicione a tag 'viagem' ou 'viagem-{destino}' nas transações para aparecer aqui."
+                    />
+                ) : (
+                    <div className="space-y-3">
+                        {data.map((t) => (
+                            <div
+                                key={t.tag}
+                                className="p-4 rounded-xl border border-border/30 bg-background/50 flex items-center gap-4"
+                            >
+                                <div className="h-11 w-11 rounded-lg bg-sky-500/15 text-sky-500 flex items-center justify-center shrink-0">
+                                    <Plane className="h-5 w-5" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-semibold">{t.tag}</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {t.transactionCount} transações
+                                    </p>
+                                </div>
+                                <p className="text-lg font-bold font-mono">{fmt(t.totalSpentCents)}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function ComparativeTab({ data }: { data: ComparativeReport }) {
+    const trending = data.deltaPercent > 0;
+    return (
+        <Card className="border-border/50 bg-card">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base">Comparativo Mensal</CardTitle>
+                <CardDescription className="text-xs">
+                    {data.currentMonthLabel} vs {data.previousMonthLabel}
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="p-4 rounded-xl border border-border/30 bg-background/50 space-y-2">
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                            {data.currentMonthLabel}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">Receitas</p>
+                        <p className="text-base font-mono font-bold text-emerald-500">
+                            {fmt(data.currentIncome)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">Despesas</p>
+                        <p className="text-base font-mono font-bold text-red-400">
+                            {fmt(data.currentExpense)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/30">
+                            Resultado Líquido
+                        </p>
+                        <p className={`text-xl font-mono font-bold ${data.currentNet >= 0 ? "text-emerald-500" : "text-red-400"}`}>
+                            {fmt(data.currentNet)}
+                        </p>
+                    </div>
+                    <div className="p-4 rounded-xl border border-border/30 bg-background/50 space-y-2">
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                            {data.previousMonthLabel}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">Receitas</p>
+                        <p className="text-base font-mono font-bold text-emerald-500">
+                            {fmt(data.previousIncome)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">Despesas</p>
+                        <p className="text-base font-mono font-bold text-red-400">
+                            {fmt(data.previousExpense)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/30">
+                            Resultado Líquido
+                        </p>
+                        <p className={`text-xl font-mono font-bold ${data.previousNet >= 0 ? "text-emerald-500" : "text-red-400"}`}>
+                            {fmt(data.previousNet)}
+                        </p>
+                    </div>
+                </div>
+                {data.previousNet !== 0 && (
+                    <div className="mt-4 p-3 rounded-lg bg-background/50 border border-border/30 flex items-center gap-3">
+                        {trending ? (
+                            <TrendingUp className="h-5 w-5 text-emerald-500" />
+                        ) : (
+                            <TrendingDown className="h-5 w-5 text-red-400" />
+                        )}
                         <div>
-                            <p className="text-base font-bold">
-                                Em construção: {tabs.find((t) => t.id === activeTab)?.label}
+                            <p className="text-sm font-medium">
+                                Variação do resultado:{" "}
+                                <span className={trending ? "text-emerald-500" : "text-red-400"}>
+                                    {data.deltaPercent > 0 ? "+" : ""}
+                                    {data.deltaPercent.toFixed(1)}%
+                                </span>
                             </p>
-                            <p className="text-xs text-muted-foreground mt-2 max-w-md mx-auto">
-                                Esta aba está listada na Story 9.3 do BMAD como parte da expansão dos Relatórios
-                                multidimensionais. A aba <strong>DRE</strong> já consome dados reais; as demais
-                                serão implementadas nas próximas rodadas consumindo{" "}
-                                <code className="bg-muted px-1 rounded">transactions</code>,{" "}
-                                <code className="bg-muted px-1 rounded">categories</code>,{" "}
-                                <code className="bg-muted px-1 rounded">cards</code> e{" "}
-                                <code className="bg-muted px-1 rounded">users</code>.
+                            <p className="text-[11px] text-muted-foreground">
+                                Comparado ao mesmo indicador do mês anterior.
                             </p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => setActiveTab("dre")}>
-                            Voltar ao DRE
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function TrendTab({ data }: { data: TrendPoint[] }) {
+    const chartData = data.map((d) => ({
+        month: d.month,
+        Receitas: d.incomeCents / 100,
+        Despesas: d.expenseCents / 100,
+        Resultado: d.netCents / 100,
+    }));
+
+    return (
+        <Card className="border-border/50 bg-card">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base">Tendência (6 meses)</CardTitle>
+                <CardDescription className="text-xs">
+                    Série mensal de receitas, despesas e resultado líquido.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {data.length === 0 ? (
+                    <EmptyState icon={Calendar} message="Sem histórico suficiente" />
+                ) : (
+                    <div className="h-[320px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#262633" vertical={false} />
+                                <XAxis dataKey="month" stroke="#9B9BA8" fontSize={11} tickLine={false} axisLine={false} />
+                                <YAxis
+                                    stroke="#9B9BA8"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: "#0F0F17",
+                                        borderColor: "#262633",
+                                        borderRadius: "0.75rem",
+                                        fontSize: "12px",
+                                    }}
+                                    formatter={(value) => [
+                                        `R$ ${Number(value ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                                    ]}
+                                />
+                                <Legend wrapperStyle={{ fontSize: "11px" }} />
+                                <Line type="monotone" dataKey="Receitas" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="Despesas" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="Resultado" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function MemberPlaceholder({ onBack }: { onBack: () => void }) {
+    return (
+        <Card className="border-border/50 bg-card">
+            <CardContent className="p-10 text-center space-y-4">
+                <div className="mx-auto h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                    <Construction className="h-7 w-7 text-amber-500" />
+                </div>
+                <div>
+                    <p className="text-base font-bold">Em construção: Por Membro</p>
+                    <p className="text-xs text-muted-foreground mt-2 max-w-md mx-auto">
+                        Esta aba precisa de uma coluna <code>author_phone_id</code> ou{" "}
+                        <code>author_user_id</code> em <code>transactions</code> para rastrear
+                        quem lançou cada entrada. Será adicionada em uma próxima migration junto
+                        ao refactor do worker NLP para popular o autor automaticamente.
+                    </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={onBack}>
+                    Voltar ao DRE
+                </Button>
+            </CardContent>
+        </Card>
+    );
+}
+
+function EmptyState({
+    icon: Icon,
+    message,
+    hint,
+}: {
+    icon: React.ElementType;
+    message: string;
+    hint?: string;
+}) {
+    return (
+        <div className="h-[200px] flex flex-col items-center justify-center text-center border border-dashed border-border/30 rounded-lg">
+            <Icon className="h-8 w-8 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground font-medium">{message}</p>
+            {hint && <p className="text-xs text-muted-foreground mt-1 max-w-xs">{hint}</p>}
         </div>
     );
 }

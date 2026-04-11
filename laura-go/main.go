@@ -12,6 +12,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
+	"github.com/jvzanini/laura-finance/laura-go/internal/handlers"
 	"github.com/jvzanini/laura-finance/laura-go/internal/services"
 	"github.com/jvzanini/laura-finance/laura-go/internal/whatsapp"
 )
@@ -38,6 +39,11 @@ func main() {
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("Laura Finance Go API is healthy!")
 	})
+
+	// Registra o namespace /api/v1/* com session middleware + CORS.
+	// Mantém /api/whatsapp/validate existente em paralelo até migração
+	// gradual para /api/v1/*.
+	handlers.RegisterRoutes(app)
 
 	app.Post("/api/whatsapp/validate", func(c *fiber.Ctx) error {
 		type ValidateReq struct {

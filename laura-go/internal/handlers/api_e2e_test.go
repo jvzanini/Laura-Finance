@@ -1,0 +1,328 @@
+package handlers
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jvzanini/laura-finance/laura-go/internal/db"
+	"github.com/testcontainers/testcontainers-go"
+	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
+)
+
+// apiE2ESetup sobe Postgres, aplica migrations, monta Fiber com os
+// handlers e retorna (app, pool, teardown). Compartilha spirit com o
+// e2eSetup em services/rollover_e2e_test.go mas vive neste package
+// para testar via app.Test() (in-memory HTTP, sem subir porta real).
+func apiE2ESetup(t *testing.T) (*fiber.App, *pgxpool.Pool, func()) {
+	t.Helper()
+
+	if os.Getenv("SKIP_E2E") == "1" {
+		t.Skip("SKIP_E2E=1")
+	}
+
+	ctx := context.Background()
+	pgContainer, err := tcpostgres.Run(ctx,
+		"ankane/pgvector:latest",
+		tcpostgres.WithDatabase("laura_api_test"),
+		tcpostgres.WithUsername("laura"),
+		tcpostgres.WithPassword("laura_password"),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).
+				WithStartupTimeout(60*time.Second),
+		),
+	)
+	if err != nil {
+		t.Fatalf("subir postgres: %v", err)
+	}
+
+	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		_ = pgContainer.Terminate(ctx)
+		t.Fatalf("connection string: %v", err)
+	}
+
+	pool, err := pgxpool.New(ctx, connStr)
+	if err != nil {
+		_ = pgContainer.Terminate(ctx)
+		t.Fatalf("pool: %v", err)
+	}
+
+	// Aplica migrations
+	migrationsDir := findMigrationsDirAPI(t)
+	applyMigrationsAPI(t, ctx, pool, migrationsDir)
+
+	oldPool := db.Pool
+	db.Pool = pool
+
+	app := fiber.New()
+	RegisterRoutes(app)
+
+	teardown := func() {
+		db.Pool = oldPool
+		pool.Close()
+		_ = pgContainer.Terminate(ctx)
+	}
+
+	return app, pool, teardown
+}
+
+func findMigrationsDirAPI(t *testing.T) string {
+	t.Helper()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	// internal/handlers -> internal -> laura-go -> repo root
+	dir := filepath.Join(cwd, "..", "..", "..", "infrastructure", "migrations")
+	if _, err := os.Stat(dir); err != nil {
+		t.Fatalf("migrations dir não encontrado: %v", err)
+	}
+	return dir
+}
+
+func applyMigrationsAPI(t *testing.T, ctx context.Context, pool *pgxpool.Pool, dir string) {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("ler migrations: %v", err)
+	}
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
+			files = append(files, e.Name())
+		}
+	}
+	sort.Strings(files)
+	for _, f := range files {
+		b, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			t.Fatalf("ler %s: %v", f, err)
+		}
+		if _, err := pool.Exec(ctx, string(b)); err != nil {
+			t.Fatalf("executar %s: %v", f, err)
+		}
+	}
+}
+
+// buildSessionCookie produz um cookie base64 no mesmo formato que o
+// PWA grava — permite que o middleware RequireSession valide o token
+// como se fosse uma request real do browser.
+func buildSessionCookie(userID string) string {
+	payload := map[string]interface{}{
+		"userId": userID,
+		"exp":    time.Now().Add(24 * time.Hour).UnixMilli(),
+	}
+	raw, _ := json.Marshal(payload)
+	return base64.StdEncoding.EncodeToString(raw)
+}
+
+// seedAPIWorkspace cria workspace + user (normal ou super admin)
+// e retorna seus IDs. Helper compartilhado pelos tests E2E da API.
+func seedAPIWorkspace(t *testing.T, ctx context.Context, pool *pgxpool.Pool, superAdmin bool) (workspaceID, userID string) {
+	t.Helper()
+	err := pool.QueryRow(ctx,
+		"INSERT INTO workspaces (name) VALUES ('API E2E Workspace') RETURNING id",
+	).Scan(&workspaceID)
+	if err != nil {
+		t.Fatalf("insert workspace: %v", err)
+	}
+	err = pool.QueryRow(ctx,
+		`INSERT INTO users (workspace_id, name, email, password_hash, role, is_super_admin)
+		 VALUES ($1, 'Test User', 'test@api.e2e', 'hash', 'proprietário', $2)
+		 RETURNING id`,
+		workspaceID, superAdmin,
+	).Scan(&userID)
+	if err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	return workspaceID, userID
+}
+
+// performRequest executa um request contra o app in-memory e devolve
+// status + body decodificado como map. Simplifica assertions.
+func performRequest(t *testing.T, app *fiber.App, method, path, cookie string) (int, map[string]interface{}) {
+	t.Helper()
+	req, _ := http.NewRequest(method, path, nil)
+	if cookie != "" {
+		req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: cookie})
+	}
+	resp, err := app.Test(req, 10000)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	result := make(map[string]interface{})
+	_ = json.Unmarshal(body, &result)
+	return resp.StatusCode, result
+}
+
+func TestAPIE2E_Health_SemSessao(t *testing.T) {
+	app, _, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	status, body := performRequest(t, app, "GET", "/api/v1/health", "")
+	if status != 200 {
+		t.Errorf("health: status = %d, esperado 200", status)
+	}
+	if body["status"] != "ok" {
+		t.Errorf("health: status field = %v", body["status"])
+	}
+}
+
+func TestAPIE2E_Me_SemCookie_Retorna401(t *testing.T) {
+	app, _, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	status, _ := performRequest(t, app, "GET", "/api/v1/me", "")
+	if status != 401 {
+		t.Errorf("me sem cookie: status = %d, esperado 401", status)
+	}
+}
+
+func TestAPIE2E_Me_ComCookieValido_RetornaPerfil(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/me", cookie)
+	if status != 200 {
+		t.Errorf("me: status = %d, esperado 200", status)
+	}
+	if body["email"] != "test@api.e2e" {
+		t.Errorf("me.email = %v, esperado test@api.e2e", body["email"])
+	}
+	if body["name"] != "Test User" {
+		t.Errorf("me.name = %v", body["name"])
+	}
+	if body["role"] != "proprietário" {
+		t.Errorf("me.role = %v", body["role"])
+	}
+}
+
+func TestAPIE2E_DRE_SemTransacoes_Retorna0(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/reports/dre", cookie)
+	if status != 200 {
+		t.Errorf("dre: status = %d, esperado 200", status)
+	}
+	if toInt(body["total_income_cents"]) != 0 {
+		t.Errorf("income_cents = %v, esperado 0", body["total_income_cents"])
+	}
+	if toInt(body["total_expense_cents"]) != 0 {
+		t.Errorf("expense_cents = %v, esperado 0", body["total_expense_cents"])
+	}
+}
+
+func TestAPIE2E_DRE_ComTransacoes_AgregaCorretamente(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	// Seed: uma receita + duas despesas no mês corrente
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date)
+		 VALUES ($1, 500000, 'income', 'Salário', CURRENT_TIMESTAMP)`,
+		workspaceID,
+	)
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date)
+		 VALUES ($1, 150000, 'expense', 'Mercado', CURRENT_TIMESTAMP)`,
+		workspaceID,
+	)
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date)
+		 VALUES ($1, 50000, 'expense', 'Uber', CURRENT_TIMESTAMP)`,
+		workspaceID,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/reports/dre", cookie)
+	if status != 200 {
+		t.Errorf("dre: status = %d", status)
+	}
+	if toInt(body["total_income_cents"]) != 500000 {
+		t.Errorf("income_cents = %v, esperado 500000", body["total_income_cents"])
+	}
+	if toInt(body["total_expense_cents"]) != 200000 {
+		t.Errorf("expense_cents = %v, esperado 200000", body["total_expense_cents"])
+	}
+	if toInt(body["net_result_cents"]) != 300000 {
+		t.Errorf("net_result_cents = %v, esperado 300000", body["net_result_cents"])
+	}
+}
+
+func TestAPIE2E_AdminOverview_NaoAdmin_Retorna403(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, false) // superAdmin=false
+	cookie := buildSessionCookie(userID)
+
+	status, _ := performRequest(t, app, "GET", "/api/v1/admin/overview", cookie)
+	if status != 403 {
+		t.Errorf("admin overview non-admin: status = %d, esperado 403", status)
+	}
+}
+
+func TestAPIE2E_AdminOverview_SuperAdmin_RetornaAgregados(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, true) // superAdmin=true
+	cookie := buildSessionCookie(userID)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/admin/overview", cookie)
+	if status != 200 {
+		t.Errorf("admin overview: status = %d, esperado 200", status)
+	}
+	// Workspace criado no seed + o workspace criado pela migration
+	// (se tiver). No mínimo 1.
+	if toInt(body["total_workspaces"]) < 1 {
+		t.Errorf("total_workspaces = %v, esperado >= 1", body["total_workspaces"])
+	}
+	if toInt(body["total_users"]) < 1 {
+		t.Errorf("total_users = %v, esperado >= 1", body["total_users"])
+	}
+}
+
+func toInt(v interface{}) int {
+	if v == nil {
+		return 0
+	}
+	switch n := v.(type) {
+	case float64:
+		return int(n)
+	case int:
+		return n
+	case int64:
+		return int(n)
+	default:
+		return 0
+	}
+}

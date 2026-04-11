@@ -48,6 +48,27 @@ export async function addInvestmentAction(formData: FormData) {
 
         if (isNaN(investedCents)) return { error: "Valores inválidos." };
 
+        try {
+            const goResp = await callLauraGo<{ id: string; success: boolean }>("/api/v1/investments", {
+                method: "POST",
+                body: {
+                    name,
+                    broker,
+                    type: type || "Investimentos",
+                    invested_cents: investedCents,
+                    current_cents: currentCents,
+                    monthly_contribution_cents: monthlyCents,
+                    emoji: "🏦",
+                },
+            });
+            if (goResp) {
+                revalidatePath("/investments");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[investments:add] laura-go failed, fallback:", err);
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query("SELECT workspace_id FROM users WHERE id = $1", [session.userId]);

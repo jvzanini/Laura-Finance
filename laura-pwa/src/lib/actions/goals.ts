@@ -45,6 +45,25 @@ export async function addGoalAction(formData: FormData) {
         }
         const targetCents = Math.round(parsedFloat * 100);
 
+        try {
+            const goResp = await callLauraGo<{ id: string; success: boolean }>("/api/v1/goals", {
+                method: "POST",
+                body: {
+                    name,
+                    target_cents: targetCents,
+                    deadline: deadline || null,
+                    emoji: emoji || "🎯",
+                    color: color || "#8B5CF6",
+                },
+            });
+            if (goResp) {
+                revalidatePath("/goals");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[goals:add] laura-go failed, fallback:", err);
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query("SELECT workspace_id FROM users WHERE id = $1", [session.userId]);

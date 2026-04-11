@@ -45,6 +45,30 @@ export async function addCardAction(formData: FormData) {
         
         const credit_limit_cents = creditLimitStr ? Math.round(parseFloat(creditLimitStr.replace(",", ".")) * 100) : 0;
 
+        try {
+            const goResp = await callLauraGo<{ id: string; success: boolean }>("/api/v1/cards", {
+                method: "POST",
+                body: {
+                    name,
+                    brand: brand || null,
+                    color: color || "#7C3AED",
+                    closing_day: closing_day,
+                    due_day: due_day,
+                    last_four: last_four || null,
+                    card_type: card_type || "ambos",
+                    bank_broker: bank_broker || null,
+                    holder: holder || null,
+                    credit_limit_cents,
+                },
+            });
+            if (goResp) {
+                revalidatePath("/cards");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[cards:add] laura-go failed, fallback:", err);
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query("SELECT workspace_id FROM users WHERE id = $1", [session.userId]);

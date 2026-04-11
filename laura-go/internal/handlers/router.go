@@ -34,6 +34,11 @@ func RegisterRoutes(app *fiber.App) {
 	api.Get("/goals", handleListGoals)
 	api.Get("/investments", handleListInvestments)
 	api.Get("/transactions", handleListTransactions)
+	api.Get("/cards", handleListCards)
+	api.Get("/categories", handleListCategories)
+	api.Get("/dashboard/cashflow", handleCashFlow)
+	api.Get("/dashboard/upcoming-bills", handleUpcomingBills)
+	api.Get("/dashboard/category-budgets", handleCategoryBudgets)
 
 	// Rotas admin — chain adicional
 	admin := api.Group("/admin", RequireSuperAdmin())

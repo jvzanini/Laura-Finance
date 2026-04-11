@@ -471,3 +471,197 @@ func TestAPIE2E_Transactions_ComPaginacao(t *testing.T) {
 		t.Errorf("total_count com limit = %v, esperado 5", body["total_count"])
 	}
 }
+
+func TestAPIE2E_Cards_ComSeed(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO cards (workspace_id, name, brand, color, closing_day, due_day, last_four, card_type, credit_limit_cents)
+		 VALUES ($1, 'Nubank Principal', 'Mastercard', '#8B5CF6', 5, 15, '1234', 'credito', 500000)`,
+		workspaceID,
+	)
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO cards (workspace_id, name, brand, color, closing_day, due_day, last_four, card_type, credit_limit_cents)
+		 VALUES ($1, 'Inter Débito', 'Visa', '#F97316', 0, 0, '5678', 'debito', 0)`,
+		workspaceID,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/cards", cookie)
+	if status != 200 {
+		t.Errorf("cards: status = %d", status)
+	}
+	cards, _ := body["cards"].([]interface{})
+	if len(cards) != 2 {
+		t.Errorf("esperava 2 cards, veio %d", len(cards))
+	}
+}
+
+func TestAPIE2E_Categories_ComArvore(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	var catID string
+	err := pool.QueryRow(ctx,
+		`INSERT INTO categories (workspace_id, name, emoji, color, description, monthly_limit_cents)
+		 VALUES ($1, 'Alimentação', '🍽', '#10B981', 'Gastos com comida', 200000)
+		 RETURNING id`,
+		workspaceID,
+	).Scan(&catID)
+	if err != nil {
+		t.Fatalf("insert categoria: %v", err)
+	}
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO subcategories (workspace_id, category_id, name, emoji, description)
+		 VALUES ($1, $2, 'Supermercado', '🛒', 'Compras de casa')`,
+		workspaceID, catID,
+	)
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO subcategories (workspace_id, category_id, name, emoji, description)
+		 VALUES ($1, $2, 'Restaurante', '🍕', 'Refeições fora')`,
+		workspaceID, catID,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/categories", cookie)
+	if status != 200 {
+		t.Errorf("categories: status = %d", status)
+	}
+	cats, _ := body["categories"].([]interface{})
+	if len(cats) != 1 {
+		t.Fatalf("esperava 1 categoria, veio %d", len(cats))
+	}
+	cat := cats[0].(map[string]interface{})
+	subs, _ := cat["subcategories"].([]interface{})
+	if len(subs) != 2 {
+		t.Errorf("esperava 2 subcategorias aninhadas, veio %d", len(subs))
+	}
+}
+
+func TestAPIE2E_Dashboard_Cashflow_ComTransacoes(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date)
+		 VALUES ($1, 500000, 'income', 'Salário', CURRENT_TIMESTAMP)`,
+		workspaceID,
+	)
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date)
+		 VALUES ($1, 80000, 'expense', 'Mercado', CURRENT_TIMESTAMP)`,
+		workspaceID,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/dashboard/cashflow", cookie)
+	if status != 200 {
+		t.Errorf("cashflow: status = %d", status)
+	}
+	points, ok := body["points"].([]interface{})
+	if !ok || len(points) == 0 {
+		t.Fatalf("points ausente ou vazio: %+v", body)
+	}
+	// Pelo menos um ponto deve ter valores > 0 (hoje).
+	found := false
+	for _, p := range points {
+		pt := p.(map[string]interface{})
+		if toInt(pt["gastos_cents"]) > 0 || toInt(pt["entradas_cents"]) > 0 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("esperava pelo menos 1 ponto com valor > 0")
+	}
+}
+
+func TestAPIE2E_Dashboard_UpcomingBills_ComInvoices(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	var cardID string
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO cards (workspace_id, name, color, closing_day, due_day, card_type, credit_limit_cents)
+		 VALUES ($1, 'Test Card', '#8B5CF6', 1, 10, 'credito', 500000)
+		 RETURNING id`,
+		workspaceID,
+	).Scan(&cardID)
+
+	// Invoice vencendo em 5 dias, não paga
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO invoices (workspace_id, card_id, month_ref, total_cents, due_date)
+		 VALUES ($1, $2, DATE_TRUNC('month', CURRENT_DATE)::date, 285000, CURRENT_DATE + INTERVAL '5 days')`,
+		workspaceID, cardID,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/dashboard/upcoming-bills", cookie)
+	if status != 200 {
+		t.Errorf("upcoming-bills: status = %d", status)
+	}
+	bills, _ := body["bills"].([]interface{})
+	if len(bills) != 1 {
+		t.Errorf("esperava 1 bill, veio %d", len(bills))
+	}
+}
+
+func TestAPIE2E_Dashboard_CategoryBudgets_Ordenado(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	var catA, catB string
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO categories (workspace_id, name, color, monthly_limit_cents)
+		 VALUES ($1, 'Lazer', '#EC4899', 100000) RETURNING id`,
+		workspaceID,
+	).Scan(&catA)
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO categories (workspace_id, name, color, monthly_limit_cents)
+		 VALUES ($1, 'Mercado', '#10B981', 200000) RETURNING id`,
+		workspaceID,
+	).Scan(&catB)
+
+	// catA 90% gasto, catB 10% — catA deve vir primeiro
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO transactions (workspace_id, category_id, amount, type, description, transaction_date)
+		 VALUES ($1, $2, 90000, 'expense', 'Jogo', CURRENT_TIMESTAMP)`,
+		workspaceID, catA,
+	)
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO transactions (workspace_id, category_id, amount, type, description, transaction_date)
+		 VALUES ($1, $2, 20000, 'expense', 'Feira', CURRENT_TIMESTAMP)`,
+		workspaceID, catB,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/dashboard/category-budgets", cookie)
+	if status != 200 {
+		t.Errorf("category-budgets: status = %d", status)
+	}
+	cats, _ := body["categories"].([]interface{})
+	if len(cats) != 2 {
+		t.Fatalf("esperava 2 categorias, veio %d", len(cats))
+	}
+	// Primeira deve ser Lazer (maior % de uso)
+	first := cats[0].(map[string]interface{})
+	if first["name"] != "Lazer" {
+		t.Errorf("esperava Lazer primeiro (maior %%), veio %v", first["name"])
+	}
+}

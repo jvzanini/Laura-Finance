@@ -4,6 +4,7 @@ import { pool } from "@/lib/db";
 import { createSession } from "@/lib/session";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
+import { DEFAULT_SEED_CATEGORIES } from "@/app/(dashboard)/categories/default-seed";
 
 export async function registerAction(formData: FormData) {
     const name = formData.get("name") as string;
@@ -38,6 +39,25 @@ export async function registerAction(formData: FormData) {
             "INSERT INTO users (workspace_id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5) RETURNING id",
             [workspaceId, name, email, passwordHash, "proprietário"]
         );
+
+        // Auto-seed: popula o workspace novo com a taxonomia completa
+        // (8 categorias × 36 subcategorias). Dentro da mesma transação para
+        // que um user recém-criado NUNCA exista sem categorias padrão.
+        for (const cat of DEFAULT_SEED_CATEGORIES) {
+            const catRes = await client.query(
+                `INSERT INTO categories (workspace_id, name, emoji, color, description, monthly_limit_cents)
+                 VALUES ($1, $2, $3, $4, $5, 0) RETURNING id`,
+                [workspaceId, cat.name, cat.emoji, cat.color, cat.description]
+            );
+            const catId = catRes.rows[0].id;
+            for (const sub of cat.subcategories) {
+                await client.query(
+                    `INSERT INTO subcategories (workspace_id, category_id, name, emoji, description)
+                     VALUES ($1, $2, $3, $4, $5)`,
+                    [workspaceId, catId, sub.name, sub.emoji, sub.description]
+                );
+            }
+        }
 
         await client.query("COMMIT");
 

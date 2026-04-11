@@ -24,8 +24,9 @@ const FALLBACK: ScoreFactors = {
  * para que o dashboard renderize sem quebrar.
  *
  * Fórmulas atuais (documentadas no Epic 9.2 retro-doc):
- *  - billsOnTime (35%): hoje fixo em 85 — faltam colunas paid_at em invoices
- *    para calcular corretamente. Item de backlog.
+ *  - billsOnTime (35%): % de invoices com paid_at <= due_date nos últimos
+ *    90 dias (considerando só as que já venceram ou foram pagas). Se o
+ *    workspace ainda não tem invoices registradas, usa fallback.
  *  - budgetRespect (25%): % de categorias do workspace onde a soma das
  *    transações 'expense' do mês corrente é ≤ monthly_limit_cents.
  *  - savingsRate (25%): ((income - expense) / income) do mês corrente,
@@ -120,10 +121,31 @@ export async function fetchFinancialScoreAction(): Promise<ScoreFactors> {
                 debtLevel = Math.max(0, Math.min(100, Math.round(100 - ratio * 100)));
             }
 
-            // TODO (backlog): billsOnTime exige uma noção de "paga em dia"
-            // que depende de colunas futuras em invoices/cards. Mantemos
-            // o fallback explícito até lá para não mascarar o gap.
-            const billsOnTime = FALLBACK.billsOnTime;
+            // --- billsOnTime ---
+            // Consulta as invoices dos últimos 90 dias que já venceram ou
+            // foram pagas. Considera "em dia" toda invoice cujo paid_at
+            // existe E é ≤ due_date + 1 dia (tolerância de fuso).
+            const invoiceRes = await client.query(
+                `SELECT
+                    COUNT(*) FILTER (
+                        WHERE paid_at IS NOT NULL
+                          AND paid_at::date <= due_date + INTERVAL '1 day'
+                    )::int AS on_time_count,
+                    COUNT(*) FILTER (
+                        WHERE paid_at IS NOT NULL
+                           OR due_date < CURRENT_DATE
+                    )::int AS settled_count
+                 FROM invoices
+                 WHERE workspace_id = $1
+                   AND due_date >= CURRENT_DATE - INTERVAL '90 days'`,
+                [workspaceId]
+            );
+            const onTimeCount = Number(invoiceRes.rows[0]?.on_time_count ?? 0);
+            const settledCount = Number(invoiceRes.rows[0]?.settled_count ?? 0);
+            let billsOnTime = FALLBACK.billsOnTime;
+            if (settledCount > 0) {
+                billsOnTime = Math.round((onTimeCount / settledCount) * 100);
+            }
 
             return { billsOnTime, budgetRespect, savingsRate, debtLevel };
         } finally {

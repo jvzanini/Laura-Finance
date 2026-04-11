@@ -2,6 +2,45 @@
 
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { callLauraGo } from "@/lib/apiClient";
+
+// Shape da resposta do laura-go em /api/v1/admin/overview.
+// snake_case para bater com os tags JSON do Go. É mantido local
+// porque é apenas detalhe de transporte — o type de saída (AdminOverview
+// camelCase) é o contrato estável consumido pelo PWA.
+type GoAdminOverview = {
+    total_workspaces: number;
+    total_users: number;
+    total_cards: number;
+    unverified_users: number;
+    total_rollovers: number;
+    rollovers_this_month: number;
+    volume_rolled_cents: number;
+    volume_rolled_this_month_cents: number;
+    total_fees_paid_cents: number;
+    avg_fee_percentage: number;
+    transactions_this_month: number;
+    expenses_this_month_cents: number;
+    income_this_month_cents: number;
+};
+
+function mapGoAdminOverview(raw: GoAdminOverview): AdminOverview {
+    return {
+        totalWorkspaces: raw.total_workspaces,
+        totalUsers: raw.total_users,
+        totalCards: raw.total_cards,
+        unverifiedUsers: raw.unverified_users,
+        totalRollovers: raw.total_rollovers,
+        rolloversThisMonth: raw.rollovers_this_month,
+        volumeRolledCents: raw.volume_rolled_cents,
+        volumeRolledThisMonthCents: raw.volume_rolled_this_month_cents,
+        totalFeesPaidCents: raw.total_fees_paid_cents,
+        avgFeePercentage: raw.avg_fee_percentage,
+        transactionsThisMonth: raw.transactions_this_month,
+        expensesThisMonthCents: raw.expenses_this_month_cents,
+        incomeThisMonthCents: raw.income_this_month_cents,
+    };
+}
 
 /**
  * assertSuperAdmin valida que a sessão pertence a um usuário com
@@ -54,12 +93,29 @@ export type AdminOverview = {
 
 /**
  * fetchAdminOverviewAction retorna um conjunto de agregados para o
- * header do /admin. Uma query única com FILTER para performance.
+ * header do /admin. Tenta primeiro a API Go (/api/v1/admin/overview)
+ * forwarding o cookie de sessão; se LAURA_GO_API_URL estiver vazio
+ * ou o backend estiver offline, cai no fallback local (query Postgres
+ * direta). Permite migração gradual sem exigir que o backend Go
+ * esteja rodando pra o PWA funcionar.
  */
 export async function fetchAdminOverviewAction(): Promise<AdminOverview | { error: string }> {
     const gate = await assertSuperAdmin();
     if (!gate.ok) return { error: gate.error };
 
+    // Tenta API Go primeiro
+    try {
+        const goResponse = await callLauraGo<GoAdminOverview>("/api/v1/admin/overview");
+        if (goResponse) {
+            return mapGoAdminOverview(goResponse);
+        }
+    } catch (err) {
+        // laura-go retornou erro HTTP ou parse falhou. Log e segue
+        // para o fallback local.
+        console.warn("[admin] laura-go overview fetch failed, using local:", err);
+    }
+
+    // Fallback local — query direta no Postgres.
     try {
         const client = await pool.connect();
         try {

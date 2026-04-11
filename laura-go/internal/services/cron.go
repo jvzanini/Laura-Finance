@@ -13,19 +13,30 @@ import (
 func StartBudgetAlertCron(sendMessageFunc func(to string, msg string)) {
 	c := cron.New()
 
-	// Every day at 20:00 (8:00 PM) server time
+	// Every day at 20:00 (8:00 PM) server time — budget alerts
 	_, err := c.AddFunc("0 20 * * *", func() {
 		log.Println("[CRON] Running daily budget check...")
 		runDailyBudgetCheck(sendMessageFunc)
 	})
-
 	if err != nil {
-		log.Printf("[CRON] Failed to setup cron job: %v", err)
+		log.Printf("[CRON] Failed to setup budget cron: %v", err)
+		return
+	}
+
+	// Every day at 03:00 (3:00 AM) server time — score snapshot
+	// Baixo tráfego, garante que o snapshot reflete o estado "fechado" do dia anterior
+	// e alimenta o gráfico de evolução do Score Financeiro no dashboard.
+	_, err = c.AddFunc("0 3 * * *", func() {
+		log.Println("[CRON] Running daily financial score snapshot...")
+		runDailyScoreSnapshot()
+	})
+	if err != nil {
+		log.Printf("[CRON] Failed to setup score snapshot cron: %v", err)
 		return
 	}
 
 	c.Start()
-	log.Println("[CRON] Daily Budget Check started on schedule (0 20 * * *).")
+	log.Println("[CRON] Daily jobs started: budget check (20:00) + score snapshot (03:00).")
 }
 
 func runDailyBudgetCheck(sendMessageFunc func(to string, msg string)) {

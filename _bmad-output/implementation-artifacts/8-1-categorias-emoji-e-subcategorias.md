@@ -42,9 +42,11 @@ So that eu e minha família tenhamos uma linguagem visual imediata e consistente
 ### Agent Model Used
 N/A — Implementação feita fora do fluxo BMAD (vibe coding), retro-documentada por auditoria de 2026-04-11.
 ### Completion Notes List
-- As 8 categorias e 36 subcategorias atualmente vivem no JSX da página (hardcoded) para o seed visual. A `seedCategoriesAction` existe e funciona, mas o front ainda renderiza a lista estática antes do fetch real estar conectado. Backlog implícito: migrar a listagem visual para consumir `fetchCategoriesAction` direto.
+- **[✅ Resolvido 2026-04-11]** ~~A listagem do /categories consumia dados hardcoded~~. Separado em `page.tsx` (server component que chama `fetchCategoriesAction`) + `CategoriesView.tsx` (client component que renderiza e guarda o estado de expansão) + `default-seed.ts` (payload estático das 8 categorias × 36 subcategorias). Quando o workspace está vazio, um empty state mostra um CTA "Popular categorias padrão" que chama `seedCategoriesAction(DEFAULT_SEED_CATEGORIES)` via `useTransition` — um clique popula o banco via batch transacional e o `window.location.reload()` busca o estado real. O limite mensal de cada categoria agora aparece como badge quando > 0.
 ### File List
 - `infrastructure/migrations/000011_create_subcategories.sql`
 - `infrastructure/migrations/000015_add_emoji_to_categories.sql`
-- `laura-pwa/src/app/(dashboard)/categories/page.tsx`
+- `laura-pwa/src/app/(dashboard)/categories/page.tsx` (server component, refatorado 2026-04-11)
+- `laura-pwa/src/app/(dashboard)/categories/CategoriesView.tsx` (client component visual, adicionado 2026-04-11)
+- `laura-pwa/src/app/(dashboard)/categories/default-seed.ts` (seed payload, adicionado 2026-04-11)
 - `laura-pwa/src/lib/actions/categories.ts`

@@ -1,6 +1,6 @@
-import { DashboardChart } from "@/components/features/DashboardChart";
+import { DashboardChartCard } from "@/components/features/DashboardChartCard";
 import { DashboardHero } from "@/components/features/DashboardHero";
-import { CategoryBudget } from "@/components/features/CategoryBudget";
+import { CategoryBudgetCard } from "@/components/features/CategoryBudgetCard";
 import { RecentTransactionsFeed } from "@/components/features/RecentTransactionsFeed";
 import { FinancialScoreCard } from "@/components/features/FinancialScoreCard";
 import { ScoreEvolutionCard } from "@/components/features/ScoreEvolutionCard";
@@ -32,7 +32,7 @@ export default function DashboardPage() {
                     <FinancialScoreCard />
                 </div>
                 <div className="lg:col-span-3">
-                    <DashboardChart />
+                    <DashboardChartCard />
                 </div>
             </div>
 
@@ -45,7 +45,7 @@ export default function DashboardPage() {
                     <UpcomingBills />
                 </div>
                 <div className="lg:col-span-3">
-                    <CategoryBudget />
+                    <CategoryBudgetCard />
                 </div>
             </div>
 

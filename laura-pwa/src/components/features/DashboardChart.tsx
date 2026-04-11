@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
     AreaChart,
     Area,
@@ -11,39 +10,29 @@ import {
     ResponsiveContainer,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TrendingUp } from "lucide-react";
+import type { CashFlowPoint } from "@/lib/actions/dashboardMetrics";
 
-const MOCK_DATA = [
-    { day: "01/Mar", gastos: 450, entradas: 1500 },
-    { day: "05/Mar", gastos: 820, entradas: 0 },
-    { day: "10/Mar", gastos: 1250, entradas: 2500 },
-    { day: "15/Mar", gastos: 380, entradas: 0 },
-    { day: "20/Mar", gastos: 2100, entradas: 3000 },
-    { day: "25/Mar", gastos: 670, entradas: 0 },
-    { day: "30/Mar", gastos: 1550, entradas: 4500 },
-];
-
-export function DashboardChart() {
-    const [data, setData] = useState<typeof MOCK_DATA>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setData(MOCK_DATA);
-            setLoading(false);
-        }, 600);
-        return () => clearTimeout(timer);
-    }, []);
-
-    if (loading) {
+export function DashboardChart({ data }: { data: CashFlowPoint[] }) {
+    if (data.length === 0) {
         return (
             <Card className="border-border/50 bg-card">
-                <CardHeader>
-                    <Skeleton className="h-5 w-48" />
-                    <Skeleton className="h-3 w-64 mt-1" />
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-semibold">Evolução Financeira</CardTitle>
+                    <CardDescription className="text-xs">
+                        Fluxo mensal de gastos vs. entradas
+                    </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-[280px] w-full rounded-lg" />
+                <CardContent className="pt-0">
+                    <div className="h-[280px] flex flex-col items-center justify-center text-center border border-dashed border-border/30 rounded-lg">
+                        <TrendingUp className="h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground font-medium">
+                            Sem transações neste mês ainda
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                            Assim que a Laura processar a primeira mensagem no WhatsApp, o gráfico começa a tomar forma.
+                        </p>
+                    </div>
                 </CardContent>
             </Card>
         );
@@ -54,7 +43,7 @@ export function DashboardChart() {
             <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold">Evolução Financeira</CardTitle>
                 <CardDescription className="text-xs">
-                    Fluxo mensal de gastos vs. entradas
+                    Fluxo diário de gastos vs. entradas neste mês
                 </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
@@ -101,8 +90,8 @@ export function DashboardChart() {
                                 }}
                                 itemStyle={{ color: "#FAFAFA", fontSize: "12px" }}
                                 labelStyle={{ color: "#9B9BA8", fontSize: "11px", marginBottom: "4px" }}
-                                formatter={(value: any) => [
-                                    `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                                formatter={(value) => [
+                                    `R$ ${Number(value ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
                                 ]}
                             />
                             <Area

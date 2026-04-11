@@ -1,64 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { addCategoryAction } from "@/lib/actions/categories";
-import { Plus } from "lucide-react";
-
-type CategoryItem = {
-    name: string;
-    limit: number;
-    spent: number;
-    color: string;
-};
+import { Plus, PiggyBank } from "lucide-react";
+import type { CategoryBudgetRow } from "@/lib/actions/dashboardMetrics";
 
 function getBarColor(pct: number): string {
-    if (pct < 60) return "#10B981";  // green
-    if (pct < 80) return "#F59E0B";  // amber
-    return "#EF4444";                // red
+    if (pct < 60) return "#10B981";
+    if (pct < 80) return "#F59E0B";
+    return "#EF4444";
 }
 
-export function CategoryBudget() {
+const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+
+export function CategoryBudget({ categories }: { categories: CategoryBudgetRow[] }) {
     const [name, setName] = useState("");
     const [limit, setLimit] = useState("");
     const [color, setColor] = useState("#10B981");
-    const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
+    const [isPending, startTransition] = useTransition();
 
-    const [categories, setCategories] = useState<CategoryItem[]>([
-        { name: "Alimentação", limit: 2000, spent: 850, color: "#10B981" },
-        { name: "Transporte", limit: 800, spent: 620, color: "#3B82F6" },
-        { name: "Lazer", limit: 500, spent: 430, color: "#F59E0B" },
-    ]);
-
-    const handleSave = async (e: React.FormEvent) => {
+    const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setErrorMsg(null);
-
         const fd = new FormData();
         fd.append("name", name);
         fd.append("limit", limit);
         fd.append("color", color);
 
-        const res = await addCategoryAction(fd);
-        setLoading(false);
-
-        if (res.error) {
-            setErrorMsg(res.error);
-        } else {
-            setCategories([...categories, { name, limit: parseFloat(limit), spent: 0, color }]);
+        startTransition(async () => {
+            const res = await addCategoryAction(fd);
+            if ("error" in res && res.error) {
+                setErrorMsg(res.error);
+                return;
+            }
             setName("");
             setLimit("");
             setShowForm(false);
-        }
+            window.location.reload();
+        });
     };
-
-    const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
 
     return (
         <Card className="border-border/50 bg-card">
@@ -70,28 +56,53 @@ export function CategoryBudget() {
                             Alerta automático ao atingir 80% do teto
                         </CardDescription>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => setShowForm(!showForm)} className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowForm(!showForm)}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                    >
                         <Plus className="h-4 w-4" />
                     </Button>
                 </div>
             </CardHeader>
             <CardContent className="space-y-3">
-                {categories.map((c, i) => {
-                    const pct = Math.min((c.spent / c.limit) * 100, 100);
+                {categories.length === 0 && !showForm && (
+                    <div className="h-[160px] flex flex-col items-center justify-center text-center border border-dashed border-border/30 rounded-lg">
+                        <PiggyBank className="h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground font-medium">
+                            Nenhum orçamento ativo
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                            Clique no + acima para definir um teto mensal. Depois, cada transação em uma categoria com teto aparece aqui em tempo real.
+                        </p>
+                    </div>
+                )}
+
+                {categories.map((c) => {
+                    const pct = c.limit > 0 ? Math.min((c.spent / c.limit) * 100, 100) : 0;
                     const barColor = getBarColor(pct);
                     const isAlert = pct >= 80;
                     return (
-                        <div key={i} className={`p-3 rounded-lg border border-border/30 bg-background/50 space-y-2 ${isAlert ? "border-red-500/30" : ""}`}>
+                        <div
+                            key={c.id}
+                            className={`p-3 rounded-lg border border-border/30 bg-background/50 space-y-2 ${isAlert ? "border-red-500/30" : ""}`}
+                        >
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                                    <span className="text-sm font-medium">{c.name}</span>
+                                    <div
+                                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                                        style={{ backgroundColor: c.color }}
+                                    />
+                                    <span className="text-sm font-medium">
+                                        {c.emoji && <span className="mr-1">{c.emoji}</span>}
+                                        {c.name}
+                                    </span>
                                 </div>
                                 <span className="text-xs font-mono font-bold" style={{ color: barColor }}>
                                     {pct.toFixed(0)}%
                                 </span>
                             </div>
-                            {/* Custom progress bar — NO purple mixing */}
                             <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
                                 <div
                                     className="h-full rounded-full transition-all duration-500"
@@ -107,21 +118,45 @@ export function CategoryBudget() {
                 })}
 
                 {showForm && (
-                    <form onSubmit={handleSave} className="space-y-3 pt-3 border-t border-border/50 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nova Categoria</p>
+                    <form
+                        onSubmit={handleSave}
+                        className="space-y-3 pt-3 border-t border-border/50 animate-in fade-in slide-in-from-top-2 duration-200"
+                    >
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Nova Categoria
+                        </p>
                         {errorMsg && <p className="text-destructive text-xs">{errorMsg}</p>}
                         <div className="space-y-1">
                             <Label className="text-xs">Nome</Label>
-                            <Input required value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Lazer" className="h-8 text-sm bg-background" />
+                            <Input
+                                required
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="ex: Lazer"
+                                className="h-8 text-sm bg-background"
+                            />
                         </div>
                         <div className="space-y-1">
                             <Label className="text-xs">Teto Mensal (R$)</Label>
-                            <Input required placeholder="2000" type="number" step="0.01" value={limit} onChange={(e) => setLimit(e.target.value)} className="h-8 text-sm bg-background" />
+                            <Input
+                                required
+                                placeholder="2000"
+                                type="number"
+                                step="0.01"
+                                value={limit}
+                                onChange={(e) => setLimit(e.target.value)}
+                                className="h-8 text-sm bg-background"
+                            />
                         </div>
                         <div className="flex items-center gap-2">
-                            <Input type="color" className="w-8 h-8 p-0.5 cursor-pointer rounded" value={color} onChange={(e) => setColor(e.target.value)} />
-                            <Button disabled={loading} type="submit" size="sm" className="flex-1 h-8 text-xs">
-                                {loading ? "Salvando..." : "Adicionar"}
+                            <Input
+                                type="color"
+                                className="w-8 h-8 p-0.5 cursor-pointer rounded"
+                                value={color}
+                                onChange={(e) => setColor(e.target.value)}
+                            />
+                            <Button disabled={isPending} type="submit" size="sm" className="flex-1 h-8 text-xs">
+                                {isPending ? "Salvando..." : "Adicionar"}
                             </Button>
                         </div>
                     </form>

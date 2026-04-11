@@ -21,17 +21,20 @@ import {
 } from "lucide-react";
 import {
     updateUserProfileAction,
+    updateUserSettingsAction,
     changePasswordAction,
     type UserProfile,
+    type UserSettings,
 } from "@/lib/actions/userProfile";
 
 export function SettingsView({ profile }: { profile: UserProfile }) {
     const [name, setName] = useState(profile.name);
     const [email, setEmail] = useState(profile.email);
     const [phone, setPhone] = useState(profile.phoneNumber ?? "");
-    const [hideBalances, setHideBalances] = useState(false);
-    const [notifications, setNotifications] = useState(true);
-    const [darkMode, setDarkMode] = useState(true);
+    const [hideBalances, setHideBalances] = useState(profile.settings.hideBalances);
+    const [notifications, setNotifications] = useState(profile.settings.notifications);
+    const [darkMode, setDarkMode] = useState(profile.settings.darkMode);
+    const [prefsSaved, setPrefsSaved] = useState(false);
 
     const [currentPwd, setCurrentPwd] = useState("");
     const [newPwd, setNewPwd] = useState("");
@@ -62,6 +65,28 @@ export function SettingsView({ profile }: { profile: UserProfile }) {
             }
             setProfileSuccess(true);
             setTimeout(() => setProfileSuccess(false), 3000);
+        });
+    };
+
+    const handleTogglePref = (key: keyof UserSettings, value: boolean) => {
+        // Atualização otimista: já move o Switch; se der erro, rola de volta.
+        if (key === "hideBalances") setHideBalances(value);
+        if (key === "notifications") setNotifications(value);
+        if (key === "darkMode") setDarkMode(value);
+        setPrefsSaved(false);
+
+        startTransition(async () => {
+            const res = await updateUserSettingsAction({ [key]: value });
+            if ("error" in res && res.error) {
+                // Rollback
+                if (key === "hideBalances") setHideBalances(!value);
+                if (key === "notifications") setNotifications(!value);
+                if (key === "darkMode") setDarkMode(!value);
+                setProfileError(res.error);
+                return;
+            }
+            setPrefsSaved(true);
+            setTimeout(() => setPrefsSaved(false), 2000);
         });
     };
 
@@ -253,12 +278,20 @@ export function SettingsView({ profile }: { profile: UserProfile }) {
                 </CardContent>
             </Card>
 
-            {/* Preferences (local only — backlog: persistir em users.settings JSONB) */}
+            {/* Preferences — persistidas em users.settings JSONB */}
             <Card className="border-border/50 bg-card">
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Preferências</CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2">
+                        Preferências
+                        {prefsSaved && (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-500 flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Salvo
+                            </span>
+                        )}
+                    </CardTitle>
                     <CardDescription className="text-xs">
-                        Estas preferências vivem apenas no navegador por enquanto.
+                        Preferências persistidas no banco e sincronizadas entre dispositivos.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -270,7 +303,11 @@ export function SettingsView({ profile }: { profile: UserProfile }) {
                                 <p className="text-xs text-muted-foreground">Mascarar valores financeiros com •••</p>
                             </div>
                         </div>
-                        <Switch checked={hideBalances} onCheckedChange={setHideBalances} />
+                        <Switch
+                            checked={hideBalances}
+                            onCheckedChange={(v) => handleTogglePref("hideBalances", v)}
+                            disabled={isPending}
+                        />
                     </div>
                     <div className="flex items-center justify-between py-2">
                         <div className="flex items-center gap-3">
@@ -280,7 +317,11 @@ export function SettingsView({ profile }: { profile: UserProfile }) {
                                 <p className="text-xs text-muted-foreground">Alertas de teto, faturas e relatórios</p>
                             </div>
                         </div>
-                        <Switch checked={notifications} onCheckedChange={setNotifications} />
+                        <Switch
+                            checked={notifications}
+                            onCheckedChange={(v) => handleTogglePref("notifications", v)}
+                            disabled={isPending}
+                        />
                     </div>
                     <div className="flex items-center justify-between py-2">
                         <div className="flex items-center gap-3">
@@ -290,7 +331,11 @@ export function SettingsView({ profile }: { profile: UserProfile }) {
                                 <p className="text-xs text-muted-foreground">Tema dark premium ativo</p>
                             </div>
                         </div>
-                        <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+                        <Switch
+                            checked={darkMode}
+                            onCheckedChange={(v) => handleTogglePref("darkMode", v)}
+                            disabled={isPending}
+                        />
                     </div>
                 </CardContent>
             </Card>

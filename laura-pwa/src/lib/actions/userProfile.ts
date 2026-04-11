@@ -5,6 +5,18 @@ import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 
+export type UserSettings = {
+    hideBalances: boolean;
+    notifications: boolean;
+    darkMode: boolean;
+};
+
+export const DEFAULT_SETTINGS: UserSettings = {
+    hideBalances: false,
+    notifications: true,
+    darkMode: true,
+};
+
 export type UserProfile = {
     id: string;
     name: string;
@@ -12,6 +24,7 @@ export type UserProfile = {
     role: string;              // "proprietário" | "administrador" | "membro" | "dependente"
     workspaceName: string;
     phoneNumber: string | null;
+    settings: UserSettings;
 };
 
 /**
@@ -24,7 +37,7 @@ export async function fetchUserProfileAction(): Promise<UserProfile | null> {
         if (!session || !session.userId) return null;
 
         const res = await pool.query(
-            `SELECT u.id, u.name, u.email, u.role, w.name AS workspace_name, u.phone_number
+            `SELECT u.id, u.name, u.email, u.role, w.name AS workspace_name, u.phone_number, u.settings
              FROM users u
              JOIN workspaces w ON w.id = u.workspace_id
              WHERE u.id = $1
@@ -34,6 +47,12 @@ export async function fetchUserProfileAction(): Promise<UserProfile | null> {
 
         if (res.rowCount === 0) return null;
         const r = res.rows[0];
+        const rawSettings = (r.settings ?? {}) as Partial<UserSettings>;
+        const settings: UserSettings = {
+            hideBalances: rawSettings.hideBalances ?? DEFAULT_SETTINGS.hideBalances,
+            notifications: rawSettings.notifications ?? DEFAULT_SETTINGS.notifications,
+            darkMode: rawSettings.darkMode ?? DEFAULT_SETTINGS.darkMode,
+        };
         return {
             id: r.id,
             name: r.name,
@@ -41,6 +60,7 @@ export async function fetchUserProfileAction(): Promise<UserProfile | null> {
             role: r.role,
             workspaceName: r.workspace_name,
             phoneNumber: r.phone_number ?? null,
+            settings,
         };
     } catch (err) {
         console.error("fetchUserProfileAction error:", err);
@@ -99,6 +119,39 @@ export async function updateUserProfileAction(formData: FormData) {
     } catch (err) {
         console.error("updateUserProfileAction error:", err);
         return { error: "Erro interno ao atualizar o perfil." };
+    }
+}
+
+/**
+ * updateUserSettingsAction faz merge das preferências (hideBalances,
+ * notifications, darkMode) no campo settings JSONB do usuário logado.
+ * Aceita um Partial<UserSettings> para atualizações parciais, mas na
+ * prática o SettingsView sempre envia o shape completo.
+ */
+export async function updateUserSettingsAction(settings: Partial<UserSettings>) {
+    try {
+        const session = await getSession();
+        if (!session || !session.userId) return { error: "Sem sessão ativa." };
+
+        // Sanitize: apenas campos conhecidos. Evita acidente de persistir
+        // chave arbitrária vinda do client.
+        const sanitized: Partial<UserSettings> = {};
+        if (typeof settings.hideBalances === "boolean") sanitized.hideBalances = settings.hideBalances;
+        if (typeof settings.notifications === "boolean") sanitized.notifications = settings.notifications;
+        if (typeof settings.darkMode === "boolean") sanitized.darkMode = settings.darkMode;
+
+        await pool.query(
+            `UPDATE users
+             SET settings = settings || $1::jsonb
+             WHERE id = $2`,
+            [JSON.stringify(sanitized), session.userId]
+        );
+
+        revalidatePath("/settings");
+        return { success: true };
+    } catch (err) {
+        console.error("updateUserSettingsAction error:", err);
+        return { error: "Erro ao salvar preferências." };
     }
 }
 

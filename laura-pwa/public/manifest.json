@@ -1,16 +1,59 @@
 {
   "name": "Laura Finance",
   "short_name": "Laura",
-  "description": "Sua Gestora Financeira Inteligente",
-  "start_url": "/",
+  "description": "Sua gestora financeira inteligente via WhatsApp. Dashboard premium, goals, investments, reports multidimensionais.",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0A0A0F",
   "theme_color": "#7C3AED",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["finance", "productivity", "utilities"],
   "icons": [
     {
       "src": "/favicon.ico",
-      "sizes": "256x256",
+      "sizes": "48x48 72x72 96x96 128x128 256x256",
       "type": "image/x-icon"
+    },
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dash",
+      "description": "Visão geral financeira",
+      "url": "/dashboard"
+    },
+    {
+      "name": "Empurrar Fatura",
+      "short_name": "Empurrar",
+      "description": "Simulador de rolagem de dívida",
+      "url": "/invoices/push"
+    },
+    {
+      "name": "Relatórios",
+      "short_name": "Reports",
+      "description": "Análises financeiras 9 abas",
+      "url": "/reports"
     }
   ]
 }

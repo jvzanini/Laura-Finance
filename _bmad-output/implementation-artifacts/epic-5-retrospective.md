@@ -45,7 +45,12 @@ Além disso, durante a auditoria de retro-documentação de 2026-04-11 descobrim
    - `crisis_context_test.go`: 6 testes sobre `SetCrisisContext`/`GetCrisisContext`/`PeekCrisisContext`/expiry/isolamento de telefones/nil-handling/overwrite.
    - `score_snapshot_test.go`: testes sobre `ScoreFactors.Score()` (zeros, max, fallback, crítico, pesos isolados).
    - A heurística naive `parsedTx.Amount * 0.35 + Tabela Price inline` foi **removida** — a detecção de crise agora chama `SimulateRollover` diretamente com o valor real extraído pelo NLP, armazena o contexto via `SetCrisisContext` e a confirmação consome via `GetCrisisContext`. Convergência total entre preview e persistência.
-   - **Restante como backlog**: teste de integração end-to-end com Postgres real cobrindo parse texto → Set → Get → PersistRollover. Infra-de-teste mais que lógica.
+   - **[✅ Resolvido 2026-04-11]** ~~teste de integração end-to-end com Postgres real~~ fechado via `rollover_e2e_test.go` usando `testcontainers-go` + `ankane/pgvector:latest`. 4 testes E2E executam em ~3s:
+     * `TestE2E_PersistRollover_CriaDebtRolloverETransactions`: sobe Postgres descartável, aplica as 22 migrations, cria workspace + card, chama `SimulateRollover` + `PersistRollover`, verifica que `debt_rollovers` ganhou 1 row com valores corretos (InfinitePay 2x total_fees=4500, `operations_json` via `jsonb_array_length`=2) E que `transactions` futuras foram geradas (count=2, soma=100000).
+     * `TestE2E_CrisisContext_FullFlowFromDetectionToPersist`: simula o fluxo completo detecção → `SetCrisisContext` → `GetCrisisContext` → `SimulateRollover` → `PersistRollover` com Stone 3x sobre R$ 2500. Verifica idempotência (contexto single-consume).
+     * `TestE2E_LoadFeeTable_ConsultaPostgresPaymentProcessors`: valida que `LoadFeeTable` lê os 6 processadores × 12 parcelamentos corretamente da tabela `payment_processors` + invalidação de cache.
+     * `TestE2E_SmokeImport`: passa mesmo com `SKIP_E2E=1` para CI sem Docker.
+   - **Fecha o Epic 5 tecnicamente**: todos os itens críticos e de alta prioridade do retrospectivo estão resolvidos.
 
 4. **[Média]** Unificar a UX de confirmação: a Story 5.2 hoje manda texto puro no WhatsApp. Quando migrarmos para WhatsApp Business API oficial, implementar os botões in-line previstos no AC original.
    - **Owner sugerido**: backend Go

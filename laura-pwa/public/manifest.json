@@ -1,0 +1,16 @@
+{
+  "name": "Laura Finance",
+  "short_name": "Laura",
+  "description": "Sua Gestora Financeira Inteligente",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0F",
+  "theme_color": "#7C3AED",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "256x256",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -100,35 +100,40 @@ export function AppSidebar() {
                             return (
                                 <div key={item.title}>
                                     <SidebarMenuItem>
-                                        <SidebarMenuButton
-                                            isActive={isActive}
-                                            tooltip={item.title}
-                                            className={
-                                                isActive
-                                                    ? "bg-primary/15 text-primary font-semibold hover:bg-primary/20"
-                                                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                                            }
-                                        >
-                                            {hasSubmenu ? (
-                                                <button
-                                                    onClick={() => toggleSubmenu(item.title)}
-                                                    className="flex items-center gap-3 w-full"
-                                                >
-                                                    <item.icon className="h-4 w-4 shrink-0" />
-                                                    <span className="flex-1 text-left">{item.title}</span>
-                                                    <ChevronDown
-                                                        className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-                                                            isSubOpen ? "rotate-180" : ""
-                                                        }`}
-                                                    />
-                                                </button>
-                                            ) : (
-                                                <a href={item.url} className="flex items-center gap-3 w-full">
-                                                    <item.icon className="h-4 w-4 shrink-0" />
-                                                    <span>{item.title}</span>
-                                                </a>
-                                            )}
-                                        </SidebarMenuButton>
+                                        {hasSubmenu ? (
+                                            <SidebarMenuButton
+                                                isActive={isActive}
+                                                tooltip={item.title}
+                                                onClick={() => toggleSubmenu(item.title)}
+                                                className={
+                                                    isActive
+                                                        ? "bg-primary/15 text-primary font-semibold hover:bg-primary/20"
+                                                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                                }
+                                            >
+                                                <item.icon className="h-4 w-4 shrink-0" />
+                                                <span className="flex-1 text-left">{item.title}</span>
+                                                <ChevronDown
+                                                    className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
+                                                        isSubOpen ? "rotate-180" : ""
+                                                    }`}
+                                                />
+                                            </SidebarMenuButton>
+                                        ) : (
+                                            <SidebarMenuButton
+                                                isActive={isActive}
+                                                tooltip={item.title}
+                                                render={<a href={item.url} />}
+                                                className={
+                                                    isActive
+                                                        ? "bg-primary/15 text-primary font-semibold hover:bg-primary/20"
+                                                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                                }
+                                            >
+                                                <item.icon className="h-4 w-4 shrink-0" />
+                                                <span>{item.title}</span>
+                                            </SidebarMenuButton>
+                                        )}
                                     </SidebarMenuItem>
 
                                     {/* Submenu Items */}
@@ -140,16 +145,15 @@ export function AppSidebar() {
                                                     <SidebarMenuItem key={sub.url}>
                                                         <SidebarMenuButton
                                                             isActive={subActive}
-                                                            className={`h-8 ${
+                                                            render={<a href={sub.url} />}
+                                                            className={`h-8 text-[13px] ${
                                                                 subActive
                                                                     ? "bg-primary/10 text-primary font-medium"
                                                                     : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                                                             }`}
                                                         >
-                                                            <a href={sub.url} className="flex items-center gap-2.5 w-full text-[13px]">
-                                                                <sub.icon className="h-3.5 w-3.5 shrink-0" />
-                                                                <span>{sub.title}</span>
-                                                            </a>
+                                                            <sub.icon className="h-3.5 w-3.5 shrink-0" />
+                                                            <span>{sub.title}</span>
                                                         </SidebarMenuButton>
                                                     </SidebarMenuItem>
                                                 );
@@ -190,11 +194,9 @@ export function AppSidebar() {
                     </SidebarGroupLabel>
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton tooltip="Falar com a Laura" className="text-muted-foreground hover:text-foreground hover:bg-accent">
-                                <a href="https://wa.me/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 w-full">
+                            <SidebarMenuButton tooltip="Falar com a Laura" render={<a href="https://wa.me/" target="_blank" rel="noopener noreferrer" />} className="text-muted-foreground hover:text-foreground hover:bg-accent">
                                     <MessageCircle className="h-4 w-4 shrink-0 text-emerald-500" />
                                     <span>Falar com Laura</span>
-                                </a>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
@@ -217,19 +219,15 @@ export function AppSidebar() {
 
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton isActive={pathname === "/settings"} tooltip="Configurações" className={pathname === "/settings" ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}>
-                            <a href="/settings" className="flex items-center gap-3 w-full">
+                        <SidebarMenuButton isActive={pathname === "/settings"} tooltip="Configurações" render={<a href="/settings" />} className={pathname === "/settings" ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}>
                                 <Settings className="h-4 w-4 shrink-0" />
                                 <span>Configurações</span>
-                            </a>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton tooltip="Sair" className="text-muted-foreground hover:text-destructive">
-                            <a href="/api/auth/logout" className="flex items-center gap-3 w-full">
+                        <SidebarMenuButton tooltip="Sair" render={<a href="/api/auth/logout" />} className="text-muted-foreground hover:text-destructive">
                                 <LogOut className="h-4 w-4 shrink-0" />
                                 <span>Sair</span>
-                            </a>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

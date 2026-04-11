@@ -4,7 +4,7 @@ user_name: 'Nexus AI'
 date: '2026-03-10T15:12:39-03:00'
 sections_completed: ['technology_stack', 'language_rules', 'framework_rules', 'testing_rules', 'quality_rules', 'workflow_rules', 'anti_patterns']
 status: 'complete'
-rule_count: 15
+rule_count: 20
 optimized_for_llm: true
 ---
 
@@ -59,6 +59,11 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - 🚫 **SÃO PROIBIDOS** spinners crônicos. A aplicação baseia-se em Skeletons que mimetizam a forma final da UI. Spinner reservado estritamente a load de botões (`isLoading=true`) e ações pull-to-refresh.
 - ⚠️ **Histórico de Chat Vetorizado**: O histórico transacional NLP para manter o contexto das interações do bot obrigatoriamente persiste nativamente via `pgvector`.
 - ⚠️ **Banco de Dados Centralizado (SOT)**: Como a arquitetura é dual (Bot + PWA ocorrendo concorrentemente no backend Go), a UI não retém estado de tenant de forma crua - obedeça rigorosamente autorização relacional de `tenant_id`/`family_id` pelo DB.
+- ⚠️ **Exceção Permitida a FLOAT/DECIMAL (auditoria 2026-04-11)**: A regra de "cents-only" aplica-se a **valores monetários**. Percentuais e taxas (ex: `debt_rollovers.fee_percentage DECIMAL(5,2)`, taxa de adquirente como `3.99%`) podem usar DECIMAL porque representam razões, não dinheiro. Ainda proibido: FLOAT em qualquer contexto, e DECIMAL para valores em R$.
+- ⚠️ **Emoji em colunas de texto**: Tabelas como `categories`, `financial_goals`, `investments` usam `VARCHAR(10)` para emoji para acomodar sequências ZWJ do Unicode. Não usar `CHAR(1)` nem `VARCHAR(4)`.
+- ⚠️ **Batch seeds exigem transação**: Sempre que uma server action fizer seed/import de hierarquia (ex: `seedCategoriesAction` com categorias + subcategorias), obrigatório BEGIN/COMMIT/ROLLBACK. Falha parcial = rollback total.
+- ⚠️ **Planejamento ≠ Registro**: O PWA tem duas camadas distintas: **Registro** (`transactions`, `cards`, `invoices` — eventos que aconteceram) e **Planejamento** (`financial_goals`, `investments`, `categories.monthly_limit_cents` — alvos e tetos). Features novas devem declarar explicitamente em qual camada vivem. Confundir as duas gera bug semântico.
+- ⚠️ **Fonte única de verdade para rolagens de dívida**: `debt_rollovers` é o sink oficial para o feature "Empurrar Fatura" de AMBOS os canais (WhatsApp Epic 5 e PWA Story 9.1). Não gravar rolagens só em `transactions` futuras — sempre escrever também em `debt_rollovers` com `operations_json` preenchido.
 
 ---
 
@@ -78,4 +83,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-03-10T15:12:39-03:00
+Last Updated: 2026-04-11 (retro-doc: Epics 8 e 9 adicionados, 5 novas regras críticas incorporadas)

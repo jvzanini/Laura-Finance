@@ -39,6 +39,12 @@ This document provides the complete epic and story breakdown for Laura Finance (
 - FR21: O Contador logado pode agendar exportações de saídas agnósticas (planilhadas isoladas sem codificações proprietárias) portando logs organizados das matrizes baseadas nas `Tags`.
 - FR22: O Proprietário pode assinar o modelo SaaS realizando pagamento via Gateway (ex: Stripe ou solução BR) no Dashboard web, liberando os acessos.
 - FR23: Após a assinatura, o sistema dispara e-mails transacionais automáticos contendo comprovantes financeiros e links/credenciais de acesso inicial altamente seguros (separados por Papel: Proprietário, Admin, Membro).
+- FR24 (Retro-doc 2026-04-11): O Proprietário/Administrador pode criar, acompanhar e concluir **Metas Financeiras** (`financial_goals`) no PWA, contendo emoji, nome, descrição, valor-alvo em centavos, acumulado atual, prazo (deadline) e cor, com seleção a partir de presets (Viagem, Carro, Casa, iPhone, Fundo de Emergência, Educação, Casamento, Investimento) e status `active|completed|paused`.
+- FR25 (Retro-doc 2026-04-11): O Proprietário/Administrador pode cadastrar **Investimentos** (`investments`) por corretora/broker (Ágora, BTG, Clear, Inter, Nu Invest, Rico, XP, Binance, IC Markets, IQ Option), classificados em `Investimentos|Cripto|Poupança`, registrando valor investido, valor atual e aporte mensal em centavos, com cálculo de rendimento percentual na camada de view.
+- FR26 (Retro-doc 2026-04-11): As **Categorias** passam a suportar `emoji` e `description`, e ganham hierarquia com `subcategories` (migration 000011) permitindo seed em batch transacional de uma árvore de categoria → subcategorias (8 categorias com ~36 subcategorias no seed default).
+- FR27 (Retro-doc 2026-04-11): O Proprietário/Administrador pode simular **"Empurrar Fatura"** (rolagem de dívida) diretamente no PWA escolhendo cartão, valor da fatura, pagamento inicial, maquininha (InfinitePay, Ton, Stone, Mercado Pago, Cielo, PagBank) e parcelamento 1x–12x, recebendo uma timeline de operações saque+pagamento e persistindo o resultado em `debt_rollovers` com `operations_json` (JSONB) para histórico. Esta é a contraparte PWA do Epic 5 (que antes era WhatsApp-only).
+- FR28 (Retro-doc 2026-04-11): O Proprietário vê um **Score Financeiro** (0–100) no dashboard calculado via ponderação de 4 fatores: `billsOnTime` (35%), `budgetRespect` (25%), `savingsRate` (25%), `debtLevel` (15%), com níveis Excelente/Bom/Regular/Crítico (≥80, ≥60, ≥40, <40), renderizado como gauge SVG animado — componente puramente visual, sem persistência em banco no momento.
+- FR29 (Retro-doc 2026-04-11): O módulo **Relatórios** (`/reports`) expande o DRE simples do FR20 para **9 abas** navegáveis: DRE, Categorias, Subcategorias, Por Membro, Por Cartão, Método de Pagamento, Modo Viagem, Comparativo e Tendência — com filtros por mês/membro/categoria/tipo. O "Modo Viagem" fica atrás de um toggle na sidebar.
 
 ### NonFunctional Requirements
 
@@ -84,6 +90,12 @@ FR15: Epic 6 - Text-based relatórios diretos
 FR19: Epic 6 - Gráficos Instantâneos via Whatsap
 FR20: Epic 6 - Dashboard DRE Desktop
 FR21: Epic 6 - Outputs planilhados para Contador
+FR24: Epic 8 - Metas Financeiras (Goals)
+FR25: Epic 8 - Investimentos (Investments)
+FR26: Epic 8 - Categorias com Emoji e Subcategorias
+FR27: Epic 9 - Empurrar Fatura (Simulador de Rolagem PWA)
+FR28: Epic 9 - Score Financeiro (Dashboard)
+FR29: Epic 9 - Relatórios Multidimensionais (9 Abas)
 
 ## Epic List
 
@@ -110,6 +122,14 @@ O painel backend analisa taxas de crédito nativas ativas sugerindo vias alterna
 ### Epic 6: Relatórios Visuais Profissionais on-Demand
 O software condensa os lançamentos numa DRE legível visualmente pelo desktop da Joana, permitindo extrações CSV limpas, ao passo em que também rende gráficos de imagens gerados dinamicamente no Whatsapp e garante a segurança do fluxo global.
 **FRs covered:** FR15, FR19, FR20, FR21
+
+### Epic 8: Planejamento Financeiro — Metas, Investimentos e Taxonomia Rica (Retro-doc)
+Expansão pós-MVP descoberta durante auditoria de 2026-04-11: o PWA passou a permitir que o Proprietário construa o lado "planejamento" da vida financeira (antes só havia o lado "registro"), com Metas (`financial_goals`), Investimentos (`investments`) e uma taxonomia rica de Categorias com emoji, descrição e subcategorias. Stories retroativas documentando código já em produção nos commits `490b3ec` e `0b50751`.
+**FRs covered:** FR24, FR25, FR26
+
+### Epic 9: Intelligence Layer no PWA — Score, Relatórios Multidimensionais e Empurrar Fatura Visual (Retro-doc)
+Expansão pós-MVP descoberta durante auditoria de 2026-04-11: o dashboard ganhou um Score Financeiro ponderado, o módulo de Relatórios saltou de uma DRE simples para 9 abas analíticas, e o Epic 5 (que era WhatsApp-only) ganhou uma contraparte visual no PWA — um simulador de "Empurrar Fatura" com persistência em `debt_rollovers`. Stories retroativas documentando código já em produção nos commits `490b3ec` e `0b50751`.
+**FRs covered:** FR27, FR28, FR29
 
 ## Epic 1: Fundação, Onboarding, Pagamentos e Gestão de Privacidade (PWA)
 
@@ -446,3 +466,138 @@ So that eu não dependa de formatos blindados do aplicativo para mostrar minha D
 **When** ativado o Hook de Download no framework Next
 **Then** um blob content type 'text/csv' com cabeçalhos coerentes ("Data, Categoria, Despesa, Tipo") e mascaramento seguro opcional deve ser emitido pelo Browser
 **And** o usuário nunca deverá ter perdas de codificações base no Excel (Ex. Falha de UTF-8 do Windows vs Mac).
+
+## Epic 8: Planejamento Financeiro — Metas, Investimentos e Taxonomia Rica (Retro-doc 2026-04-11)
+
+> **Nota de retro-documentação**: Este épico documenta retroativamente código já em produção nos commits `490b3ec` (2026-04-10) e `0b50751` (2026-04-11), que foram implementados fora do fluxo BMAD durante uma fase de "vibe coding" pós-MVP. A arquitetura real observada é compatível com o `project-context.md` (cents, sem ORM, dark mode, shadcn). Stories marcadas como `done` para refletir o estado atual.
+
+Expansão do PWA que adiciona a camada de **planejamento** (antes só existia a camada de **registro** via Epics 1–4). O Proprietário agora planeja para onde o dinheiro vai antes de gastá-lo: define Metas com prazos, rastreia Investimentos por corretora e organiza uma taxonomia rica de Categorias com emoji/descrição/subcategorias.
+
+### Story 8.1: Enriquecimento da Taxonomia de Categorias (Emoji, Descrição e Subcategorias)
+
+As a Proprietário/Administrador,
+I want que cada Categoria tenha emoji, descrição textual e uma lista de subcategorias navegáveis,
+So that eu e minha família tenhamos uma linguagem visual imediata e consistente ao classificar gastos, reduzindo fricção cognitiva.
+
+**Acceptance Criteria:**
+
+**Given** a tabela `categories` pré-existente do Epic 1.6
+**When** a migration `000015_add_emoji_to_categories.sql` é aplicada
+**Then** as colunas `emoji VARCHAR(10)` e `description VARCHAR(500)` devem ser adicionadas sem perda de dados
+**And** a rota `/categories` deve renderizar uma árvore expansível de 8 categorias-raiz (Pessoal, Moradia, Alimentação, Transporte, Lazer, Finanças, Trabalho, Viagem) com ~36 subcategorias, cada uma com emoji próprio
+**And** a server action `seedCategoriesAction` deve popular em batch transacional (BEGIN/COMMIT/ROLLBACK) a árvore default a partir de um payload JSON tipado
+**And** a action `addCategoryAction` deve aceitar emoji e description em novos cadastros, preservando a regra de `monthly_limit_cents` (INTEGER, nunca float).
+
+**Implementation artifacts:**
+- `infrastructure/migrations/000011_create_subcategories.sql` (pré-req hierarquia)
+- `infrastructure/migrations/000015_add_emoji_to_categories.sql`
+- `laura-pwa/src/app/(dashboard)/categories/page.tsx`
+- `laura-pwa/src/lib/actions/categories.ts` (`addCategoryAction`, `fetchCategoriesAction`, `fetchCategorySummariesAction`, `seedCategoriesAction`)
+
+### Story 8.2: Módulo de Metas Financeiras (Financial Goals)
+
+As a Proprietário/Administrador,
+I want cadastrar e acompanhar metas financeiras com prazo, valor-alvo, emoji e cor,
+So that eu visualize o progresso de objetivos concretos (Viagem, Carro, Casa, iPhone, Fundo de Emergência, Educação, Casamento, Investimento) e mantenha a família motivada a poupar.
+
+**Acceptance Criteria:**
+
+**Given** a migration `000012_create_financial_goals.sql` aplicada
+**When** eu acesso `/goals` no PWA
+**Then** devo ver 3 summary cards (Total Acumulado, Meta Total, Objetivos Ativos) e uma grid de cards por meta, cada um com emoji, progress bar, "guardar por mês" calculado (meta − atual) ÷ meses restantes
+**And** o formulário de criação deve expor 8 presets (pré-configurados com emoji e cor) e um modo manual, gravando `target_cents` e `current_cents` como INTEGER
+**And** `deadline` deve ser DATE, `status` default `active` com transições `completed` / `paused`
+**And** a tabela deve ter `workspace_id` com `ON DELETE CASCADE` e index `idx_goals_workspace` para isolamento tenant.
+
+**Implementation artifacts:**
+- `infrastructure/migrations/000012_create_financial_goals.sql`
+- `laura-pwa/src/app/(dashboard)/goals/page.tsx` (351 linhas)
+- `laura-pwa/src/lib/actions/goals.ts` (`addGoalAction`, `fetchGoalsAction`)
+
+### Story 8.3: Módulo de Investimentos (Investment Tracking por Corretora)
+
+As a Proprietário Prosumer,
+I want cadastrar meus investimentos por corretora (broker), tipo e aporte mensal,
+So that eu veja meu patrimônio total, rendimento percentual e disciplina de aportes consolidados no mesmo dashboard dos gastos.
+
+**Acceptance Criteria:**
+
+**Given** a migration `000013_create_investments.sql` aplicada
+**When** eu acesso `/investments` no PWA
+**Then** devo ver 4 summary cards (Patrimônio Total, Total Investido, Rendimento com %, Aporte Mensal)
+**And** o form deve permitir seleção de broker a partir de uma lista visual (Ágora, BTG, Clear, Inter, Nu Invest, Rico, XP, Binance, IC Markets, IQ Option) e tipo `Investimentos|Cripto|Poupança`
+**And** cada card exibido deve ter broker, tipo, valor atual, rendimento % calculado em view camada (`(current − invested) / invested`), e aporte mensal
+**And** `invested_cents`, `current_cents` e `monthly_contribution_cents` devem ser INTEGER em centavos — proibido float
+**And** `workspace_id` com `ON DELETE CASCADE` e index `idx_investments_workspace`.
+
+**Implementation artifacts:**
+- `infrastructure/migrations/000013_create_investments.sql`
+- `laura-pwa/src/app/(dashboard)/investments/page.tsx` (292 linhas)
+- `laura-pwa/src/lib/actions/investments.ts` (`addInvestmentAction`, `fetchInvestmentsAction`)
+
+## Epic 9: Intelligence Layer no PWA — Score, Relatórios Multidimensionais e Empurrar Fatura Visual (Retro-doc 2026-04-11)
+
+> **Nota de retro-documentação**: Este épico também documenta retroativamente código nos commits `490b3ec` e `0b50751`, implementados fora do BMAD. Ele complementa os Epics 5 e 6 originais, trazendo para o PWA features que antes eram exclusivas do WhatsApp ou de DRE simples.
+
+O dashboard ganha uma camada de **inteligência**: um Score Financeiro ponderado dá um sinal de saúde imediato, o módulo de Relatórios vira multidimensional (9 abas), e o simulador de rolagem do Epic 5 (que era texto puro no WhatsApp) ganha uma interface visual persistente com histórico.
+
+### Story 9.1: Simulador "Empurrar Fatura" no PWA + Persistência de Rolagens
+
+As a Proprietário em aperto,
+I want simular "empurrar" uma fatura de cartão usando maquininhas (saques no crédito) direto no PWA, escolhendo institution, parcelamento e pagamento inicial,
+So that eu veja exatamente quanto vou pagar em taxas antes de fazer a operação real, e tenha um histórico permanente das rolagens feitas.
+
+**Acceptance Criteria:**
+
+**Given** a migration `000014_create_debt_rollovers.sql` aplicada e um cartão já cadastrado
+**When** eu acesso `/invoices/push` no PWA
+**Then** devo preencher: cartão (dropdown), valor da fatura, pagamento inicial, maquininha (InfinitePay, Ton, Stone, Mercado Pago, Cielo, PagBank), parcelamento 1x–12x
+**And** a tela deve calcular e exibir uma timeline de operações com pagamento + saque detalhado usando tabela de taxas hardcoded por institution × parcelamento
+**And** 4 summary cards devem mostrar Valor Fatura, Total Sacado, Total Taxas, Quantidade de Operações
+**And** o botão "Salvar operação" deve persistir em `debt_rollovers` com `operations_json` JSONB contendo a timeline completa, `fee_percentage` DECIMAL(5,2), `total_fees_cents` e `invoice_value_cents` como INTEGER
+**And** `card_id` deve ter `ON DELETE SET NULL` (preservar histórico mesmo se o cartão for removido)
+**And** esta story representa a **contraparte PWA do Epic 5** — o motor matemático continua sendo o fonte de verdade quando acionado via chat.
+
+**Implementation artifacts:**
+- `infrastructure/migrations/000014_create_debt_rollovers.sql`
+- `laura-pwa/src/app/(dashboard)/invoices/push/page.tsx` (315 linhas)
+- `laura-pwa/src/lib/actions/invoices.ts` (`addDebtRolloverAction`, `fetchDebtRolloversAction`)
+
+### Story 9.2: Score Financeiro no Dashboard (Gauge Animado)
+
+As a Proprietário,
+I want ver um Score Financeiro de 0–100 no topo do dashboard, com decomposição dos 4 fatores que o formam,
+So that eu tenha um sinal único de saúde financeira sem precisar interpretar 10 gráficos.
+
+**Acceptance Criteria:**
+
+**Given** o usuário logado e o dashboard aberto
+**When** o componente `FinancialScore` é montado
+**Then** um gauge SVG animado deve renderizar o score 0–100 com cor e emoji por faixa: Crítico (<40) 🔴, Regular (40–59) 🟡, Bom (60–79) 🟢, Excelente (80+) ⭐
+**And** 4 barras de progresso animadas devem mostrar os fatores: `billsOnTime` (peso 35%), `budgetRespect` (25%), `savingsRate` (25%), `debtLevel` (15%)
+**And** o layout no dashboard deve usar `lg:col-span-2` ao lado do `DashboardChart` em `lg:col-span-3`
+**And** animações devem respeitar a regra do `project-context.md` (uso criterioso de Framer Motion em componentes de complexidade alta)
+**And** no momento atual a lógica vive no frontend — a persistência histórica do score em banco é um trabalho futuro.
+
+**Implementation artifacts:**
+- `laura-pwa/src/components/features/FinancialScore.tsx` (154 linhas)
+- `laura-pwa/src/app/(dashboard)/dashboard/page.tsx`
+
+### Story 9.3: Relatórios Multidimensionais — 9 Abas Analíticas
+
+As a Empreendedor/Proprietário,
+I want que a rota `/reports` tenha abas analíticas profundas (DRE, Categorias, Subcategorias, Por Membro, Por Cartão, Método de Pgto, Modo Viagem, Comparativo, Tendência) com filtros cruzados,
+So that eu consiga responder qualquer pergunta sobre onde o dinheiro vai sem exportar CSV.
+
+**Acceptance Criteria:**
+
+**Given** o Workspace aberto em desktop ≥ 1024px
+**When** acessada `/reports`
+**Then** devem existir 9 abas navegáveis, com a aba **DRE** como default mostrando Receitas Brutas, Despesas Fixas, Despesas Variáveis, Investimentos e Resultado Líquido
+**And** os filtros globais (mês, membro, categoria, tipo entrada/saída/saque) devem afetar todas as abas
+**And** a aba **Modo Viagem** só deve ser acessível quando o usuário ativa o toggle correspondente na sidebar
+**And** esta story **supersedes parcialmente** a Story 6.2 (DRE Simplificado) — os ACs da 6.2 continuam válidos como subconjunto, mas a implementação real é multi-aba
+**And** o export CSV da Story 6.3 continua sendo fornecido como ponte para o contador.
+
+**Implementation artifacts:**
+- `laura-pwa/src/app/(dashboard)/reports/page.tsx` (413 linhas)

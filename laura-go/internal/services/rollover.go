@@ -5,22 +5,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sync"
+	"time"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 )
 
 // PaymentProcessor identifica uma maquininha (adquirente) e suas taxas percentuais
-// por parcelamento. Espelha a tabela hardcoded em
-// laura-pwa/src/app/(dashboard)/invoices/push/page.tsx — mantê-las sincronizadas
-// até a tabela `payment_processors` em Postgres existir (item #2 da retro do Epic 5).
+// por parcelamento. A fonte de verdade são as linhas da tabela
+// `payment_processors` em Postgres (migration 000016) — este struct é o shape
+// com que o Go trabalha em memória após ler do banco ou do fallback local.
 type PaymentProcessor struct {
 	ID   string             // slug: "infinitepay", "ton", "stone", ...
 	Name string             // label visível: "InfinitePay", "Ton", ...
 	Fees map[string]float64 // "1x" → 3.5, "2x" → 4.5, ...
 }
 
-// FeeTable é a fonte única de verdade de taxas no backend Go.
-var FeeTable = map[string]PaymentProcessor{
+// fallbackFeeTable é usado quando o Postgres não está disponível (ex: durante
+// testes unitários offline ou no primeiro boot antes da migration 000016
+// rodar). Precisa ser mantido em paridade com o seed da migration — se você
+// alterar a migration, atualize esta tabela também. O teste
+// TestFeeTable_CobreTodosProcessadoresDoPWA garante que os slugs batem.
+var fallbackFeeTable = map[string]PaymentProcessor{
 	"infinitepay": {
 		ID:   "infinitepay",
 		Name: "InfinitePay",
@@ -71,6 +77,78 @@ var FeeTable = map[string]PaymentProcessor{
 	},
 }
 
+// FeeTable é exposto para testes de paridade (vide rollover_test.go). Em
+// produção, use LoadFeeTable() que tenta o Postgres primeiro.
+var FeeTable = fallbackFeeTable
+
+// feeCache guarda o último resultado bem-sucedido de LoadFeeTable para evitar
+// roundtrip por chamada. TTL padrão = 5 minutos — taxas de adquirente mudam
+// raramente e o `updated_at` da tabela pode ser polled se necessário.
+var feeCache struct {
+	sync.RWMutex
+	data   map[string]PaymentProcessor
+	loaded time.Time
+}
+
+const feeCacheTTL = 5 * time.Minute
+
+// LoadFeeTable retorna o mapa de processadores em memória, priorizando o
+// Postgres (tabela payment_processors da migration 000016). Em caso de falha
+// de conexão, missing table ou pool nil, retorna o fallbackFeeTable sem erro.
+// A invalidação do cache acontece por TTL.
+func LoadFeeTable(ctx context.Context) map[string]PaymentProcessor {
+	feeCache.RLock()
+	if feeCache.data != nil && time.Since(feeCache.loaded) < feeCacheTTL {
+		cached := feeCache.data
+		feeCache.RUnlock()
+		return cached
+	}
+	feeCache.RUnlock()
+
+	if db.Pool == nil {
+		return fallbackFeeTable
+	}
+
+	rows, err := db.Pool.Query(ctx,
+		`SELECT slug, name, fees FROM payment_processors WHERE active = TRUE`)
+	if err != nil {
+		return fallbackFeeTable
+	}
+	defer rows.Close()
+
+	result := make(map[string]PaymentProcessor)
+	for rows.Next() {
+		var slug, name string
+		var feesJSON []byte
+		if err := rows.Scan(&slug, &name, &feesJSON); err != nil {
+			return fallbackFeeTable
+		}
+		fees := map[string]float64{}
+		if err := json.Unmarshal(feesJSON, &fees); err != nil {
+			return fallbackFeeTable
+		}
+		result[slug] = PaymentProcessor{ID: slug, Name: name, Fees: fees}
+	}
+	if rows.Err() != nil || len(result) == 0 {
+		return fallbackFeeTable
+	}
+
+	feeCache.Lock()
+	feeCache.data = result
+	feeCache.loaded = time.Now()
+	feeCache.Unlock()
+	return result
+}
+
+// InvalidateFeeCache força a próxima LoadFeeTable a reconsultar o banco.
+// Útil em testes ou quando um admin atualizar a tabela via UI futura.
+func InvalidateFeeCache() {
+	feeCache.Lock()
+	feeCache.data = nil
+	feeCache.loaded = time.Time{}
+	feeCache.Unlock()
+}
+
 // RolloverOperation representa uma etapa da timeline de saques/pagamentos.
 // Estrutura compatível com o que o PWA grava em `debt_rollovers.operations_json`.
 type RolloverOperation struct {
@@ -99,9 +177,11 @@ type RolloverSimulation struct {
 // SimulateRollover recebe o valor da fatura em centavos, slug da adquirente e
 // parcelamento desejado e devolve uma simulação estruturada pronta para ser
 // persistida em `debt_rollovers`. Retorna erro se o processor ou installments
-// forem desconhecidos.
+// forem desconhecidos. A tabela de taxas é consultada via LoadFeeTable(), que
+// faz cache de 5min sobre a tabela Postgres payment_processors.
 func SimulateRollover(workspaceID string, cardID *string, invoiceValueCts int, processorSlug string, installments string) (*RolloverSimulation, error) {
-	processor, ok := FeeTable[processorSlug]
+	table := LoadFeeTable(context.Background())
+	processor, ok := table[processorSlug]
 	if !ok {
 		return nil, fmt.Errorf("processador desconhecido: %s", processorSlug)
 	}

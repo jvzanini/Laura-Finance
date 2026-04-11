@@ -45,15 +45,18 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 		(finalText == "Sim Laura, prorroga" || finalText == "sim laura prorroga" || finalText == "prorroga")
 
 	if isRolloverConfirm {
-		log.Println("[Crisis Engine] User confirmed Rollover! Persisting to debt_rollovers.")
+		log.Println("[Crisis Engine] User confirmed Rollover! Looking up context and persisting.")
 
-		// MVP: sem state machine ainda, então usamos um valor simbólico R$ 1000
-		// dividido em 2x via InfinitePay. Quando a memória conversacional do 5.1
-		// for implementada, trocar 100_000 por parsedTx.Amount*100 do contexto.
-		sim, err := SimulateRollover(workspaceID, nil, 100_000, "infinitepay", "2x")
+		ctxCrisis := GetCrisisContext(phoneNumber)
+		if ctxCrisis == nil {
+			replyFunc("🤔 Não encontrei uma simulação de rolagem ativa pra você no momento. Me conte primeiro o valor que está em aperto que eu calculo as opções!")
+			return
+		}
+
+		sim, err := SimulateRollover(ctxCrisis.WorkspaceID, ctxCrisis.CardID, ctxCrisis.InvoiceValueCts, ctxCrisis.ProcessorSlug, ctxCrisis.Installments)
 		if err != nil {
 			log.Printf("[Rollover Error] simulate: %v\n", err)
-			replyFunc("❌ Tive um problema ao simular a rolagem. Tente novamente em instantes.")
+			replyFunc("❌ Tive um problema ao re-simular a rolagem. Tente novamente em instantes.")
 			return
 		}
 		if err := PersistRollover(context.Background(), sim); err != nil {
@@ -63,8 +66,10 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 		}
 
 		replyFunc(fmt.Sprintf(
-			"✅ Rolagem ativada via %s (%s)! Gravei %d operações totalizando R$%.2f em taxas. Seu fluxo de caixa agradece! 🧘",
-			sim.Institution, sim.Installments, sim.TotalOperations, float64(sim.TotalFeesCts)/100,
+			"✅ Rolagem ativada via %s (%s)! Gravei %d operações totalizando R$%.2f em taxas sobre R$%.2f de fatura. Seu fluxo de caixa agradece! 🧘",
+			sim.Institution, sim.Installments, sim.TotalOperations,
+			float64(sim.TotalFeesCts)/100,
+			float64(sim.InvoiceValueCts)/100,
 		))
 		return
 	}
@@ -101,21 +106,44 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 			if parsedTx.IsCrisis {
 				log.Println("[Crisis Engine] User evoked intent of crisis/debt rollover.")
 
-				remainingDebt := parsedTx.Amount * 0.35 // Naive MVP heuristic if user just says "Can't pay my credit card limit"
+				// parsedTx.Amount vem em Reais; converte para centavos (INTEGER).
+				invoiceValueCts := int(parsedTx.Amount * 100)
+				if invoiceValueCts <= 0 {
+					invoiceValueCts = 100_000 // R$ 1000 fallback quando o LLM não extrai valor
+				}
 
-				// Mathematical Simulation (Tabela Price naive) - InfinitePay 3.5% a.m vs Cartão Tradicional 14% a.m
-				taxaCartaoSecao := 0.14
-				taxaAppAlternativo := 0.035
+				// Motor escolhe InfinitePay 2x como default — no futuro, quando
+				// o motor decidir comparar N adquirentes, este é o ponto de
+				// evolução. Por ora é um default conservador.
+				processorSlug := "infinitepay"
+				installmentsChoice := "2x"
 
-				// Exemplo: Rolagem em 2 vezes do valor que falta
-				vlMultaCartao := remainingDebt * (1 + taxaCartaoSecao)
-				prestApp := (remainingDebt * taxaAppAlternativo) / (1 - (1 / ((1 + taxaAppAlternativo) * (1 + taxaAppAlternativo))))
+				sim, err := SimulateRollover(workspaceID, nil, invoiceValueCts, processorSlug, installmentsChoice)
+				if err != nil {
+					log.Printf("[Crisis Engine Error] simulate preview: %v\n", err)
+					replyFunc("🤔 Percebi que você pode estar em aperto, mas tive um problema ao calcular a simulação. Tente me dizer o valor novamente!")
+					return
+				}
 
-				criseMsg := fmt.Sprintf("🚨 Percebi que você pode estar com dificuldade para pagar o total (%s).\n\n", parsedTx.Description)
+				// Armazena o contexto para a confirmação subsequente
+				SetCrisisContext(&CrisisContext{
+					WorkspaceID:     workspaceID,
+					PhoneNumber:     phoneNumber,
+					InvoiceValueCts: invoiceValueCts,
+					ProcessorSlug:   processorSlug,
+					Installments:    installmentsChoice,
+				})
+
+				criseMsg := fmt.Sprintf("🚨 Percebi que você pode estar com dificuldade para pagar *%s* (R$%.2f).\n\n",
+					parsedTx.Description, float64(invoiceValueCts)/100)
 				criseMsg += "📊 *Simulação de Salvamento:*\n"
-				criseMsg += fmt.Sprintf("No rotativo do seu cartão (14%%), isso custaria *~R$%.2f* mês que vem.\n", vlMultaCartao)
-				criseMsg += fmt.Sprintf("Se usarmos outro aplicativo com taxa de 3.5%%, você pode rolar a diferença em *2x de R$%.2f*.\n\n", prestApp)
-				criseMsg += "Deseja que eu agende e prorroge esse lançamento para os próximos 2 meses? (Responda: 'Sim Laura, prorroga')"
+				criseMsg += fmt.Sprintf("Posso empurrar essa fatura via *%s* em *%s*, dividindo em %d operações.\n",
+					sim.Institution, sim.Installments, sim.TotalOperations)
+				criseMsg += fmt.Sprintf("Taxa efetiva: *%.2f%%*, total em taxas: *R$%.2f*.\n",
+					sim.FeePercentage, float64(sim.TotalFeesCts)/100)
+				criseMsg += fmt.Sprintf("Comparado ao rotativo do cartão (14%%), você economiza cerca de *R$%.2f*.\n\n",
+					float64(invoiceValueCts)*0.14-float64(sim.TotalFeesCts)/100)
+				criseMsg += "Deseja que eu execute essa rolagem? (Responda: 'Sim Laura, prorroga')"
 
 				replyFunc(criseMsg)
 				return

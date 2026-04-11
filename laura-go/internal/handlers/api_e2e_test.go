@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -324,5 +325,149 @@ func toInt(v interface{}) int {
 		return int(n)
 	default:
 		return 0
+	}
+}
+
+func TestAPIE2E_Goals_SemSessao_Retorna401(t *testing.T) {
+	app, _, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	status, _ := performRequest(t, app, "GET", "/api/v1/goals", "")
+	if status != 401 {
+		t.Errorf("goals sem cookie: status = %d, esperado 401", status)
+	}
+}
+
+func TestAPIE2E_Goals_VazioRetornaArrayOuNil(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/goals", cookie)
+	if status != 200 {
+		t.Errorf("goals: status = %d", status)
+	}
+	raw, ok := body["goals"]
+	if !ok {
+		t.Errorf("goals: campo 'goals' ausente no body = %+v", body)
+	}
+	if raw != nil {
+		if arr, isArr := raw.([]interface{}); isArr && len(arr) != 0 {
+			t.Errorf("goals: array deveria estar vazio, veio %d items", len(arr))
+		}
+	}
+}
+
+func TestAPIE2E_Goals_ComSeed_RetornaLista(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO financial_goals (workspace_id, name, emoji, target_cents, current_cents, deadline, color, status)
+		 VALUES ($1, 'Viagem SP', '✈️', 500000, 100000, '2026-12-31', '#8B5CF6', 'active')`,
+		workspaceID,
+	)
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO financial_goals (workspace_id, name, emoji, target_cents, current_cents, deadline, color, status)
+		 VALUES ($1, 'Fundo Emergência', '🛡️', 1500000, 300000, '2027-06-30', '#10B981', 'active')`,
+		workspaceID,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/goals", cookie)
+	if status != 200 {
+		t.Errorf("goals: status = %d", status)
+	}
+	goalsRaw, ok := body["goals"].([]interface{})
+	if !ok {
+		t.Fatalf("goals array ausente: %+v", body)
+	}
+	if len(goalsRaw) != 2 {
+		t.Errorf("esperava 2 goals, veio %d", len(goalsRaw))
+	}
+}
+
+func TestAPIE2E_Investments_ComSeed_RetornaSummary(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO investments (workspace_id, name, broker, type, invested_cents, current_cents, monthly_contribution_cents, emoji)
+		 VALUES ($1, 'Nubank CDI', 'Nu Invest', 'Investimentos', 500000, 520000, 20000, '🏦')`,
+		workspaceID,
+	)
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO investments (workspace_id, name, broker, type, invested_cents, current_cents, monthly_contribution_cents, emoji)
+		 VALUES ($1, 'BTC', 'Binance', 'Cripto', 200000, 260000, 10000, '₿')`,
+		workspaceID,
+	)
+
+	status, body := performRequest(t, app, "GET", "/api/v1/investments", cookie)
+	if status != 200 {
+		t.Errorf("investments: status = %d", status)
+	}
+	if toInt(body["total_invested_cents"]) != 700000 {
+		t.Errorf("total_invested = %v, esperado 700000", body["total_invested_cents"])
+	}
+	if toInt(body["total_current_cents"]) != 780000 {
+		t.Errorf("total_current = %v, esperado 780000", body["total_current_cents"])
+	}
+	if toInt(body["total_monthly_contribution_cents"]) != 30000 {
+		t.Errorf("total_monthly = %v, esperado 30000", body["total_monthly_contribution_cents"])
+	}
+}
+
+func TestAPIE2E_Transactions_ComPaginacao(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	// Seed 5 transações
+	for i := 0; i < 5; i++ {
+		_, _ = pool.Exec(ctx,
+			`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date)
+			 VALUES ($1, $2, 'expense', $3, CURRENT_TIMESTAMP)`,
+			workspaceID, 10000*(i+1), "Transação "+strconv.Itoa(i+1),
+		)
+	}
+
+	status, body := performRequest(t, app, "GET", "/api/v1/transactions", cookie)
+	if status != 200 {
+		t.Errorf("transactions: status = %d", status)
+	}
+	txs, ok := body["transactions"].([]interface{})
+	if !ok {
+		t.Fatalf("transactions array ausente: %+v", body)
+	}
+	if len(txs) != 5 {
+		t.Errorf("esperava 5 transações, veio %d", len(txs))
+	}
+	if toInt(body["total_count"]) != 5 {
+		t.Errorf("total_count = %v, esperado 5", body["total_count"])
+	}
+
+	status, body = performRequest(t, app, "GET", "/api/v1/transactions?limit=2", cookie)
+	if status != 200 {
+		t.Errorf("transactions limit=2: status = %d", status)
+	}
+	txs, _ = body["transactions"].([]interface{})
+	if len(txs) != 2 {
+		t.Errorf("limit=2: esperava 2, veio %d", len(txs))
+	}
+	if toInt(body["total_count"]) != 5 {
+		t.Errorf("total_count com limit = %v, esperado 5", body["total_count"])
 	}
 }

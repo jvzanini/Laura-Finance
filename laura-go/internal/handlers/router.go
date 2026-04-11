@@ -31,6 +31,9 @@ func RegisterRoutes(app *fiber.App) {
 	api.Use(RequireSession())
 	api.Get("/me", handleMe)
 	api.Get("/reports/dre", handleReportsDRE)
+	api.Get("/goals", handleListGoals)
+	api.Get("/investments", handleListInvestments)
+	api.Get("/transactions", handleListTransactions)
 
 	// Rotas admin — chain adicional
 	admin := api.Group("/admin", RequireSuperAdmin())

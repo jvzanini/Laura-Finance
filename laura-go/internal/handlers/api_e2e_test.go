@@ -765,6 +765,47 @@ func TestAPIE2E_Members_ComSeed(t *testing.T) {
 	}
 }
 
+func TestAPIE2E_ReportsExtras_AllRespond200(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	// Seed básico pra cada aba ter algum dado
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date, tags)
+		 VALUES ($1, 500000, 'income', 'Salário', CURRENT_TIMESTAMP, '{}')`,
+		workspaceID,
+	)
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date, tags)
+		 VALUES ($1, 150000, 'expense', 'Mercado', CURRENT_TIMESTAMP, ARRAY['viagem-sp'])`,
+		workspaceID,
+	)
+
+	endpoints := []string{
+		"/api/v1/reports/categories",
+		"/api/v1/reports/subcategories",
+		"/api/v1/reports/cards",
+		"/api/v1/reports/payment-methods",
+		"/api/v1/reports/travel",
+		"/api/v1/reports/comparative",
+		"/api/v1/reports/trend",
+		"/api/v1/reports/members",
+	}
+	for _, ep := range endpoints {
+		status, body := performRequest(t, app, "GET", ep, cookie)
+		if status != 200 {
+			t.Errorf("%s: status = %d, esperado 200", ep, status)
+		}
+		if len(body) == 0 {
+			t.Errorf("%s: body vazio", ep)
+		}
+	}
+}
+
 func TestAPIE2E_PaymentProcessors_Retorna6(t *testing.T) {
 	app, pool, teardown := apiE2ESetup(t)
 	defer teardown()

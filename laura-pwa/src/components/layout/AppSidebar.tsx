@@ -32,6 +32,7 @@ import {
     FileText,
     History,
     ArrowDownUp,
+    ShieldAlert,
 } from "lucide-react";
 
 type NavItem = {
@@ -60,7 +61,7 @@ const navMain: NavItem[] = [
     { title: "Relatórios", url: "/reports", icon: BarChart3 },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean }) {
     const pathname = usePathname();
     const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
         Faturas: pathname.startsWith("/invoices"),
@@ -199,6 +200,23 @@ export function AppSidebar() {
                                     <span>Falar com Laura</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        {isSuperAdmin && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    tooltip="Super Admin"
+                                    isActive={pathname.startsWith("/admin")}
+                                    render={<a href="/admin" />}
+                                    className={
+                                        pathname.startsWith("/admin")
+                                            ? "bg-amber-500/15 text-amber-500 font-semibold"
+                                            : "text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
+                                    }
+                                >
+                                    <ShieldAlert className="h-4 w-4 shrink-0" />
+                                    <span>Super Admin</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
                     </SidebarMenu>
                 </SidebarGroup>
             </SidebarContent>

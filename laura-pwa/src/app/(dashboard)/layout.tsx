@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { fetchUserProfileAction } from "@/lib/actions/userProfile";
+import { isSuperAdminAction } from "@/lib/actions/admin";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { UserProfileDropdown } from "@/components/layout/UserProfileDropdown";
 import { EmailVerificationBanner } from "@/components/features/EmailVerificationBanner";
@@ -19,12 +20,15 @@ export default async function DashboardLayout({
         redirect("/register");
     }
 
-    const profile = await fetchUserProfileAction();
+    const [profile, isSuperAdmin] = await Promise.all([
+        fetchUserProfileAction(),
+        isSuperAdminAction(),
+    ]);
     const showVerifyBanner = profile && !profile.emailVerified;
 
     return (
         <SidebarProvider>
-            <AppSidebar />
+            <AppSidebar isSuperAdmin={isSuperAdmin} />
             <SidebarInset>
                 {showVerifyBanner && profile && (
                     <EmailVerificationBanner email={profile.email} />

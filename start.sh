@@ -50,7 +50,7 @@ fi
 npm run dev > /dev/null 2>&1 &
 PWA_PID=$!
 cd ..
-echo -e "${GREEN}✔ Painel rodando em http://localhost:3000${NC}"
+echo -e "${GREEN}✔ Painel rodando em http://localhost:3100${NC}"
 
 # 5. Roda o Bot (Go) no terminal atual para mostrar o QR Code
 echo -e "\n${BLUE}[4/4] Inicializando o Cérebro da Laura (Engine Go + WhatsApp)...${NC}"

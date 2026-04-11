@@ -2,6 +2,26 @@
 
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { callLauraGo } from "@/lib/apiClient";
+
+// Shape da resposta do /api/v1/reports/dre do laura-go (snake_case
+// via JSON tags). Mantém-se em paridade com a DREResponse do Go.
+type GoDRELine = {
+    label: string;
+    indent: number;
+    value_cents: number;
+    sign: string;
+    bold: boolean;
+};
+
+type GoDREResponse = {
+    month: string;
+    lines: GoDRELine[];
+    total_income_cents: number;
+    total_expense_cents: number;
+    total_investment_cents: number;
+    net_result_cents: number;
+};
 
 // Filtros server-side aplicados pelas actions. Todas as queries de
 // relatórios derivam a janela temporal a partir de filters.month no
@@ -104,6 +124,40 @@ export async function fetchDREAction(filters?: ReportFilters): Promise<DRESummar
     try {
         const session = await getSession();
         if (!session || !session.userId) return emptySummary;
+
+        // Tenta API Go primeiro — mas apenas quando não há filtros de
+        // category/member (o endpoint Go ainda não suporta esses).
+        // Filter de type também não está disponível no Go DRE pois
+        // ele sempre agrega income+expense na mesma view.
+        if (!filters?.categoryId && !filters?.memberId && !filters?.type) {
+            try {
+                const monthParam = filters?.month ? `?month=${filters.month}` : "";
+                const goResponse = await callLauraGo<GoDREResponse>(
+                    `/api/v1/reports/dre${monthParam}`
+                );
+                if (goResponse) {
+                    const validSign = (s: string): "positive" | "negative" | "neutral" => {
+                        return s === "positive" || s === "negative" ? s : "neutral";
+                    };
+                    return {
+                        month: goResponse.month,
+                        lines: goResponse.lines.map((l) => ({
+                            label: l.label,
+                            indent: l.indent,
+                            valueCents: l.value_cents,
+                            sign: validSign(l.sign),
+                            bold: l.bold,
+                        })),
+                        totalIncomeCents: goResponse.total_income_cents,
+                        totalExpenseCents: goResponse.total_expense_cents,
+                        totalInvestmentCents: goResponse.total_investment_cents,
+                        netResultCents: goResponse.net_result_cents,
+                    };
+                }
+            } catch (err) {
+                console.warn("[reports] laura-go /reports/dre failed, fallback local:", err);
+            }
+        }
 
         const client = await pool.connect();
         try {

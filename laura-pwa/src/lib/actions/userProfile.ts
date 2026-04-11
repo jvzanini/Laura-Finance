@@ -9,12 +9,29 @@ import {
     type UserProfile,
     type UserSettings,
 } from "@/lib/types/userProfile";
+import { callLauraGo } from "@/lib/apiClient";
 
 // NOTA: Arquivos com "use server" no topo (Next 15/16) só podem
 // exportar async functions. Nem re-export de tipos funciona —
 // Turbopack tenta registrar o nome como server action e falha.
 // Quem precisa dos types UserProfile/UserSettings deve importar
 // diretamente de "@/lib/types/userProfile".
+
+// Shape da resposta do /api/v1/me do laura-go (snake_case via JSON
+// tags). Local ao arquivo porque é detalhe de transporte, não
+// contrato exposto.
+type GoMeResponse = {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    workspace_id: string;
+    workspace_name: string;
+    phone_number: string | null;
+    email_verified: boolean;
+    is_super_admin: boolean;
+    created_at?: string;
+};
 
 /**
  * fetchUserProfileAction devolve os dados do usuário logado junto com
@@ -24,6 +41,40 @@ export async function fetchUserProfileAction(): Promise<UserProfile | null> {
     try {
         const session = await getSession();
         if (!session || !session.userId) return null;
+
+        // Tenta API Go primeiro. O /api/v1/me do laura-go não retorna
+        // settings (JSONB users.settings) ainda, então precisamos de
+        // uma query curta extra só pra elas. Quando o Go expandir o
+        // endpoint, este merge sai.
+        try {
+            const goResponse = await callLauraGo<GoMeResponse>("/api/v1/me");
+            if (goResponse) {
+                const settingsRes = await pool.query(
+                    "SELECT settings FROM users WHERE id = $1 LIMIT 1",
+                    [session.userId]
+                );
+                const rawSettings =
+                    (settingsRes.rowCount && (settingsRes.rows[0].settings as Partial<UserSettings>)) ||
+                    {};
+                const settings: UserSettings = {
+                    hideBalances: rawSettings.hideBalances ?? DEFAULT_SETTINGS.hideBalances,
+                    notifications: rawSettings.notifications ?? DEFAULT_SETTINGS.notifications,
+                    darkMode: rawSettings.darkMode ?? DEFAULT_SETTINGS.darkMode,
+                };
+                return {
+                    id: goResponse.id,
+                    name: goResponse.name,
+                    email: goResponse.email,
+                    role: goResponse.role,
+                    workspaceName: goResponse.workspace_name,
+                    phoneNumber: goResponse.phone_number,
+                    emailVerified: goResponse.email_verified,
+                    settings,
+                };
+            }
+        } catch (err) {
+            console.warn("[profile] laura-go /me failed, fallback local:", err);
+        }
 
         const res = await pool.query(
             `SELECT u.id, u.name, u.email, u.role, w.name AS workspace_name,

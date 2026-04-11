@@ -3,6 +3,7 @@ import { DashboardHero } from "@/components/features/DashboardHero";
 import { CategoryBudget } from "@/components/features/CategoryBudget";
 import { RecentTransactionsFeed } from "@/components/features/RecentTransactionsFeed";
 import { FinancialScoreCard } from "@/components/features/FinancialScoreCard";
+import { ScoreEvolutionCard } from "@/components/features/ScoreEvolutionCard";
 import { UpcomingBills } from "@/components/features/UpcomingBills";
 
 export default function DashboardPage() {
@@ -34,6 +35,9 @@ export default function DashboardPage() {
                     <DashboardChart />
                 </div>
             </div>
+
+            {/* Score Evolution (histórico via fetchScoreHistoryAction) */}
+            <ScoreEvolutionCard />
 
             {/* Upcoming Bills + Category Budgets */}
             <div className="grid gap-6 lg:grid-cols-5">

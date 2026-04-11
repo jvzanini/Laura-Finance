@@ -3,6 +3,26 @@
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoSubcategoryItem = {
+    id: string;
+    name: string;
+    emoji: string | null;
+    description: string | null;
+};
+
+type GoCategoryItem = {
+    id: string;
+    name: string;
+    emoji: string | null;
+    color: string;
+    description: string | null;
+    monthly_limit_cents: number;
+    subcategories: GoSubcategoryItem[];
+};
+
+type GoCategoriesResponse = { categories: GoCategoryItem[] | null };
 
 export async function addCategoryAction(formData: FormData) {
     try {
@@ -53,6 +73,29 @@ export async function fetchCategoriesAction() {
     try {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Não autorizado." };
+
+        try {
+            const goResponse = await callLauraGo<GoCategoriesResponse>("/api/v1/categories");
+            if (goResponse) {
+                const categories = (goResponse.categories ?? []).map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    emoji: c.emoji || "📁",
+                    color: c.color || "#808080",
+                    description: c.description || "",
+                    monthlyLimit: c.monthly_limit_cents / 100,
+                    subcategories: (c.subcategories ?? []).map((s) => ({
+                        id: s.id,
+                        name: s.name,
+                        emoji: s.emoji || "📄",
+                        description: s.description || "",
+                    })),
+                }));
+                return { categories };
+            }
+        } catch (err) {
+            console.warn("[categories] laura-go failed, fallback:", err);
+        }
 
         const client = await pool.connect();
         try {

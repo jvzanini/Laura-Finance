@@ -3,6 +3,23 @@
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoCardItem = {
+    id: string;
+    name: string;
+    brand: string | null;
+    color: string;
+    closing_day: number | null;
+    due_day: number | null;
+    last_four: string | null;
+    card_type: string;
+    bank_broker: string | null;
+    holder: string | null;
+    credit_limit_cents: number;
+};
+
+type GoCardsResponse = { cards: GoCardItem[] | null };
 
 export async function addCardAction(formData: FormData) {
     try {
@@ -54,6 +71,28 @@ export async function fetchCardsAction() {
     try {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Sem sessão ativa." };
+
+        try {
+            const goResponse = await callLauraGo<GoCardsResponse>("/api/v1/cards");
+            if (goResponse) {
+                const cards = (goResponse.cards ?? []).map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    brand: c.brand,
+                    type: c.card_type,
+                    color: c.color,
+                    lastFour: c.last_four,
+                    closingDay: c.closing_day,
+                    dueDay: c.due_day,
+                    bankBroker: c.bank_broker,
+                    holder: c.holder,
+                    creditLimit: c.credit_limit_cents,
+                }));
+                return { cards };
+            }
+        } catch (err) {
+            console.warn("[cards] laura-go failed, fallback:", err);
+        }
 
         const res = await pool.query(
             `SELECT c.id, c.name, c.brand, c.color, c.closing_day, c.due_day, c.last_four, c.card_type, c.bank_broker, c.holder, c.credit_limit_cents

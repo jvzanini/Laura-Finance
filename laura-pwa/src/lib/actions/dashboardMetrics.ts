@@ -2,6 +2,36 @@
 
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoCashFlowPoint = {
+    day: string;
+    gastos_cents: number;
+    entradas_cents: number;
+};
+type GoCashFlowResponse = { points: GoCashFlowPoint[] | null };
+
+type GoUpcomingBill = {
+    id: string;
+    name: string;
+    amount_cents: number;
+    due_date: string;
+    due_label: string;
+    days_until: number;
+    type: string;
+    card_color: string;
+};
+type GoUpcomingBillsResponse = { bills: GoUpcomingBill[] | null };
+
+type GoCategoryBudget = {
+    id: string;
+    name: string;
+    limit_cents: number;
+    spent_cents: number;
+    color: string;
+    emoji: string | null;
+};
+type GoCategoryBudgetsResponse = { categories: GoCategoryBudget[] | null };
 
 // Actions que alimentam os cards/gráficos do /dashboard com dados reais.
 // Ficam agrupadas aqui para não inflar actions mais específicas com
@@ -22,6 +52,19 @@ export async function fetchMonthlyCashFlowAction(): Promise<CashFlowPoint[]> {
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
+
+        try {
+            const goResponse = await callLauraGo<GoCashFlowResponse>("/api/v1/dashboard/cashflow");
+            if (goResponse) {
+                return (goResponse.points ?? []).map((p) => ({
+                    day: p.day,
+                    gastos: p.gastos_cents / 100,
+                    entradas: p.entradas_cents / 100,
+                }));
+            }
+        } catch (err) {
+            console.warn("[cashflow] laura-go failed, fallback:", err);
+        }
 
         const client = await pool.connect();
         try {
@@ -102,6 +145,26 @@ export async function fetchUpcomingBillsAction(): Promise<UpcomingBill[]> {
         const session = await getSession();
         if (!session || !session.userId) return [];
 
+        try {
+            const goResponse = await callLauraGo<GoUpcomingBillsResponse>(
+                "/api/v1/dashboard/upcoming-bills"
+            );
+            if (goResponse) {
+                return (goResponse.bills ?? []).map((b) => ({
+                    id: b.id,
+                    name: b.name,
+                    amountCents: b.amount_cents,
+                    dueDate: b.due_date,
+                    dueLabel: b.due_label,
+                    daysUntil: b.days_until,
+                    type: b.type as "fatura" | "recorrente" | "boleto",
+                    cardColor: b.card_color,
+                }));
+            }
+        } catch (err) {
+            console.warn("[upcoming-bills] laura-go failed, fallback:", err);
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query(
@@ -169,6 +232,24 @@ export async function fetchCategoryBudgetsAction(): Promise<CategoryBudgetRow[]>
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
+
+        try {
+            const goResponse = await callLauraGo<GoCategoryBudgetsResponse>(
+                "/api/v1/dashboard/category-budgets"
+            );
+            if (goResponse) {
+                return (goResponse.categories ?? []).map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    limit: c.limit_cents / 100,
+                    spent: c.spent_cents / 100,
+                    color: c.color,
+                    emoji: c.emoji,
+                }));
+            }
+        } catch (err) {
+            console.warn("[category-budgets] laura-go failed, fallback:", err);
+        }
 
         const client = await pool.connect();
         try {

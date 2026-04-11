@@ -35,8 +35,20 @@ func StartBudgetAlertCron(sendMessageFunc func(to string, msg string)) {
 		return
 	}
 
+	// Every day at 03:15 — detects score band transitions (queda de faixa)
+	// e dispara nudges WhatsApp. Roda 15min depois do snapshot pra garantir
+	// que o dado do dia está persistido.
+	_, err = c.AddFunc("15 3 * * *", func() {
+		log.Println("[CRON] Running daily score band check...")
+		runDailyScoreBandCheck(sendMessageFunc)
+	})
+	if err != nil {
+		log.Printf("[CRON] Failed to setup score band cron: %v", err)
+		return
+	}
+
 	c.Start()
-	log.Println("[CRON] Daily jobs started: budget check (20:00) + score snapshot (03:00).")
+	log.Println("[CRON] Daily jobs started: budget check (20:00) + score snapshot (03:00) + score band nudges (03:15).")
 }
 
 func runDailyBudgetCheck(sendMessageFunc func(to string, msg string)) {

@@ -3,6 +3,24 @@
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoGoalItem = {
+    id: string;
+    name: string;
+    description: string | null;
+    emoji: string;
+    target_cents: number;
+    current_cents: number;
+    deadline: string | null;
+    color: string;
+    status: string;
+    created_at: string;
+};
+
+type GoGoalsResponse = {
+    goals: GoGoalItem[] | null;
+};
 
 export async function addGoalAction(formData: FormData) {
     try {
@@ -53,6 +71,27 @@ export async function fetchGoalsAction() {
     try {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Sem sessão ativa." };
+
+        // Tenta API Go primeiro
+        try {
+            const goResponse = await callLauraGo<GoGoalsResponse>("/api/v1/goals");
+            if (goResponse) {
+                const goals = (goResponse.goals ?? []).map((g) => ({
+                    id: g.id,
+                    name: g.name,
+                    description: g.description,
+                    emoji: g.emoji,
+                    targetAmount: g.target_cents / 100,
+                    currentAmount: g.current_cents / 100,
+                    deadline: g.deadline,
+                    color: g.color,
+                    status: g.status,
+                }));
+                return { goals };
+            }
+        } catch (err) {
+            console.warn("[goals] laura-go failed, fallback:", err);
+        }
 
         const res = await pool.query(
             `SELECT g.id, g.name, g.description, g.emoji, g.target_cents, g.current_cents, g.deadline, g.color, g.status

@@ -3,6 +3,26 @@
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
+import { callLauraGo } from "@/lib/apiClient";
+
+type GoInvestmentItem = {
+    id: string;
+    name: string;
+    broker: string | null;
+    type: string;
+    invested_cents: number;
+    current_cents: number;
+    monthly_contribution_cents: number;
+    emoji: string;
+    created_at: string;
+};
+
+type GoInvestmentsResponse = {
+    investments: GoInvestmentItem[] | null;
+    total_invested_cents: number;
+    total_current_cents: number;
+    total_monthly_contribution_cents: number;
+};
 
 export async function addInvestmentAction(formData: FormData) {
     try {
@@ -54,6 +74,26 @@ export async function fetchInvestmentsAction() {
     try {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Sem sessão ativa." };
+
+        // Tenta API Go primeiro
+        try {
+            const goResponse = await callLauraGo<GoInvestmentsResponse>("/api/v1/investments");
+            if (goResponse) {
+                const investments = (goResponse.investments ?? []).map((i) => ({
+                    id: i.id,
+                    name: i.name,
+                    broker: i.broker,
+                    type: i.type,
+                    investedAmount: i.invested_cents / 100,
+                    currentAmount: i.current_cents / 100,
+                    monthlyContribution: i.monthly_contribution_cents / 100,
+                    emoji: i.emoji,
+                }));
+                return { investments };
+            }
+        } catch (err) {
+            console.warn("[investments] laura-go failed, fallback:", err);
+        }
 
         const res = await pool.query(
             `SELECT i.id, i.name, i.broker, i.type, i.invested_cents, i.current_cents, i.monthly_contribution_cents, i.emoji

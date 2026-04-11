@@ -2,6 +2,7 @@
 
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { callLauraGo } from "@/lib/apiClient";
 
 export type Transaction = {
     id: string;
@@ -15,11 +16,52 @@ export type Transaction = {
     tags?: string[];
 };
 
+type GoTransactionItem = {
+    id: string;
+    amount: number;
+    type: string;
+    description: string;
+    transaction_date: string;
+    category_id: string | null;
+    category_name: string | null;
+    card_id: string | null;
+    card_name: string | null;
+    needs_review: boolean;
+    confidence_score: number | null;
+    tags: string[] | null;
+};
+
+type GoTransactionsResponse = {
+    transactions: GoTransactionItem[] | null;
+    total_count: number;
+};
+
 export async function fetchRecentTransactionsAction(): Promise<{ error?: string, transactions?: Transaction[] }> {
     try {
         const session = await getSession();
         if (!session || !session.userId) {
             return { error: "Sessão inválida" };
+        }
+
+        // Tenta API Go primeiro (limite 10 para o widget "últimas")
+        try {
+            const goResponse = await callLauraGo<GoTransactionsResponse>("/api/v1/transactions?limit=10");
+            if (goResponse) {
+                const transactions: Transaction[] = (goResponse.transactions ?? []).map((t) => ({
+                    id: t.id,
+                    amount: t.amount / 100,  // Go retorna cents, PWA type espera reais
+                    description: t.description,
+                    type: t.type === "income" ? "income" : "expense",
+                    date: t.transaction_date,
+                    confidenceScore: t.confidence_score ?? 1.0,
+                    needsReview: t.needs_review,
+                    categoryName: t.category_name ?? "Geral",
+                    tags: t.tags ?? [],
+                }));
+                return { transactions };
+            }
+        } catch (err) {
+            console.warn("[transactions] laura-go failed, fallback:", err);
         }
 
         const client = await pool.connect();

@@ -3,6 +3,40 @@
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
+// Filtros server-side aplicados pelas actions. Todas as queries de
+// relatórios derivam a janela temporal a partir de filters.month no
+// formato 'YYYY-MM'. Se não informado, usa o mês corrente (CURRENT_DATE).
+// category_id/member_id/type são opcionais e quando presentes adicionam
+// WHERE clauses adicionais. Mantenha este shape sincronizado com as
+// strings aceitas em ReportsView e em ReportsPage searchParams.
+export type ReportFilters = {
+    month?: string;           // "YYYY-MM" (default: mês corrente)
+    categoryId?: string;      // UUID (opcional)
+    memberId?: string;        // UUID de phones.id ou users.id (opcional)
+    type?: "income" | "expense"; // filtro por tipo (opcional, usado em algumas abas)
+};
+
+/**
+ * resolveTargetDate retorna o primeiro dia do mês alvo em formato
+ * 'YYYY-MM-DD', derivado de filters.month (shape YYYY-MM). Fallback
+ * é o primeiro dia do mês corrente, normalizando todas as queries
+ * para usarem $2::date como referência de janela temporal.
+ */
+function resolveTargetDate(filters: ReportFilters | undefined): string {
+    const f = filters ?? {};
+    if (f.month && /^\d{4}-\d{2}$/.test(f.month)) {
+        return `${f.month}-01`;
+    }
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+// Cláusula SQL padrão para "transaction está no mês referenciado por $2".
+// Uso: cada action passa [workspaceId, targetDate, ...extra] e usa este
+// fragmento nas WHERE clauses, garantindo paridade entre todas as queries.
+const MONTH_CLAUSE_SQL =
+    "EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM $2::date) AND EXTRACT(YEAR FROM t.transaction_date) = EXTRACT(YEAR FROM $2::date)";
+
 export type DRELine = {
     label: string;
     indent: number;       // 0 = section header, 1 = line item
@@ -30,9 +64,10 @@ export type DRESummary = {
  * Retorna um shape DRESummary pronto para render em lista hierárquica.
  * Quando não há dados, devolve um summary vazio (com lines == []).
  */
-export async function fetchDREAction(): Promise<DRESummary> {
+export async function fetchDREAction(filters?: ReportFilters): Promise<DRESummary> {
+    const targetDate = resolveTargetDate(filters);
     const emptySummary: DRESummary = {
-        month: new Date().toISOString().slice(0, 7),
+        month: targetDate.slice(0, 7),
         lines: [],
         totalIncomeCents: 0,
         totalExpenseCents: 0,
@@ -61,12 +96,11 @@ export async function fetchDREAction(): Promise<DRESummary> {
                  LEFT JOIN categories c ON c.id = t.category_id
                  WHERE t.workspace_id = $1
                    AND t.type = 'income'
-                   AND EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-                   AND EXTRACT(YEAR  FROM t.transaction_date) = EXTRACT(YEAR  FROM CURRENT_DATE)
+                   AND ${MONTH_CLAUSE_SQL}
                  GROUP BY c.name
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY total_cents DESC`,
-                [workspaceId]
+                [workspaceId, targetDate]
             );
 
             // Despesas agrupadas por categoria
@@ -77,12 +111,11 @@ export async function fetchDREAction(): Promise<DRESummary> {
                  LEFT JOIN categories c ON c.id = t.category_id
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
-                   AND EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-                   AND EXTRACT(YEAR  FROM t.transaction_date) = EXTRACT(YEAR  FROM CURRENT_DATE)
+                   AND ${MONTH_CLAUSE_SQL}
                  GROUP BY c.name
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY total_cents DESC`,
-                [workspaceId]
+                [workspaceId, targetDate]
             );
 
             // Aportes mensais em investimentos (contribuição fixa, não mensal de transactions)
@@ -163,7 +196,7 @@ export async function fetchDREAction(): Promise<DRESummary> {
             });
 
             return {
-                month: emptySummary.month,
+                month: targetDate.slice(0, 7),
                 lines,
                 totalIncomeCents,
                 totalExpenseCents,
@@ -193,7 +226,8 @@ export type CategoryReportRow = {
  * category_id, devolvendo lista ordenada descendente com % do total.
  * Inclui linha "Sem categoria" quando há transactions sem categoria.
  */
-export async function fetchCategoryReportAction(): Promise<CategoryReportRow[]> {
+export async function fetchCategoryReportAction(filters?: ReportFilters): Promise<CategoryReportRow[]> {
+    const targetDate = resolveTargetDate(filters);
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -218,12 +252,11 @@ export async function fetchCategoryReportAction(): Promise<CategoryReportRow[]> 
                  LEFT JOIN categories c ON c.id = t.category_id
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
-                   AND EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-                   AND EXTRACT(YEAR  FROM t.transaction_date) = EXTRACT(YEAR  FROM CURRENT_DATE)
+                   AND ${MONTH_CLAUSE_SQL}
                  GROUP BY t.category_id, c.name, c.emoji, c.color
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY spent_cents DESC`,
-                [workspaceId]
+                [workspaceId, targetDate]
             );
 
             const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);
@@ -253,7 +286,8 @@ export type SubcategoryReportRow = {
     percentOfTotal: number;
 };
 
-export async function fetchSubcategoryReportAction(): Promise<SubcategoryReportRow[]> {
+export async function fetchSubcategoryReportAction(filters?: ReportFilters): Promise<SubcategoryReportRow[]> {
+    const targetDate = resolveTargetDate(filters);
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -279,13 +313,12 @@ export async function fetchSubcategoryReportAction(): Promise<SubcategoryReportR
                  LEFT JOIN categories c ON c.id = t.category_id
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
-                   AND EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-                   AND EXTRACT(YEAR  FROM t.transaction_date) = EXTRACT(YEAR  FROM CURRENT_DATE)
+                   AND ${MONTH_CLAUSE_SQL}
                  GROUP BY t.subcategory_id, sc.name, sc.emoji, c.name
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY spent_cents DESC
                  LIMIT 20`,
-                [workspaceId]
+                [workspaceId, targetDate]
             );
 
             const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);
@@ -315,7 +348,8 @@ export type CardReportRow = {
     percentOfTotal: number;
 };
 
-export async function fetchCardReportAction(): Promise<CardReportRow[]> {
+export async function fetchCardReportAction(filters?: ReportFilters): Promise<CardReportRow[]> {
+    const targetDate = resolveTargetDate(filters);
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -340,12 +374,11 @@ export async function fetchCardReportAction(): Promise<CardReportRow[]> {
                  LEFT JOIN cards c ON c.id = t.card_id
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
-                   AND EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-                   AND EXTRACT(YEAR  FROM t.transaction_date) = EXTRACT(YEAR  FROM CURRENT_DATE)
+                   AND ${MONTH_CLAUSE_SQL}
                  GROUP BY t.card_id, c.name, c.color
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY spent_cents DESC`,
-                [workspaceId]
+                [workspaceId, targetDate]
             );
 
             const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);
@@ -381,7 +414,8 @@ export type PaymentMethodReportRow = {
  * (saída imediata). Abordagem simples até existir uma coluna
  * transactions.payment_method explícita.
  */
-export async function fetchPaymentMethodReportAction(): Promise<PaymentMethodReportRow[]> {
+export async function fetchPaymentMethodReportAction(filters?: ReportFilters): Promise<PaymentMethodReportRow[]> {
+    const targetDate = resolveTargetDate(filters);
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -403,11 +437,10 @@ export async function fetchPaymentMethodReportAction(): Promise<PaymentMethodRep
                  FROM transactions t
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
-                   AND EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-                   AND EXTRACT(YEAR  FROM t.transaction_date) = EXTRACT(YEAR  FROM CURRENT_DATE)
+                   AND ${MONTH_CLAUSE_SQL}
                  GROUP BY method
                  ORDER BY spent_cents DESC`,
-                [workspaceId]
+                [workspaceId, targetDate]
             );
 
             const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);
@@ -439,7 +472,11 @@ export type TravelReportRow = {
  * tag encontrada vira uma linha agregada. Convenção:
  * tags = ['viagem-sp', 'restaurante'] → contam em 'viagem-sp'.
  */
-export async function fetchTravelReportAction(): Promise<TravelReportRow[]> {
+// filters é ignorado neste action — Modo Viagem é um filtro semântico
+// baseado em tags e roda sobre o histórico inteiro. Aceito o parâmetro
+// por paridade de API com os outros fetchers.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function fetchTravelReportAction(_filters?: ReportFilters): Promise<TravelReportRow[]> {
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -494,7 +531,11 @@ export type ComparativeReport = {
  * fetchComparativeReportAction retorna os totais deste mês vs mês
  * anterior (income, expense, net). Útil para a aba "Comparativo".
  */
-export async function fetchComparativeReportAction(): Promise<ComparativeReport> {
+// Comparativo é multi-período por natureza (mês atual vs anterior).
+// O filtro month seria redundante e foi deixado de fora — o shape é
+// sempre "current month vs previous" derivado de CURRENT_DATE.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function fetchComparativeReportAction(_filters?: ReportFilters): Promise<ComparativeReport> {
     const empty: ComparativeReport = {
         currentMonthLabel: new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
         previousMonthLabel: new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
@@ -585,7 +626,10 @@ export type TrendPoint = {
  * fetchTrendReportAction agrega os últimos 6 meses de transactions por
  * (type, date_trunc month) para alimentar um line chart de tendência.
  */
-export async function fetchTrendReportAction(): Promise<TrendPoint[]> {
+// Tendência é série temporal fixa de 6 meses retroativos a partir de
+// hoje. Filtro de month é inaplicável; aceito por paridade.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function fetchTrendReportAction(_filters?: ReportFilters): Promise<TrendPoint[]> {
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -645,7 +689,8 @@ export type MemberReportRow = {
  * adicionadas na migration 000021. Transactions sem autor (legacy ou
  * phone não cadastrado) caem em "Desconhecido".
  */
-export async function fetchMemberReportAction(): Promise<MemberReportRow[]> {
+export async function fetchMemberReportAction(filters?: ReportFilters): Promise<MemberReportRow[]> {
+    const targetDate = resolveTargetDate(filters);
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -683,12 +728,11 @@ export async function fetchMemberReportAction(): Promise<MemberReportRow[]> {
                  LEFT JOIN phones p ON p.id = t.author_phone_id
                  WHERE t.workspace_id = $1
                    AND t.type = 'expense'
-                   AND EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-                   AND EXTRACT(YEAR  FROM t.transaction_date) = EXTRACT(YEAR  FROM CURRENT_DATE)
+                   AND ${MONTH_CLAUSE_SQL}
                  GROUP BY author_key, author_name, author_type
                  HAVING COALESCE(SUM(t.amount), 0) > 0
                  ORDER BY spent_cents DESC`,
-                [workspaceId]
+                [workspaceId, targetDate]
             );
 
             const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);

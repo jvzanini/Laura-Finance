@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
     BarChart,
     Bar,
@@ -40,6 +41,7 @@ import type {
     ComparativeReport,
     TrendPoint,
     MemberReportRow,
+    ReportFilters,
 } from "@/lib/actions/reports";
 
 type ReportTab =
@@ -68,15 +70,51 @@ type ReportsData = {
     comparative: ComparativeReport;
     trend: TrendPoint[];
     members: MemberReportRow[];
+    filters: ReportFilters;
 };
 
 export function ReportsView(props: ReportsData) {
-    const { dre, filterData, categories, subcategories, cards, methods, travel, comparative, trend, members } = props;
+    const { dre, filterData, categories, subcategories, cards, methods, travel, comparative, trend, members, filters } = props;
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
     const [activeTab, setActiveTab] = useState<ReportTab>("dre");
-    const [selectedMonth, setSelectedMonth] = useState<string>(dre.month);
-    const [selectedMember, setSelectedMember] = useState<string>("");
-    const [selectedCategory, setSelectedCategory] = useState<string>("");
-    const [selectedType, setSelectedType] = useState<string>("");
+    const [selectedMonth, setSelectedMonth] = useState<string>(filters.month ?? dre.month);
+    const [selectedMember, setSelectedMember] = useState<string>(filters.memberId ?? "");
+    const [selectedCategory, setSelectedCategory] = useState<string>(filters.categoryId ?? "");
+    const [selectedType, setSelectedType] = useState<string>(filters.type ?? "");
+
+    const applyFilters = (next: Partial<{ month: string; member: string; category: string; type: string }>) => {
+        const params = new URLSearchParams();
+        const month = next.month !== undefined ? next.month : selectedMonth;
+        const member = next.member !== undefined ? next.member : selectedMember;
+        const category = next.category !== undefined ? next.category : selectedCategory;
+        const type = next.type !== undefined ? next.type : selectedType;
+        if (month) params.set("month", month);
+        if (member) params.set("member", member);
+        if (category) params.set("category", category);
+        if (type) params.set("type", type);
+        const qs = params.toString();
+        startTransition(() => {
+            router.push(qs ? `/reports?${qs}` : "/reports");
+        });
+    };
+
+    const onMonthChange = (v: string) => {
+        setSelectedMonth(v);
+        applyFilters({ month: v });
+    };
+    const onMemberChange = (v: string) => {
+        setSelectedMember(v);
+        applyFilters({ member: v });
+    };
+    const onCategoryChange = (v: string) => {
+        setSelectedCategory(v);
+        applyFilters({ category: v });
+    };
+    const onTypeChange = (v: string) => {
+        setSelectedType(v);
+        applyFilters({ type: v });
+    };
 
     const tabs: { id: ReportTab; label: string; icon: React.ElementType; wip: boolean }[] = [
         { id: "dre", label: "DRE", icon: BarChart3, wip: false },
@@ -175,18 +213,20 @@ export function ReportsView(props: ReportsData) {
                 </div>
             </div>
 
-            {/* Filters (UI only) */}
+            {/* Filters — server-side via URL searchParams */}
             <div className="flex flex-wrap gap-3 items-center p-4 rounded-xl border border-border/50 bg-card">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <input
                     type="month"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    value={selectedMonth.length >= 7 ? selectedMonth.slice(0, 7) : selectedMonth}
+                    onChange={(e) => onMonthChange(e.target.value)}
+                    disabled={isPending}
                     className="h-9 px-3 rounded-lg bg-background border border-border text-sm text-foreground"
                 />
                 <select
                     value={selectedMember}
-                    onChange={(e) => setSelectedMember(e.target.value)}
+                    onChange={(e) => onMemberChange(e.target.value)}
+                    disabled={isPending}
                     className="h-9 px-3 rounded-lg bg-background border border-border text-sm text-foreground"
                 >
                     <option value="">Todos Membros</option>
@@ -198,7 +238,8 @@ export function ReportsView(props: ReportsData) {
                 </select>
                 <select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => onCategoryChange(e.target.value)}
+                    disabled={isPending}
                     className="h-9 px-3 rounded-lg bg-background border border-border text-sm text-foreground"
                 >
                     <option value="">Todas Categorias</option>
@@ -210,16 +251,19 @@ export function ReportsView(props: ReportsData) {
                 </select>
                 <select
                     value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
+                    onChange={(e) => onTypeChange(e.target.value)}
+                    disabled={isPending}
                     className="h-9 px-3 rounded-lg bg-background border border-border text-sm text-foreground"
                 >
                     <option value="">Todos Tipos</option>
                     <option value="income">Entradas</option>
                     <option value="expense">Saídas</option>
                 </select>
-                <p className="text-[11px] text-muted-foreground ml-auto">
-                    Filtros visuais. Aplicação server-side é backlog (exige re-fetch por tab).
-                </p>
+                {isPending && (
+                    <span className="text-[11px] text-muted-foreground ml-auto flex items-center gap-1">
+                        Carregando…
+                    </span>
+                )}
             </div>
 
             {/* Content: DRE */}

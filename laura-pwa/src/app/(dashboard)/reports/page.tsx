@@ -9,10 +9,35 @@ import {
     fetchComparativeReportAction,
     fetchTrendReportAction,
     fetchMemberReportAction,
+    type ReportFilters,
 } from "@/lib/actions/reports";
 import { ReportsView } from "./ReportsView";
 
-export default async function ReportsPage() {
+type SearchParamsInput = Record<string, string | string[] | undefined>;
+
+function paramsToFilters(sp: SearchParamsInput): ReportFilters {
+    const getStr = (k: string): string | undefined => {
+        const v = sp[k];
+        if (Array.isArray(v)) return v[0];
+        return v ?? undefined;
+    };
+    const type = getStr("type");
+    return {
+        month: getStr("month"),
+        categoryId: getStr("category"),
+        memberId: getStr("member"),
+        type: type === "income" || type === "expense" ? type : undefined,
+    };
+}
+
+export default async function ReportsPage({
+    searchParams,
+}: {
+    searchParams: Promise<SearchParamsInput>;
+}) {
+    const params = await searchParams;
+    const filters = paramsToFilters(params);
+
     const [
         dre,
         filterData,
@@ -25,16 +50,16 @@ export default async function ReportsPage() {
         trend,
         members,
     ] = await Promise.all([
-        fetchDREAction(),
+        fetchDREAction(filters),
         fetchReportsFilterDataAction(),
-        fetchCategoryReportAction(),
-        fetchSubcategoryReportAction(),
-        fetchCardReportAction(),
-        fetchPaymentMethodReportAction(),
-        fetchTravelReportAction(),
-        fetchComparativeReportAction(),
-        fetchTrendReportAction(),
-        fetchMemberReportAction(),
+        fetchCategoryReportAction(filters),
+        fetchSubcategoryReportAction(filters),
+        fetchCardReportAction(filters),
+        fetchPaymentMethodReportAction(filters),
+        fetchTravelReportAction(filters),
+        fetchComparativeReportAction(filters),
+        fetchTrendReportAction(filters),
+        fetchMemberReportAction(filters),
     ]);
 
     return (
@@ -49,6 +74,7 @@ export default async function ReportsPage() {
             comparative={comparative}
             trend={trend}
             members={members}
+            filters={filters}
         />
     );
 }

@@ -23,6 +23,93 @@ type GoDREResponse = {
     net_result_cents: number;
 };
 
+// Helper de query string para os reports com filtros opcionais
+function buildReportQS(filters?: ReportFilters): string {
+    const params = new URLSearchParams();
+    if (filters?.month && /^\d{4}-\d{2}$/.test(filters.month)) {
+        params.set("month", filters.month);
+    }
+    const qs = params.toString();
+    return qs ? `?${qs}` : "";
+}
+
+// Shapes das responses do laura-go /api/v1/reports/*
+type GoCategoryReportItem = {
+    category_id: string | null;
+    name: string;
+    emoji: string | null;
+    color: string;
+    spent_cents: number;
+    percent_of_total: number;
+};
+type GoCategoryReportResponse = { items: GoCategoryReportItem[] | null };
+
+type GoSubcategoryReportItem = {
+    subcategory_id: string | null;
+    name: string;
+    emoji: string | null;
+    category_name: string;
+    spent_cents: number;
+    percent_of_total: number;
+};
+type GoSubcategoryReportResponse = { items: GoSubcategoryReportItem[] | null };
+
+type GoCardReportItem = {
+    card_id: string | null;
+    name: string;
+    color: string;
+    transaction_count: number;
+    total_spent_cents: number;
+    percent_of_total: number;
+};
+type GoCardReportResponse = { items: GoCardReportItem[] | null };
+
+type GoPaymentMethodReportItem = {
+    method: "crédito" | "dinheiro_pix";
+    label: string;
+    transaction_count: number;
+    total_spent_cents: number;
+    percent_of_total: number;
+};
+type GoPaymentMethodReportResponse = { items: GoPaymentMethodReportItem[] | null };
+
+type GoTravelReportItem = {
+    tag: string;
+    transaction_count: number;
+    total_spent_cents: number;
+};
+type GoTravelReportResponse = { items: GoTravelReportItem[] | null };
+
+type GoComparativeReportResponse = {
+    current_month_label: string;
+    previous_month_label: string;
+    current_income_cents: number;
+    previous_income_cents: number;
+    current_expense_cents: number;
+    previous_expense_cents: number;
+    current_net_cents: number;
+    previous_net_cents: number;
+    delta_percent: number;
+};
+
+type GoTrendReportPoint = {
+    month: string;
+    income_cents: number;
+    expense_cents: number;
+    net_cents: number;
+};
+type GoTrendReportResponse = { points: GoTrendReportPoint[] | null };
+
+type GoMemberReportItem = {
+    author_key: string;
+    author_name: string;
+    author_type: "user" | "phone" | "unknown";
+    transaction_count: number;
+    total_spent_cents: number;
+    percent_of_total: number;
+};
+type GoMemberReportResponse = { items: GoMemberReportItem[] | null };
+
 // Filtros server-side aplicados pelas actions. Todas as queries de
 // relatórios derivam a janela temporal a partir de filters.month no
 // formato 'YYYY-MM'. Se não informado, usa o mês corrente (CURRENT_DATE).
@@ -312,6 +399,27 @@ export async function fetchCategoryReportAction(filters?: ReportFilters): Promis
     const targetDate = resolveTargetDate(filters);
     const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
     const memberIdParam = normalizeFilterUuid(filters?.memberId);
+
+    if (!filters?.categoryId && !filters?.memberId) {
+        try {
+            const goResponse = await callLauraGo<GoCategoryReportResponse>(
+                `/api/v1/reports/categories${buildReportQS(filters)}`
+            );
+            if (goResponse) {
+                return (goResponse.items ?? []).map((r) => ({
+                    categoryId: r.category_id,
+                    name: r.name,
+                    emoji: r.emoji,
+                    color: r.color,
+                    spentCents: r.spent_cents,
+                    percentOfTotal: r.percent_of_total,
+                }));
+            }
+        } catch (err) {
+            console.warn("[reports/categories] laura-go failed, fallback:", err);
+        }
+    }
+
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -375,6 +483,27 @@ export async function fetchSubcategoryReportAction(filters?: ReportFilters): Pro
     const targetDate = resolveTargetDate(filters);
     const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
     const memberIdParam = normalizeFilterUuid(filters?.memberId);
+
+    if (!filters?.categoryId && !filters?.memberId) {
+        try {
+            const goResponse = await callLauraGo<GoSubcategoryReportResponse>(
+                `/api/v1/reports/subcategories${buildReportQS(filters)}`
+            );
+            if (goResponse) {
+                return (goResponse.items ?? []).map((r) => ({
+                    subcategoryId: r.subcategory_id,
+                    name: r.name,
+                    emoji: r.emoji,
+                    categoryName: r.category_name,
+                    spentCents: r.spent_cents,
+                    percentOfTotal: r.percent_of_total,
+                }));
+            }
+        } catch (err) {
+            console.warn("[reports/subcategories] laura-go failed, fallback:", err);
+        }
+    }
+
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -440,6 +569,27 @@ export async function fetchCardReportAction(filters?: ReportFilters): Promise<Ca
     const targetDate = resolveTargetDate(filters);
     const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
     const memberIdParam = normalizeFilterUuid(filters?.memberId);
+
+    if (!filters?.categoryId && !filters?.memberId) {
+        try {
+            const goResponse = await callLauraGo<GoCardReportResponse>(
+                `/api/v1/reports/cards${buildReportQS(filters)}`
+            );
+            if (goResponse) {
+                return (goResponse.items ?? []).map((r) => ({
+                    cardId: r.card_id,
+                    name: r.name,
+                    color: r.color,
+                    transactionCount: r.transaction_count,
+                    totalSpentCents: r.total_spent_cents,
+                    percentOfTotal: r.percent_of_total,
+                }));
+            }
+        } catch (err) {
+            console.warn("[reports/cards] laura-go failed, fallback:", err);
+        }
+    }
+
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -509,6 +659,26 @@ export async function fetchPaymentMethodReportAction(filters?: ReportFilters): P
     const targetDate = resolveTargetDate(filters);
     const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
     const memberIdParam = normalizeFilterUuid(filters?.memberId);
+
+    if (!filters?.categoryId && !filters?.memberId) {
+        try {
+            const goResponse = await callLauraGo<GoPaymentMethodReportResponse>(
+                `/api/v1/reports/payment-methods${buildReportQS(filters)}`
+            );
+            if (goResponse) {
+                return (goResponse.items ?? []).map((r) => ({
+                    method: r.method,
+                    label: r.label,
+                    transactionCount: r.transaction_count,
+                    totalSpentCents: r.total_spent_cents,
+                    percentOfTotal: r.percent_of_total,
+                }));
+            }
+        } catch (err) {
+            console.warn("[reports/payment-methods] laura-go failed, fallback:", err);
+        }
+    }
+
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];
@@ -572,6 +742,19 @@ export type TravelReportRow = {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function fetchTravelReportAction(_filters?: ReportFilters): Promise<TravelReportRow[]> {
     try {
+        const goResponse = await callLauraGo<GoTravelReportResponse>("/api/v1/reports/travel");
+        if (goResponse) {
+            return (goResponse.items ?? []).map((r) => ({
+                tag: r.tag,
+                transactionCount: r.transaction_count,
+                totalSpentCents: r.total_spent_cents,
+            }));
+        }
+    } catch (err) {
+        console.warn("[reports/travel] laura-go failed, fallback:", err);
+    }
+
+    try {
         const session = await getSession();
         if (!session || !session.userId) return [];
 
@@ -630,6 +813,27 @@ export type ComparativeReport = {
 // sempre "current month vs previous" derivado de CURRENT_DATE.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function fetchComparativeReportAction(_filters?: ReportFilters): Promise<ComparativeReport> {
+    try {
+        const goResponse = await callLauraGo<GoComparativeReportResponse>(
+            "/api/v1/reports/comparative"
+        );
+        if (goResponse) {
+            return {
+                currentMonthLabel: goResponse.current_month_label,
+                previousMonthLabel: goResponse.previous_month_label,
+                currentIncome: goResponse.current_income_cents,
+                previousIncome: goResponse.previous_income_cents,
+                currentExpense: goResponse.current_expense_cents,
+                previousExpense: goResponse.previous_expense_cents,
+                currentNet: goResponse.current_net_cents,
+                previousNet: goResponse.previous_net_cents,
+                deltaPercent: goResponse.delta_percent,
+            };
+        }
+    } catch (err) {
+        console.warn("[reports/comparative] laura-go failed, fallback:", err);
+    }
+
     const empty: ComparativeReport = {
         currentMonthLabel: new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
         previousMonthLabel: new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
@@ -725,6 +929,20 @@ export type TrendPoint = {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function fetchTrendReportAction(_filters?: ReportFilters): Promise<TrendPoint[]> {
     try {
+        const goResponse = await callLauraGo<GoTrendReportResponse>("/api/v1/reports/trend");
+        if (goResponse) {
+            return (goResponse.points ?? []).map((p) => ({
+                month: p.month,
+                incomeCents: p.income_cents,
+                expenseCents: p.expense_cents,
+                netCents: p.net_cents,
+            }));
+        }
+    } catch (err) {
+        console.warn("[reports/trend] laura-go failed, fallback:", err);
+    }
+
+    try {
         const session = await getSession();
         if (!session || !session.userId) return [];
 
@@ -787,6 +1005,27 @@ export async function fetchMemberReportAction(filters?: ReportFilters): Promise<
     const targetDate = resolveTargetDate(filters);
     const categoryIdParam = normalizeFilterUuid(filters?.categoryId);
     const memberIdParam = normalizeFilterUuid(filters?.memberId);
+
+    if (!filters?.categoryId && !filters?.memberId) {
+        try {
+            const goResponse = await callLauraGo<GoMemberReportResponse>(
+                `/api/v1/reports/members${buildReportQS(filters)}`
+            );
+            if (goResponse) {
+                return (goResponse.items ?? []).map((r) => ({
+                    authorKey: r.author_key,
+                    authorName: r.author_name,
+                    authorType: r.author_type,
+                    transactionCount: r.transaction_count,
+                    totalSpentCents: r.total_spent_cents,
+                    percentOfTotal: r.percent_of_total,
+                }));
+            }
+        } catch (err) {
+            console.warn("[reports/members] laura-go failed, fallback:", err);
+        }
+    }
+
     try {
         const session = await getSession();
         if (!session || !session.userId) return [];

@@ -4,7 +4,7 @@ user_name: 'Nexus AI'
 date: '2026-03-10T15:12:39-03:00'
 sections_completed: ['technology_stack', 'language_rules', 'framework_rules', 'testing_rules', 'quality_rules', 'workflow_rules', 'anti_patterns']
 status: 'complete'
-rule_count: 20
+rule_count: 24
 optimized_for_llm: true
 ---
 
@@ -64,6 +64,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - ⚠️ **Batch seeds exigem transação**: Sempre que uma server action fizer seed/import de hierarquia (ex: `seedCategoriesAction` com categorias + subcategorias), obrigatório BEGIN/COMMIT/ROLLBACK. Falha parcial = rollback total.
 - ⚠️ **Planejamento ≠ Registro**: O PWA tem duas camadas distintas: **Registro** (`transactions`, `cards`, `invoices` — eventos que aconteceram) e **Planejamento** (`financial_goals`, `investments`, `categories.monthly_limit_cents` — alvos e tetos). Features novas devem declarar explicitamente em qual camada vivem. Confundir as duas gera bug semântico.
 - ⚠️ **Fonte única de verdade para rolagens de dívida**: `debt_rollovers` é o sink oficial para o feature "Empurrar Fatura" de AMBOS os canais (WhatsApp Epic 5 e PWA Story 9.1). Não gravar rolagens só em `transactions` futuras — sempre escrever também em `debt_rollovers` com `operations_json` preenchido.
+- ⚠️ **Fonte única de verdade para taxas de adquirentes**: `payment_processors` é a tabela oficial (slug, name, fees JSONB) desde a migration 000016. Go consome via `LoadFeeTable(ctx)` com cache 5min em `rollover.go`; PWA consome via `fetchPaymentProcessorsAction`. `fallbackFeeTable` (Go) e `FALLBACK` (TS) só existem para testes offline — em produção a tabela sempre hidrata do Postgres. Ao adicionar uma adquirente, adicione também ao teste de paridade `TestFeeTable_CobreTodosProcessadoresDoPWA`.
+- ⚠️ **Paridade obrigatória entre Go e PWA no cálculo do Score Financeiro**: `laura-go/internal/services/score_snapshot.go` (ComputeScoreFactors) e `laura-pwa/src/lib/actions/financialScore.ts` (fetchFinancialScoreAction) implementam a mesma fórmula — pesos 35/25/25/15 sobre billsOnTime/budgetRespect/savingsRate/debtLevel. Qualquer divergência é bug; mantenha os dois alinhados quando evoluir a fórmula. O cron Go `runDailyScoreSnapshot` grava um snapshot por dia em `financial_score_snapshots` e é a base para o gráfico de evolução no PWA via `fetchScoreHistoryAction`.
+- ⚠️ **Memória conversacional de crise via store in-memory**: detecção de crise (Epic 5.1) guarda o contexto por `phoneNumber` em `CrisisContext` (laura-go/internal/services/crisis_context.go) com TTL 10min. A confirmação da rolagem (`GetCrisisContext`) é single-consume — depois de lida, o entry é deletado. Não substituir por cache global compartilhado entre processos até adotar Redis — ou mudar a semântica de expiração/isolation intencionalmente.
+- ⚠️ **Dev server com Google Drive Stream**: se o projeto vive num path Google Drive Stream (arquivos virtuais), o Turbopack trava silenciosamente ao tentar ler node_modules. `./start.sh` detecta via substring match e rsync para `/tmp/laura-pwa-dev` antes de `npm run dev`. Use `./sync-pwa.sh` para re-sincronizar mudanças manuais. Nunca trabalhe com Turbopack diretamente em path Drive.
 
 ---
 
@@ -83,4 +87,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-04-11 (retro-doc: Epics 8 e 9 adicionados, 5 novas regras críticas incorporadas)
+Last Updated: 2026-04-11 (segunda passagem: 4 regras novas — payment_processors SOT, paridade Go/PWA do Score, crisis context in-memory, workaround Google Drive para Turbopack)

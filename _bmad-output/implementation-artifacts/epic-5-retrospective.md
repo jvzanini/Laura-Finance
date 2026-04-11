@@ -36,12 +36,16 @@ Além disso, durante a auditoria de retro-documentação de 2026-04-11 descobrim
 
 1. **[✅ DONE 2026-04-11 — commit `91b9dab`]** ~~Migrar a Story 5.3 para persistir em `debt_rollovers`~~. Resolvido. O handler da confirmação "Sim Laura, prorroga" agora chama `SimulateRollover` + `PersistRollover` em `laura-go/internal/services/rollover.go`, gravando na tabela `debt_rollovers` (SOT oficial) dentro de uma transação que também mantém as `transactions` futuras para o fluxo de DRE do Epic 6. Testes unitários cobrindo os casos principais ficam em `rollover_test.go`.
 
-2. **[🟡 PARCIAL — commit `91b9dab`]** ~~Mover tabela de taxas das adquirentes~~. Primeira metade feita: tabela de taxas agora vive centralizada em `FeeTable` em `rollover.go` com as 6 adquirentes × 12 parcelamentos, consumida pelo motor Go. Um teste de paridade (`TestFeeTable_CobreTodosProcessadoresDoPWA`) garante que os slugs batam com o PWA. **Pendente**: promover a tabela para um `CREATE TABLE payment_processors` em Postgres, consumido por ambos os canais via query, eliminando a duplicação residual entre Go e TypeScript. Effort restante: ~4h.
-   - **Owner sugerido**: backend Go
+2. **[✅ DONE 2026-04-11 — commits `91b9dab`, `5d56a31`, `b3b2a60`, `93adb09`]** ~~Mover tabela de taxas das adquirentes~~. Resolvido em duas etapas:
+   - Etapa 1 (`91b9dab`): tabela centralizada em `FeeTable` em `rollover.go` com as 6 adquirentes × 12 parcelamentos + teste de paridade com o PWA.
+   - Etapa 2 (`5d56a31` + `b3b2a60` + `93adb09`): criada migration `000016_create_payment_processors` com tabela Postgres + seed idempotente. `rollover.go` passa a usar `LoadFeeTable(ctx)` com cache de 5min que consulta o banco; `fallbackFeeTable` preservado para testes offline. PWA ganhou `fetchPaymentProcessorsAction` + refactor do `/invoices/push` em server component async para consumir a action. Agora Postgres é SOT único das taxas para Go e TypeScript, alterar uma taxa é apenas um UPDATE em produção sem deploy.
 
-3. **[🟡 PARCIAL — commit `91b9dab`]** ~~Test suite para o motor matemático da Story 5.2~~. Primeira metade feita: o novo `rollover_test.go` cobre `SimulateRollover` (InfinitePay 2x, Stone 12x, processador inválido, parcelamento inválido, roundtrip JSONB, paridade de processadores). **Pendente**: a heurística de detecção de crise em `workflow.go` (linhas 95-116: `parsedTx.Amount * 0.35` + simulação Tabela Price ingênua) ainda não tem testes. Quando ela for migrada para usar `SimulateRollover` também, os testes já existem.
-   - **Owner sugerido**: QA/Dev Go
-   - **Effort restante**: M (1-2 dias) — principalmente refatorar a detecção de crise para produzir uma simulação estruturada em vez da mensagem textual atual.
+3. **[✅ DONE 2026-04-11 — commit `b3b2a60`]** ~~Test suite para o motor matemático da Story 5.2~~. Cobertura ampla:
+   - `rollover_test.go`: 6 testes sobre `SimulateRollover` (InfinitePay 2x, Stone 12x, processor inválido, installments inválido, roundtrip JSONB, paridade).
+   - `crisis_context_test.go`: 6 testes sobre `SetCrisisContext`/`GetCrisisContext`/`PeekCrisisContext`/expiry/isolamento de telefones/nil-handling/overwrite.
+   - `score_snapshot_test.go`: testes sobre `ScoreFactors.Score()` (zeros, max, fallback, crítico, pesos isolados).
+   - A heurística naive `parsedTx.Amount * 0.35 + Tabela Price inline` foi **removida** — a detecção de crise agora chama `SimulateRollover` diretamente com o valor real extraído pelo NLP, armazena o contexto via `SetCrisisContext` e a confirmação consome via `GetCrisisContext`. Convergência total entre preview e persistência.
+   - **Restante como backlog**: teste de integração end-to-end com Postgres real cobrindo parse texto → Set → Get → PersistRollover. Infra-de-teste mais que lógica.
 
 4. **[Média]** Unificar a UX de confirmação: a Story 5.2 hoje manda texto puro no WhatsApp. Quando migrarmos para WhatsApp Business API oficial, implementar os botões in-line previstos no AC original.
    - **Owner sugerido**: backend Go

@@ -155,10 +155,23 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 				workspaceID, "%"+parsedTx.Description+"%").Scan(&categoryId, &budgetLimitCents, &catName)
 			budgetLimit = float64(budgetLimitCents) / 100.0
 
+			// Resolve author_phone_id a partir do phone_number que mandou
+			// a mensagem. Se o phone não estiver cadastrado no workspace,
+			// author_phone_id fica NULL — permitido pela migration 000021.
+			var authorPhoneID *string
+			var resolvedPhoneID string
+			err = db.Pool.QueryRow(context.Background(),
+				"SELECT id FROM phones WHERE workspace_id = $1 AND phone_number = $2 LIMIT 1",
+				workspaceID, phoneNumber,
+			).Scan(&resolvedPhoneID)
+			if err == nil {
+				authorPhoneID = &resolvedPhoneID
+			}
+
 			_, insertErr := db.Pool.Exec(context.Background(),
-				`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date, confidence_score, needs_review, tags, category_id)
-				 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6, $7, $8)`,
-				workspaceID, int(parsedTx.Amount*100), parsedTx.Type, parsedTx.Description, parsedTx.Confidence, parsedTx.NeedsReview, parsedTx.Labels, categoryId,
+				`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date, confidence_score, needs_review, tags, category_id, author_phone_id)
+				 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6, $7, $8, $9)`,
+				workspaceID, int(parsedTx.Amount*100), parsedTx.Type, parsedTx.Description, parsedTx.Confidence, parsedTx.NeedsReview, parsedTx.Labels, categoryId, authorPhoneID,
 			)
 
 			if insertErr != nil {

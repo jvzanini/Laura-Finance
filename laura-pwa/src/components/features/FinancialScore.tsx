@@ -28,17 +28,16 @@ function getScoreConfig(score: number) {
     return { label: "Crítico", color: "#EF4444", gradient: "from-red-500 to-red-400", emoji: "⚠️", desc: "Hora de reavaliar seus gastos." };
 }
 
-export function FinancialScore() {
+const DEFAULT_FACTORS: ScoreFactors = {
+    billsOnTime: 85,
+    budgetRespect: 72,
+    savingsRate: 65,
+    debtLevel: 55,
+};
+
+export function FinancialScore({ factors = DEFAULT_FACTORS }: { factors?: ScoreFactors }) {
     const [animatedScore, setAnimatedScore] = useState(0);
     const [mounted, setMounted] = useState(false);
-
-    // Simulated factors based on real data patterns
-    const factors: ScoreFactors = {
-        billsOnTime: 85,
-        budgetRespect: 72,
-        savingsRate: 65,
-        debtLevel: 55,
-    };
 
     const score = calculateScore(factors);
     const config = getScoreConfig(score);

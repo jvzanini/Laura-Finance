@@ -51,9 +51,12 @@ So that eu tenha um sinal único de saúde financeira sem precisar interpretar 1
 ### Agent Model Used
 N/A — Implementação feita fora do fluxo BMAD (vibe coding), retro-documentada por auditoria de 2026-04-11.
 ### Completion Notes List
-- **Gap crítico**: fórmula está hardcoded e os fatores são calculados apenas em memória. Precisa de uma server action `fetchFinancialScoreAction` que consulte as tabelas reais.
-- Sem persistência histórica: impossível gerar gráfico "evolução do score nos últimos 6 meses". Backlog: tabela `financial_score_snapshots` com cron diário.
-- Integração com nudges do Epic 4: quando o score cair de uma faixa para outra (ex: Bom → Regular), deveria disparar um alerta WhatsApp. Backlog.
+- **[✅ Resolvido 2026-04-11]** ~~Gap crítico: fórmula hardcoded e fatores calculados apenas em memória~~. Criada `fetchFinancialScoreAction` em `laura-pwa/src/lib/actions/financialScore.ts` que consulta `categories` + `transactions` + `debt_rollovers` para calcular `budgetRespect`, `savingsRate` e `debtLevel` reais. `FinancialScore` agora aceita `factors` via prop com fallback. Wrapper `FinancialScoreCard` (server component) chama a action e passa os fatores para o componente visual.
+- **[⚠️ Pendente]** `billsOnTime` ainda usa fallback fixo (85) — depende de colunas `paid_at` / histórico de pagamento em `invoices`, que não existem no schema atual. Comentário `// TODO backlog` deixado na action.
+- **[Backlog]** Sem persistência histórica: impossível gerar gráfico "evolução do score nos últimos 6 meses". Futuro: tabela `financial_score_snapshots` com cron diário.
+- **[Backlog]** Integração com nudges do Epic 4: quando o score cair de uma faixa para outra (ex: Bom → Regular), deveria disparar um alerta WhatsApp.
 ### File List
 - `laura-pwa/src/components/features/FinancialScore.tsx`
+- `laura-pwa/src/components/features/FinancialScoreCard.tsx` (server wrapper, adicionado 2026-04-11)
+- `laura-pwa/src/lib/actions/financialScore.ts` (adicionado 2026-04-11)
 - `laura-pwa/src/app/(dashboard)/dashboard/page.tsx`

@@ -2,7 +2,7 @@ import { DashboardChart } from "@/components/features/DashboardChart";
 import { DashboardHero } from "@/components/features/DashboardHero";
 import { CategoryBudget } from "@/components/features/CategoryBudget";
 import { RecentTransactionsFeed } from "@/components/features/RecentTransactionsFeed";
-import { FinancialScore } from "@/components/features/FinancialScore";
+import { FinancialScoreCard } from "@/components/features/FinancialScoreCard";
 import { UpcomingBills } from "@/components/features/UpcomingBills";
 
 export default function DashboardPage() {
@@ -28,7 +28,7 @@ export default function DashboardPage() {
             {/* Score + Chart Row */}
             <div className="grid gap-6 lg:grid-cols-5">
                 <div className="lg:col-span-2">
-                    <FinancialScore />
+                    <FinancialScoreCard />
                 </div>
                 <div className="lg:col-span-3">
                     <DashboardChart />

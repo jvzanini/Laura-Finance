@@ -34,18 +34,14 @@ Além disso, durante a auditoria de retro-documentação de 2026-04-11 descobrim
 
 ## Itens de ação
 
-1. **[CRÍTICO — prioridade alta]** Migrar a Story 5.3 para persistir em `debt_rollovers` (além das `transactions` futuras), garantindo **fonte única de verdade** entre WhatsApp e PWA. Uma rolagem feita via chat deve aparecer imediatamente em `/invoices/push` histórico e vice-versa.
-   - **Owner sugerido**: backend Go
-   - **Effort estimado**: S (1–2 dias)
-   - **Blocker de**: qualquer análise cross-channel de uso do feature
+1. **[✅ DONE 2026-04-11 — commit `91b9dab`]** ~~Migrar a Story 5.3 para persistir em `debt_rollovers`~~. Resolvido. O handler da confirmação "Sim Laura, prorroga" agora chama `SimulateRollover` + `PersistRollover` em `laura-go/internal/services/rollover.go`, gravando na tabela `debt_rollovers` (SOT oficial) dentro de uma transação que também mantém as `transactions` futuras para o fluxo de DRE do Epic 6. Testes unitários cobrindo os casos principais ficam em `rollover_test.go`.
 
-2. **[Alta]** Mover tabela de taxas das adquirentes para uma tabela `payment_processors` em Postgres, consumida por ambos Go (Epic 5.2) e PWA (Story 9.1), eliminando a duplicação hardcoded.
+2. **[🟡 PARCIAL — commit `91b9dab`]** ~~Mover tabela de taxas das adquirentes~~. Primeira metade feita: tabela de taxas agora vive centralizada em `FeeTable` em `rollover.go` com as 6 adquirentes × 12 parcelamentos, consumida pelo motor Go. Um teste de paridade (`TestFeeTable_CobreTodosProcessadoresDoPWA`) garante que os slugs batam com o PWA. **Pendente**: promover a tabela para um `CREATE TABLE payment_processors` em Postgres, consumido por ambos os canais via query, eliminando a duplicação residual entre Go e TypeScript. Effort restante: ~4h.
    - **Owner sugerido**: backend Go
-   - **Effort**: S (1 dia)
 
-3. **[Alta]** Escrever test suite para o motor matemático da Story 5.2 (Go unit tests + testes property-based para invariantes de Tabela Price). Meta: 100% de cobertura conforme regra do `project-context.md`.
+3. **[🟡 PARCIAL — commit `91b9dab`]** ~~Test suite para o motor matemático da Story 5.2~~. Primeira metade feita: o novo `rollover_test.go` cobre `SimulateRollover` (InfinitePay 2x, Stone 12x, processador inválido, parcelamento inválido, roundtrip JSONB, paridade de processadores). **Pendente**: a heurística de detecção de crise em `workflow.go` (linhas 95-116: `parsedTx.Amount * 0.35` + simulação Tabela Price ingênua) ainda não tem testes. Quando ela for migrada para usar `SimulateRollover` também, os testes já existem.
    - **Owner sugerido**: QA/Dev Go
-   - **Effort**: M (2–3 dias)
+   - **Effort restante**: M (1-2 dias) — principalmente refatorar a detecção de crise para produzir uma simulação estruturada em vez da mensagem textual atual.
 
 4. **[Média]** Unificar a UX de confirmação: a Story 5.2 hoje manda texto puro no WhatsApp. Quando migrarmos para WhatsApp Business API oficial, implementar os botões in-line previstos no AC original.
    - **Owner sugerido**: backend Go

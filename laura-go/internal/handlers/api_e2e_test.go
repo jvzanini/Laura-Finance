@@ -171,6 +171,26 @@ func performRequest(t *testing.T, app *fiber.App, method, path, cookie string) (
 	return resp.StatusCode, result
 }
 
+// performJSONRequest executa um request com body JSON (POST/PUT) e
+// retorna status + body decodificado. Usado para endpoints de escrita.
+func performJSONRequest(t *testing.T, app *fiber.App, method, path, cookie string, body interface{}) (int, map[string]interface{}) {
+	t.Helper()
+	raw, _ := json.Marshal(body)
+	req, _ := http.NewRequest(method, path, strings.NewReader(string(raw)))
+	req.Header.Set("Content-Type", "application/json")
+	if cookie != "" {
+		req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: cookie})
+	}
+	resp, err := app.Test(req, 10000)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	respBody, _ := io.ReadAll(resp.Body)
+	result := make(map[string]interface{})
+	_ = json.Unmarshal(respBody, &result)
+	return resp.StatusCode, result
+}
+
 func TestAPIE2E_Health_SemSessao(t *testing.T) {
 	app, _, teardown := apiE2ESetup(t)
 	defer teardown()
@@ -762,6 +782,89 @@ func TestAPIE2E_Members_ComSeed(t *testing.T) {
 	members, _ := body["members"].([]interface{})
 	if len(members) != 1 {
 		t.Errorf("esperava 1 member, veio %d", len(members))
+	}
+}
+
+func TestAPIE2E_CreateGoal_Valido(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, body := performJSONRequest(t, app, "POST", "/api/v1/goals", cookie, map[string]interface{}{
+		"name":         "Viagem SP",
+		"emoji":        "✈️",
+		"target_cents": 500000,
+		"color":        "#8B5CF6",
+	})
+	if status != 201 {
+		t.Errorf("POST /goals: status = %d, esperado 201", status)
+	}
+	if body["success"] != true {
+		t.Errorf("success = %v, esperado true", body["success"])
+	}
+	if body["id"] == nil || body["id"] == "" {
+		t.Error("id vazio no response")
+	}
+
+	// Validação: retornar erro se target_cents <= 0
+	status, _ = performJSONRequest(t, app, "POST", "/api/v1/goals", cookie, map[string]interface{}{
+		"name":         "Invalid",
+		"target_cents": 0,
+	})
+	if status != 400 {
+		t.Errorf("POST /goals target=0: status = %d, esperado 400", status)
+	}
+}
+
+func TestAPIE2E_CreateInvestment_Valido(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, body := performJSONRequest(t, app, "POST", "/api/v1/investments", cookie, map[string]interface{}{
+		"name":                       "Nubank CDI",
+		"broker":                     "Nu Invest",
+		"type":                       "Investimentos",
+		"invested_cents":             500000,
+		"monthly_contribution_cents": 20000,
+	})
+	if status != 201 {
+		t.Errorf("POST /investments: status = %d", status)
+	}
+	if body["success"] != true {
+		t.Errorf("success = %v", body["success"])
+	}
+}
+
+func TestAPIE2E_CreateCard_Valido(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+
+	ctx := context.Background()
+	_, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, body := performJSONRequest(t, app, "POST", "/api/v1/cards", cookie, map[string]interface{}{
+		"name":               "Nubank Platinum",
+		"brand":              "Mastercard",
+		"color":              "#8B5CF6",
+		"closing_day":        5,
+		"due_day":            15,
+		"last_four":          "1234",
+		"card_type":          "credito",
+		"credit_limit_cents": 1000000,
+	})
+	if status != 201 {
+		t.Errorf("POST /cards: status = %d", status)
+	}
+	if body["success"] != true {
+		t.Errorf("success = %v", body["success"])
 	}
 }
 

@@ -25,6 +25,57 @@ type GoalsResponse struct {
 	Goals []GoalItem `json:"goals"`
 }
 
+type CreateGoalRequest struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	Emoji       string  `json:"emoji"`
+	TargetCents int     `json:"target_cents"`
+	Deadline    *string `json:"deadline"` // YYYY-MM-DD
+	Color       string  `json:"color"`
+}
+
+type CreateGoalResponse struct {
+	ID      string `json:"id"`
+	Success bool   `json:"success"`
+}
+
+func handleCreateGoal(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	var req CreateGoalRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+	}
+	if req.Name == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "nome é obrigatório")
+	}
+	if req.TargetCents <= 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "valor-alvo deve ser positivo")
+	}
+	if req.Emoji == "" {
+		req.Emoji = "🎯"
+	}
+	if req.Color == "" {
+		req.Color = "#8B5CF6"
+	}
+
+	ctx := context.Background()
+	var goalID string
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO financial_goals (workspace_id, name, description, emoji, target_cents, deadline, color)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 RETURNING id`,
+		sess.WorkspaceID, req.Name, req.Description, req.Emoji, req.TargetCents, req.Deadline, req.Color,
+	).Scan(&goalID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusCreated).JSON(CreateGoalResponse{ID: goalID, Success: true})
+}
+
 // handleListGoals retorna os financial_goals do workspace logado
 // ordenados por created_at desc. Equivalente ao fetchGoalsAction do PWA.
 func handleListGoals(c *fiber.Ctx) error {

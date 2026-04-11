@@ -8,6 +8,7 @@ import {
     fetchTravelReportAction,
     fetchComparativeReportAction,
     fetchTrendReportAction,
+    fetchMemberReportAction,
 } from "@/lib/actions/reports";
 import { ReportsView } from "./ReportsView";
 
@@ -22,6 +23,7 @@ export default async function ReportsPage() {
         travel,
         comparative,
         trend,
+        members,
     ] = await Promise.all([
         fetchDREAction(),
         fetchReportsFilterDataAction(),
@@ -32,6 +34,7 @@ export default async function ReportsPage() {
         fetchTravelReportAction(),
         fetchComparativeReportAction(),
         fetchTrendReportAction(),
+        fetchMemberReportAction(),
     ]);
 
     return (
@@ -45,6 +48,7 @@ export default async function ReportsPage() {
             travel={travel}
             comparative={comparative}
             trend={trend}
+            members={members}
         />
     );
 }

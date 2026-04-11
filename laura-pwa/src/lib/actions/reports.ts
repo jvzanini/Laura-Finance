@@ -630,6 +630,85 @@ export async function fetchTrendReportAction(): Promise<TrendPoint[]> {
     }
 }
 
+export type MemberReportRow = {
+    authorKey: string;        // user_id ou phone_id ou "unknown"
+    authorName: string;
+    authorType: "user" | "phone" | "unknown";
+    transactionCount: number;
+    totalSpentCents: number;
+    percentOfTotal: number;
+};
+
+/**
+ * fetchMemberReportAction agrega expenses do mês corrente por autor
+ * (user ou phone) usando as colunas author_user_id / author_phone_id
+ * adicionadas na migration 000021. Transactions sem autor (legacy ou
+ * phone não cadastrado) caem em "Desconhecido".
+ */
+export async function fetchMemberReportAction(): Promise<MemberReportRow[]> {
+    try {
+        const session = await getSession();
+        if (!session || !session.userId) return [];
+
+        const client = await pool.connect();
+        try {
+            const userRes = await client.query(
+                "SELECT workspace_id FROM users WHERE id = $1",
+                [session.userId]
+            );
+            if (userRes.rowCount === 0) return [];
+            const workspaceId = userRes.rows[0].workspace_id;
+
+            const res = await client.query(
+                `SELECT
+                    CASE
+                        WHEN t.author_user_id IS NOT NULL THEN u.id::text
+                        WHEN t.author_phone_id IS NOT NULL THEN p.id::text
+                        ELSE 'unknown'
+                    END AS author_key,
+                    CASE
+                        WHEN t.author_user_id IS NOT NULL THEN u.name
+                        WHEN t.author_phone_id IS NOT NULL THEN p.name
+                        ELSE 'Desconhecido'
+                    END AS author_name,
+                    CASE
+                        WHEN t.author_user_id IS NOT NULL THEN 'user'
+                        WHEN t.author_phone_id IS NOT NULL THEN 'phone'
+                        ELSE 'unknown'
+                    END AS author_type,
+                    COUNT(*)::int AS tx_count,
+                    COALESCE(SUM(t.amount), 0)::int AS spent_cents
+                 FROM transactions t
+                 LEFT JOIN users u ON u.id = t.author_user_id
+                 LEFT JOIN phones p ON p.id = t.author_phone_id
+                 WHERE t.workspace_id = $1
+                   AND t.type = 'expense'
+                   AND EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+                   AND EXTRACT(YEAR  FROM t.transaction_date) = EXTRACT(YEAR  FROM CURRENT_DATE)
+                 GROUP BY author_key, author_name, author_type
+                 HAVING COALESCE(SUM(t.amount), 0) > 0
+                 ORDER BY spent_cents DESC`,
+                [workspaceId]
+            );
+
+            const total = res.rows.reduce((s, r) => s + Number(r.spent_cents), 0);
+            return res.rows.map((r): MemberReportRow => ({
+                authorKey: r.author_key,
+                authorName: r.author_name,
+                authorType: r.author_type,
+                transactionCount: Number(r.tx_count),
+                totalSpentCents: Number(r.spent_cents),
+                percentOfTotal: total > 0 ? (Number(r.spent_cents) / total) * 100 : 0,
+            }));
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error("fetchMemberReportAction error:", err);
+        return [];
+    }
+}
+
 export type ReportsFilterData = {
     members: { id: string; name: string }[];
     categories: { id: string; name: string; emoji: string | null }[];

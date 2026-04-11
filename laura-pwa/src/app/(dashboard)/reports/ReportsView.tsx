@@ -28,7 +28,6 @@ import {
     PieChart,
     Calendar,
     ArrowLeftRight,
-    Construction,
 } from "lucide-react";
 import type {
     DRESummary,
@@ -40,6 +39,7 @@ import type {
     TravelReportRow,
     ComparativeReport,
     TrendPoint,
+    MemberReportRow,
 } from "@/lib/actions/reports";
 
 type ReportTab =
@@ -67,10 +67,11 @@ type ReportsData = {
     travel: TravelReportRow[];
     comparative: ComparativeReport;
     trend: TrendPoint[];
+    members: MemberReportRow[];
 };
 
 export function ReportsView(props: ReportsData) {
-    const { dre, filterData, categories, subcategories, cards, methods, travel, comparative, trend } = props;
+    const { dre, filterData, categories, subcategories, cards, methods, travel, comparative, trend, members } = props;
     const [activeTab, setActiveTab] = useState<ReportTab>("dre");
     const [selectedMonth, setSelectedMonth] = useState<string>(dre.month);
     const [selectedMember, setSelectedMember] = useState<string>("");
@@ -81,7 +82,7 @@ export function ReportsView(props: ReportsData) {
         { id: "dre", label: "DRE", icon: BarChart3, wip: false },
         { id: "categorias", label: "Categorias", icon: Tag, wip: false },
         { id: "subcategorias", label: "Subcategorias", icon: PieChart, wip: false },
-        { id: "membro", label: "Por Membro", icon: Users, wip: true },
+        { id: "membro", label: "Por Membro", icon: Users, wip: false },
         { id: "cartao", label: "Por Cartão", icon: CreditCard, wip: false },
         { id: "metodo", label: "Método Pgto", icon: ArrowLeftRight, wip: false },
         { id: "viagem", label: "Modo Viagem", icon: Plane, wip: false },
@@ -230,7 +231,7 @@ export function ReportsView(props: ReportsData) {
             {activeTab === "viagem" && <TravelTab data={travel} />}
             {activeTab === "comparativo" && <ComparativeTab data={comparative} />}
             {activeTab === "tendencia" && <TrendTab data={trend} />}
-            {activeTab === "membro" && <MemberPlaceholder onBack={() => setActiveTab("dre")} />}
+            {activeTab === "membro" && <MemberTab data={members} />}
         </div>
     );
 }
@@ -638,25 +639,55 @@ function TrendTab({ data }: { data: TrendPoint[] }) {
     );
 }
 
-function MemberPlaceholder({ onBack }: { onBack: () => void }) {
+function MemberTab({ data }: { data: MemberReportRow[] }) {
+    const total = data.reduce((s, d) => s + d.totalSpentCents, 0);
     return (
         <Card className="border-border/50 bg-card">
-            <CardContent className="p-10 text-center space-y-4">
-                <div className="mx-auto h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center">
-                    <Construction className="h-7 w-7 text-amber-500" />
-                </div>
-                <div>
-                    <p className="text-base font-bold">Em construção: Por Membro</p>
-                    <p className="text-xs text-muted-foreground mt-2 max-w-md mx-auto">
-                        Esta aba precisa de uma coluna <code>author_phone_id</code> ou{" "}
-                        <code>author_user_id</code> em <code>transactions</code> para rastrear
-                        quem lançou cada entrada. Será adicionada em uma próxima migration junto
-                        ao refactor do worker NLP para popular o autor automaticamente.
-                    </p>
-                </div>
-                <Button variant="outline" size="sm" onClick={onBack}>
-                    Voltar ao DRE
-                </Button>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base">Despesas por Membro do Workspace</CardTitle>
+                <CardDescription className="text-xs">
+                    Total: {fmt(total)} • agrega pelo autor do lançamento (PWA direto ou WhatsApp)
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {data.length === 0 ? (
+                    <EmptyState
+                        icon={Users}
+                        message="Sem autores identificados este mês"
+                        hint="Transações lançadas via WhatsApp ganham autor automaticamente quando o phone_number está cadastrado em Membros."
+                    />
+                ) : (
+                    <div className="space-y-3">
+                        {data.map((m) => (
+                            <div
+                                key={m.authorKey}
+                                className="p-4 rounded-xl border border-border/30 bg-background/50 flex items-center gap-4"
+                            >
+                                <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                                    {m.authorName.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold truncate">{m.authorName}</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {m.authorType === "user"
+                                            ? "PWA · user direto"
+                                            : m.authorType === "phone"
+                                                ? "WhatsApp · membro cadastrado"
+                                                : "Desconhecido (legado ou phone não cadastrado)"}
+                                        {" · "}
+                                        {m.transactionCount} transação{m.transactionCount !== 1 ? "ões" : ""}
+                                    </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <p className="text-lg font-bold font-mono">{fmt(m.totalSpentCents)}</p>
+                                    <p className="text-[11px] font-mono text-muted-foreground">
+                                        {m.percentOfTotal.toFixed(1)}%
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

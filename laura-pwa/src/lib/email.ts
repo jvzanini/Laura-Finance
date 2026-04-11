@@ -28,6 +28,41 @@ export async function sendReceiptEmail(to: string, planName: string, amount: str
     }
 }
 
+export async function sendVerifyEmailEmail(to: string, verifyUrl: string, userName: string) {
+    try {
+        const data = await resend.emails.send({
+            from: "Laura Finance <laura@suaempresa.com>",
+            to: [to],
+            subject: "Confirme seu e-mail — Laura Finance",
+            html: `
+        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #0A0A0F; color: #F4F4F5;">
+          <h2 style="color: #7C3AED; margin-top: 0;">Bem-vindo, ${userName}! 🎉</h2>
+          <p>Obrigado por criar sua conta na Laura Finance! Só falta confirmar seu e-mail para liberar todos os recursos.</p>
+          <div style="margin: 32px 0; text-align: center;">
+            <a href="${verifyUrl}"
+               style="display: inline-block; padding: 12px 32px; background: #10B981; color: #FFFFFF; text-decoration: none; border-radius: 8px; font-weight: 600;">
+              Confirmar e-mail
+            </a>
+          </div>
+          <p style="font-size: 12px; color: #A1A1AA;">
+            O link é válido por <strong>24 horas</strong>. Se você não criou esta conta, ignore esta mensagem.
+          </p>
+          <hr style="border: none; border-top: 1px solid #27272A; margin: 24px 0;" />
+          <p style="font-size: 11px; color: #71717A;">
+            Link completo: <br/>
+            <code style="word-break: break-all;">${verifyUrl}</code>
+          </p>
+        </div>
+      `,
+        });
+        console.log("E-mail de verificação enviado via Resend", data);
+        return data;
+    } catch (error) {
+        console.error("Erro ao enviar e-mail de verificação", error);
+        return null;
+    }
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string, userName: string) {
     try {
         const data = await resend.emails.send({

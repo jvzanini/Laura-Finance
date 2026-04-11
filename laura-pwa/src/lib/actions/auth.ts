@@ -1,10 +1,20 @@
 "use server";
 
 import { pool } from "@/lib/db";
-import { createSession } from "@/lib/session";
+import { createSession, getSession } from "@/lib/session";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { DEFAULT_SEED_CATEGORIES } from "@/app/(dashboard)/categories/default-seed";
+import { createVerifyEmailToken } from "@/lib/verifyEmailToken";
+import { sendVerifyEmailEmail } from "@/lib/email";
+
+function buildAppUrl(path: string): string {
+    const base =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        process.env.APP_URL ||
+        "http://localhost:3100";
+    return `${base}${path}`;
+}
 
 export async function registerAction(formData: FormData) {
     const name = formData.get("name") as string;
@@ -63,6 +73,16 @@ export async function registerAction(formData: FormData) {
 
         const userId = userRes.rows[0].id;
         await createSession(userId);
+
+        // Dispara email de verificação em best-effort (não bloqueia o
+        // flow de register). Se o Resend falhar, o user já está logado
+        // e pode usar "Reenviar verificação" via banner no dashboard.
+        try {
+            const token = createVerifyEmailToken(userId, email);
+            await sendVerifyEmailEmail(email, buildAppUrl(`/verify-email/${token}`), name);
+        } catch (emailErr) {
+            console.warn("[register] verification email failed:", emailErr);
+        }
     } catch (err) {
         await client.query("ROLLBACK");
         console.error("Database error (register):", err);
@@ -109,4 +129,69 @@ export async function loginAction(formData: FormData) {
 
     await createSession(userId!);
     redirect("/dashboard");
+}
+
+/**
+ * resendVerificationEmailAction reenvia o email de verificação para o
+ * usuário logado. Usado pelo banner do dashboard quando
+ * email_verified = false. Retorna { success: true } mesmo se o user
+ * já estiver verificado (idempotente).
+ */
+export async function resendVerificationEmailAction() {
+    try {
+        const session = await getSession();
+        if (!session || !session.userId) return { error: "Sem sessão ativa." };
+
+        const res = await pool.query(
+            "SELECT id, name, email, email_verified FROM users WHERE id = $1 LIMIT 1",
+            [session.userId]
+        );
+        if (res.rowCount === 0) return { error: "Usuário não encontrado." };
+
+        const { id, name, email, email_verified } = res.rows[0];
+        if (email_verified) return { success: true, alreadyVerified: true };
+
+        const token = createVerifyEmailToken(id, email);
+        await sendVerifyEmailEmail(email, buildAppUrl(`/verify-email/${token}`), name);
+        return { success: true };
+    } catch (err) {
+        console.error("resendVerificationEmailAction error:", err);
+        return { error: "Erro ao reenviar email de verificação." };
+    }
+}
+
+/**
+ * confirmEmailVerificationAction aplica o token, valida que o email
+ * ainda bate com o user no banco, e marca email_verified = TRUE.
+ * Chamada pela página /verify-email/[token] no mount.
+ */
+export async function confirmEmailVerificationAction(token: string) {
+    try {
+        const { verifyEmailToken } = await import("@/lib/verifyEmailToken");
+        const verified = verifyEmailToken(token);
+        if (!verified.valid) {
+            return { error: verified.error };
+        }
+
+        const res = await pool.query(
+            "SELECT id, email, email_verified FROM users WHERE id = $1 LIMIT 1",
+            [verified.userId]
+        );
+        if (res.rowCount === 0) return { error: "Usuário não encontrado." };
+        if (res.rows[0].email.toLowerCase() !== verified.email.toLowerCase()) {
+            return { error: "Token não corresponde ao email atual do usuário." };
+        }
+        if (res.rows[0].email_verified) {
+            return { success: true, alreadyVerified: true };
+        }
+
+        await pool.query(
+            "UPDATE users SET email_verified = TRUE, email_verified_at = CURRENT_TIMESTAMP WHERE id = $1",
+            [verified.userId]
+        );
+        return { success: true };
+    } catch (err) {
+        console.error("confirmEmailVerificationAction error:", err);
+        return { error: "Erro interno ao verificar email." };
+    }
 }

@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
+import { fetchUserProfileAction } from "@/lib/actions/userProfile";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { UserProfileDropdown } from "@/components/layout/UserProfileDropdown";
+import { EmailVerificationBanner } from "@/components/features/EmailVerificationBanner";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Bell } from "lucide-react";
@@ -17,10 +19,16 @@ export default async function DashboardLayout({
         redirect("/register");
     }
 
+    const profile = await fetchUserProfileAction();
+    const showVerifyBanner = profile && !profile.emailVerified;
+
     return (
         <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
+                {showVerifyBanner && profile && (
+                    <EmailVerificationBanner email={profile.email} />
+                )}
                 {/* Top Header Bar */}
                 <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/50 px-4 md:px-6 bg-card/50 backdrop-blur-md sticky top-0 z-30">
                     <SidebarTrigger className="-ml-1 h-8 w-8 text-muted-foreground hover:text-foreground" />

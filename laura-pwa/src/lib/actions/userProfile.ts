@@ -24,6 +24,7 @@ export type UserProfile = {
     role: string;              // "proprietário" | "administrador" | "membro" | "dependente"
     workspaceName: string;
     phoneNumber: string | null;
+    emailVerified: boolean;
     settings: UserSettings;
 };
 
@@ -37,7 +38,8 @@ export async function fetchUserProfileAction(): Promise<UserProfile | null> {
         if (!session || !session.userId) return null;
 
         const res = await pool.query(
-            `SELECT u.id, u.name, u.email, u.role, w.name AS workspace_name, u.phone_number, u.settings
+            `SELECT u.id, u.name, u.email, u.role, w.name AS workspace_name,
+                    u.phone_number, u.settings, u.email_verified
              FROM users u
              JOIN workspaces w ON w.id = u.workspace_id
              WHERE u.id = $1
@@ -60,6 +62,7 @@ export async function fetchUserProfileAction(): Promise<UserProfile | null> {
             role: r.role,
             workspaceName: r.workspace_name,
             phoneNumber: r.phone_number ?? null,
+            emailVerified: Boolean(r.email_verified),
             settings,
         };
     } catch (err) {

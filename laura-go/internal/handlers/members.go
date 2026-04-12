@@ -50,3 +50,77 @@ func handleListMembers(c *fiber.Ctx) error {
 	}
 	return c.JSON(MembersResponse{Members: items})
 }
+
+type CreateMemberRequest struct {
+	Name        string `json:"name"`
+	PhoneNumber string `json:"phone_number"`
+	Role        string `json:"role"`
+}
+
+type CreateMemberResponse struct {
+	ID      string `json:"id"`
+	Success bool   `json:"success"`
+}
+
+func handleCreateMember(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	var req CreateMemberRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+	}
+	if req.Name == "" || req.PhoneNumber == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "nome e telefone são obrigatórios")
+	}
+	if req.Role == "" {
+		req.Role = "membro"
+	}
+
+	ctx := context.Background()
+
+	var existing int
+	_ = db.Pool.QueryRow(ctx, "SELECT COUNT(*)::int FROM phones WHERE phone_number = $1", req.PhoneNumber).Scan(&existing)
+	if existing > 0 {
+		return fiber.NewError(fiber.StatusConflict, "telefone já cadastrado")
+	}
+
+	var phoneID string
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO phones (workspace_id, name, phone_number, role)
+		 VALUES ($1, $2, $3, $4)
+		 RETURNING id`,
+		sess.WorkspaceID, req.Name, req.PhoneNumber, req.Role,
+	).Scan(&phoneID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusCreated).JSON(CreateMemberResponse{ID: phoneID, Success: true})
+}
+
+func handleDeleteMember(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	id := c.Params("id")
+	if id == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "id é obrigatório")
+	}
+
+	ctx := context.Background()
+	tag, err := db.Pool.Exec(ctx,
+		"DELETE FROM phones WHERE id = $1 AND workspace_id = $2",
+		id, sess.WorkspaceID,
+	)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	if tag.RowsAffected() == 0 {
+		return fiber.NewError(fiber.StatusNotFound, "membro não encontrado")
+	}
+	return c.JSON(fiber.Map{"success": true})
+}

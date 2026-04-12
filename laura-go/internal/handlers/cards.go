@@ -77,6 +77,31 @@ func handleCreateCard(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(CreateCardResponse{ID: cardID, Success: true})
 }
 
+func handleDeleteCard(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	id := c.Params("id")
+	if id == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "id é obrigatório")
+	}
+
+	ctx := context.Background()
+	tag, err := db.Pool.Exec(ctx,
+		"DELETE FROM cards WHERE id = $1 AND workspace_id = $2",
+		id, sess.WorkspaceID,
+	)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	if tag.RowsAffected() == 0 {
+		return fiber.NewError(fiber.StatusNotFound, "cartão não encontrado")
+	}
+	return c.JSON(fiber.Map{"success": true})
+}
+
 func handleListCards(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {

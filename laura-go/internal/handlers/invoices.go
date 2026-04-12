@@ -68,3 +68,72 @@ func handleListInvoices(c *fiber.Ctx) error {
 	}
 	return c.JSON(InvoicesResponse{Invoices: items})
 }
+
+type CreateInvoiceRequest struct {
+	CardID     string `json:"card_id"`
+	MonthRef   string `json:"month_ref"`
+	TotalCents int    `json:"total_cents"`
+	DueDate    string `json:"due_date"`
+}
+
+func handleCreateInvoice(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	var req CreateInvoiceRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+	}
+	if req.CardID == "" || req.MonthRef == "" || req.DueDate == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "card_id, month_ref e due_date são obrigatórios")
+	}
+	if req.TotalCents <= 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "total_cents deve ser positivo")
+	}
+
+	monthRef := req.MonthRef
+	if len(monthRef) == 7 {
+		monthRef = monthRef + "-01"
+	}
+
+	ctx := context.Background()
+	_, err := db.Pool.Exec(ctx,
+		`INSERT INTO invoices (workspace_id, card_id, month_ref, total_cents, due_date)
+		 VALUES ($1, $2, $3::date, $4, $5::date)
+		 ON CONFLICT (workspace_id, card_id, month_ref)
+		 DO UPDATE SET total_cents = EXCLUDED.total_cents, due_date = EXCLUDED.due_date, updated_at = CURRENT_TIMESTAMP`,
+		sess.WorkspaceID, req.CardID, monthRef, req.TotalCents, req.DueDate,
+	)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"success": true})
+}
+
+func handleMarkInvoicePaid(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	id := c.Params("id")
+	if id == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "id é obrigatório")
+	}
+
+	ctx := context.Background()
+	tag, err := db.Pool.Exec(ctx,
+		`UPDATE invoices SET paid_at = CURRENT_TIMESTAMP, status = 'paid', updated_at = CURRENT_TIMESTAMP
+		 WHERE id = $1 AND workspace_id = $2`,
+		id, sess.WorkspaceID,
+	)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	if tag.RowsAffected() == 0 {
+		return fiber.NewError(fiber.StatusNotFound, "fatura não encontrada")
+	}
+	return c.JSON(fiber.Map{"success": true})
+}

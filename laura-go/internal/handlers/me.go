@@ -52,3 +52,113 @@ func handleMe(c *fiber.Ctx) error {
 	resp.CreatedAt = &createdAt
 	return c.JSON(resp)
 }
+
+type UpdateProfileRequest struct {
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	PhoneNumber string `json:"phone_number"`
+}
+
+func handleUpdateProfile(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	var req UpdateProfileRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+	}
+	if req.Name == "" || req.Email == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "nome e email são obrigatórios")
+	}
+
+	ctx := context.Background()
+
+	var existing int
+	_ = db.Pool.QueryRow(ctx, "SELECT COUNT(*)::int FROM users WHERE email = $1 AND id != $2", req.Email, sess.UserID).Scan(&existing)
+	if existing > 0 {
+		return fiber.NewError(fiber.StatusConflict, "email já em uso por outro usuário")
+	}
+
+	_, err := db.Pool.Exec(ctx,
+		"UPDATE users SET name = $1, email = $2, phone_number = $3 WHERE id = $4",
+		req.Name, req.Email, req.PhoneNumber, sess.UserID,
+	)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"success": true})
+}
+
+type UpdateSettingsRequest struct {
+	Settings map[string]interface{} `json:"settings"`
+}
+
+func handleUpdateSettings(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	var req UpdateSettingsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+	}
+
+	ctx := context.Background()
+	settingsJSON := mustMarshalJSON(req.Settings)
+	_, err := db.Pool.Exec(ctx,
+		"UPDATE users SET settings = COALESCE(settings, '{}'::jsonb) || $1::jsonb WHERE id = $2",
+		string(settingsJSON), sess.UserID,
+	)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"success": true})
+}
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+func handleChangePassword(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	var req ChangePasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+	}
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "senhas são obrigatórias")
+	}
+	if len(req.NewPassword) < 6 {
+		return fiber.NewError(fiber.StatusBadRequest, "nova senha deve ter no mínimo 6 caracteres")
+	}
+
+	ctx := context.Background()
+	var storedHash string
+	err := db.Pool.QueryRow(ctx, "SELECT password_hash FROM users WHERE id = $1", sess.UserID).Scan(&storedHash)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	if !checkPasswordHash(req.CurrentPassword, storedHash) {
+		return fiber.NewError(fiber.StatusForbidden, "senha atual incorreta")
+	}
+
+	newHash, err := hashPassword(req.NewPassword)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "erro ao gerar hash")
+	}
+
+	_, err = db.Pool.Exec(ctx, "UPDATE users SET password_hash = $1 WHERE id = $2", newHash, sess.UserID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"success": true})
+}

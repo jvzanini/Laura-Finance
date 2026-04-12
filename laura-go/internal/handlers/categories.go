@@ -90,3 +90,120 @@ func handleListCategories(c *fiber.Ctx) error {
 
 	return c.JSON(CategoriesResponse{Categories: categories})
 }
+
+type CreateCategoryRequest struct {
+	Name             string `json:"name"`
+	Emoji            string `json:"emoji"`
+	Color            string `json:"color"`
+	Description      string `json:"description"`
+	MonthlyLimitCents int   `json:"monthly_limit_cents"`
+}
+
+type CreateCategoryResponse struct {
+	ID      string `json:"id"`
+	Success bool   `json:"success"`
+}
+
+func handleCreateCategory(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	var req CreateCategoryRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+	}
+	if req.Name == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "nome é obrigatório")
+	}
+	if req.Emoji == "" {
+		req.Emoji = "📂"
+	}
+	if req.Color == "" {
+		req.Color = "#808080"
+	}
+
+	ctx := context.Background()
+	var catID string
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO categories (workspace_id, name, monthly_limit_cents, color, emoji, description)
+		 VALUES ($1, $2, $3, $4, $5, $6)
+		 RETURNING id`,
+		sess.WorkspaceID, req.Name, req.MonthlyLimitCents, req.Color, req.Emoji, req.Description,
+	).Scan(&catID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusCreated).JSON(CreateCategoryResponse{ID: catID, Success: true})
+}
+
+type SeedCategoryInput struct {
+	Name             string               `json:"name"`
+	Emoji            string               `json:"emoji"`
+	Color            string               `json:"color"`
+	Description      string               `json:"description"`
+	MonthlyLimitCents int                  `json:"monthly_limit_cents"`
+	Subcategories    []SeedSubcategoryInput `json:"subcategories"`
+}
+
+type SeedSubcategoryInput struct {
+	Name        string `json:"name"`
+	Emoji       string `json:"emoji"`
+	Description string `json:"description"`
+}
+
+type SeedCategoriesRequest struct {
+	Categories []SeedCategoryInput `json:"categories"`
+}
+
+func handleSeedCategories(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	var req SeedCategoriesRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+	}
+	if len(req.Categories) == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "lista de categorias vazia")
+	}
+
+	ctx := context.Background()
+	tx, err := db.Pool.Begin(ctx)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	defer tx.Rollback(ctx)
+
+	for _, cat := range req.Categories {
+		var catID string
+		err := tx.QueryRow(ctx,
+			`INSERT INTO categories (workspace_id, name, monthly_limit_cents, color, emoji, description)
+			 VALUES ($1, $2, $3, $4, $5, $6)
+			 RETURNING id`,
+			sess.WorkspaceID, cat.Name, cat.MonthlyLimitCents, cat.Color, cat.Emoji, cat.Description,
+		).Scan(&catID)
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+
+		for _, sub := range cat.Subcategories {
+			_, err := tx.Exec(ctx,
+				`INSERT INTO subcategories (workspace_id, category_id, name, emoji, description)
+				 VALUES ($1, $2, $3, $4, $5)`,
+				sess.WorkspaceID, catID, sub.Name, sub.Emoji, sub.Description,
+			)
+			if err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+			}
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"success": true})
+}

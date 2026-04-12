@@ -977,3 +977,191 @@ func TestAPIE2E_Dashboard_CategoryBudgets_Ordenado(t *testing.T) {
 		t.Errorf("esperava Lazer primeiro (maior %%), veio %v", first["name"])
 	}
 }
+
+func TestAPIE2E_CreateCategory_Valido(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+	_, userID := seedAPIWorkspace(t, context.Background(), pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, body := performJSONRequest(t, app, "POST", "/api/v1/categories", cookie, map[string]interface{}{
+		"name": "Transporte", "emoji": "🚗", "color": "#3B82F6", "monthly_limit_cents": 50000,
+	})
+	if status != 201 {
+		t.Fatalf("status = %d, body = %v", status, body)
+	}
+	if body["success"] != true {
+		t.Errorf("esperava success=true, veio %v", body["success"])
+	}
+}
+
+func TestAPIE2E_CreateMember_E_Delete(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+	_, userID := seedAPIWorkspace(t, context.Background(), pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, body := performJSONRequest(t, app, "POST", "/api/v1/members", cookie, map[string]interface{}{
+		"name": "Maria", "phone_number": "5511999887766", "role": "membro",
+	})
+	if status != 201 {
+		t.Fatalf("create member: status = %d, body = %v", status, body)
+	}
+	memberID, _ := body["id"].(string)
+	if memberID == "" {
+		t.Fatal("member ID vazio")
+	}
+
+	delStatus, _ := performJSONRequest(t, app, "DELETE", "/api/v1/members/"+memberID, cookie, nil)
+	if delStatus != 200 {
+		t.Errorf("delete member: status = %d", delStatus)
+	}
+}
+
+func TestAPIE2E_DeleteCard(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	var cardID string
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO cards (workspace_id, name, color) VALUES ($1, 'Teste', '#000') RETURNING id`,
+		workspaceID,
+	).Scan(&cardID)
+
+	delStatus, _ := performJSONRequest(t, app, "DELETE", "/api/v1/cards/"+cardID, cookie, nil)
+	if delStatus != 200 {
+		t.Errorf("delete card: status = %d", delStatus)
+	}
+}
+
+func TestAPIE2E_DeleteTransaction(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	var txID string
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date)
+		 VALUES ($1, 5000, 'expense', 'Teste', CURRENT_TIMESTAMP) RETURNING id`,
+		workspaceID,
+	).Scan(&txID)
+
+	delStatus, _ := performJSONRequest(t, app, "DELETE", "/api/v1/transactions/"+txID, cookie, nil)
+	if delStatus != 200 {
+		t.Errorf("delete transaction: status = %d", delStatus)
+	}
+}
+
+func TestAPIE2E_UpdateTransactionCategory(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	var catID, txID string
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO categories (workspace_id, name, color) VALUES ($1, 'Food', '#F00') RETURNING id`,
+		workspaceID,
+	).Scan(&catID)
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date, needs_review)
+		 VALUES ($1, 3000, 'expense', 'Almoço', CURRENT_TIMESTAMP, true) RETURNING id`,
+		workspaceID,
+	).Scan(&txID)
+
+	status, _ := performJSONRequest(t, app, "PUT", "/api/v1/transactions/"+txID+"/category", cookie, map[string]interface{}{
+		"category_id": catID,
+	})
+	if status != 200 {
+		t.Errorf("update tx category: status = %d", status)
+	}
+}
+
+func TestAPIE2E_CreateInvoice_E_MarkPaid(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	var cardID string
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO cards (workspace_id, name, color) VALUES ($1, 'Nubank', '#8B5CF6') RETURNING id`,
+		workspaceID,
+	).Scan(&cardID)
+
+	status, _ := performJSONRequest(t, app, "POST", "/api/v1/invoices", cookie, map[string]interface{}{
+		"card_id": cardID, "month_ref": "2026-04", "total_cents": 150000, "due_date": "2026-04-15",
+	})
+	if status != 201 {
+		t.Fatalf("create invoice: status = %d", status)
+	}
+
+	var invID string
+	_ = pool.QueryRow(ctx, "SELECT id FROM invoices WHERE workspace_id = $1 AND card_id = $2", workspaceID, cardID).Scan(&invID)
+
+	payStatus, _ := performJSONRequest(t, app, "POST", "/api/v1/invoices/"+invID+"/pay", cookie, nil)
+	if payStatus != 200 {
+		t.Errorf("mark paid: status = %d", payStatus)
+	}
+}
+
+func TestAPIE2E_CreateDebtRollover(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+	ctx := context.Background()
+	workspaceID, userID := seedAPIWorkspace(t, ctx, pool, false)
+	cookie := buildSessionCookie(userID)
+
+	var cardID string
+	_ = pool.QueryRow(ctx,
+		`INSERT INTO cards (workspace_id, name, color) VALUES ($1, 'Itaú', '#F97316') RETURNING id`,
+		workspaceID,
+	).Scan(&cardID)
+
+	status, body := performJSONRequest(t, app, "POST", "/api/v1/debt-rollovers", cookie, map[string]interface{}{
+		"card_id": cardID, "institution": "InfinitePay", "invoice_value_cents": 200000,
+		"total_fees_cents": 15000, "total_operations": 3, "installments": "3x",
+		"fee_percentage": 7.5, "operations_json": "[]",
+	})
+	if status != 201 {
+		t.Fatalf("create rollover: status = %d, body = %v", status, body)
+	}
+	if body["success"] != true {
+		t.Errorf("esperava success=true")
+	}
+}
+
+func TestAPIE2E_UpdateProfile(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+	_, userID := seedAPIWorkspace(t, context.Background(), pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, _ := performJSONRequest(t, app, "PUT", "/api/v1/me/profile", cookie, map[string]interface{}{
+		"name": "João Updated", "email": "joao@test.com", "phone_number": "5511999000000",
+	})
+	if status != 200 {
+		t.Errorf("update profile: status = %d", status)
+	}
+}
+
+func TestAPIE2E_UpdateSettings(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+	_, userID := seedAPIWorkspace(t, context.Background(), pool, false)
+	cookie := buildSessionCookie(userID)
+
+	status, _ := performJSONRequest(t, app, "PUT", "/api/v1/me/settings", cookie, map[string]interface{}{
+		"settings": map[string]interface{}{"darkMode": true, "notifications": false},
+	})
+	if status != 200 {
+		t.Errorf("update settings: status = %d", status)
+	}
+}

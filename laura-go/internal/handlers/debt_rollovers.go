@@ -59,3 +59,50 @@ func handleListDebtRollovers(c *fiber.Ctx) error {
 	}
 	return c.JSON(DebtRolloversResponse{Rollovers: items})
 }
+
+type CreateDebtRolloverRequest struct {
+	CardID            string  `json:"card_id"`
+	Institution       string  `json:"institution"`
+	InvoiceValueCents int     `json:"invoice_value_cents"`
+	TotalFeesCents    int     `json:"total_fees_cents"`
+	TotalOperations   int     `json:"total_operations"`
+	Installments      string  `json:"installments"`
+	FeePercentage     float64 `json:"fee_percentage"`
+	OperationsJSON    string  `json:"operations_json"`
+}
+
+func handleCreateDebtRollover(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	var req CreateDebtRolloverRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+	}
+	if req.CardID == "" || req.Institution == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "card_id e institution são obrigatórios")
+	}
+	if req.InvoiceValueCents <= 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "invoice_value_cents deve ser positivo")
+	}
+
+	ctx := context.Background()
+	var id string
+	err := db.Pool.QueryRow(ctx,
+		`INSERT INTO debt_rollovers (
+			workspace_id, card_id, institution, invoice_value_cents,
+			total_fees_cents, total_operations, installments, fee_percentage, operations_json
+		 )
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 RETURNING id`,
+		sess.WorkspaceID, req.CardID, req.Institution, req.InvoiceValueCents,
+		req.TotalFeesCents, req.TotalOperations, req.Installments,
+		req.FeePercentage, req.OperationsJSON,
+	).Scan(&id)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": id, "success": true})
+}

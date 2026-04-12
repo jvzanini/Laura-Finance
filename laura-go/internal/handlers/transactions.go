@@ -89,3 +89,65 @@ func handleListTransactions(c *fiber.Ctx) error {
 
 	return c.JSON(TransactionsResponse{Transactions: items, TotalCount: totalCount})
 }
+
+func handleDeleteTransaction(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	id := c.Params("id")
+	if id == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "id é obrigatório")
+	}
+
+	ctx := context.Background()
+	tag, err := db.Pool.Exec(ctx,
+		"DELETE FROM transactions WHERE id = $1 AND workspace_id = $2",
+		id, sess.WorkspaceID,
+	)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	if tag.RowsAffected() == 0 {
+		return fiber.NewError(fiber.StatusNotFound, "transação não encontrada")
+	}
+	return c.JSON(fiber.Map{"success": true})
+}
+
+type UpdateTransactionCategoryRequest struct {
+	CategoryID string `json:"category_id"`
+}
+
+func handleUpdateTransactionCategory(c *fiber.Ctx) error {
+	sess := getSession(c)
+	if sess == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+	}
+
+	id := c.Params("id")
+	if id == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "id é obrigatório")
+	}
+
+	var req UpdateTransactionCategoryRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+	}
+	if req.CategoryID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "category_id é obrigatório")
+	}
+
+	ctx := context.Background()
+	tag, err := db.Pool.Exec(ctx,
+		"UPDATE transactions SET category_id = $1, needs_review = false WHERE id = $2 AND workspace_id = $3",
+		req.CategoryID, id, sess.WorkspaceID,
+	)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	if tag.RowsAffected() == 0 {
+		return fiber.NewError(fiber.StatusNotFound, "transação não encontrada")
+	}
+	return c.JSON(fiber.Map{"success": true})
+}

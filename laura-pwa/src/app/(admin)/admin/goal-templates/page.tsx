@@ -1,9 +1,15 @@
-import { fetchAdminGoalTemplatesAction } from "@/lib/actions/adminConfig";
-import { AdminOptionsCrud } from "@/components/admin/AdminOptionsCrud";
+import { GoalTemplatesEditor } from "@/components/admin/GoalTemplatesEditor";
+import { pool } from "@/lib/db";
+import { assertSuperAdmin } from "@/lib/actions/admin";
 
 export default async function GoalTemplatesPage() {
-    const result = await fetchAdminGoalTemplatesAction();
-    const templates = "items" in result ? (result.items ?? []) : [];
+    const gate = await assertSuperAdmin();
+    if (!gate.ok) return <p className="text-red-400 p-4">Sem permissao</p>;
+
+    const result = await pool.query(
+        "SELECT id, name, emoji, description, default_target_cents, color, sort_order, active FROM goal_templates ORDER BY sort_order, name"
+    );
+    const templates = result.rows;
 
     return (
         <div className="space-y-6">
@@ -12,17 +18,7 @@ export default async function GoalTemplatesPage() {
                 <p className="text-sm text-muted-foreground mt-1">Presets de metas financeiras que aparecem na tela /goals do usuario</p>
             </div>
 
-            <AdminOptionsCrud
-                resource="goal-templates"
-                items={templates}
-                title="Objetivos"
-                iconName="Target"
-                fields={[
-                    { name: "name", label: "Nome", placeholder: "Ex: Viagem", required: true },
-                    { name: "emoji", label: "Emoji", placeholder: "✈️" },
-                    { name: "color", label: "Cor", placeholder: "#3B82F6" },
-                ]}
-            />
+            <GoalTemplatesEditor templates={templates} />
         </div>
     );
 }

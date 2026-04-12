@@ -141,6 +141,71 @@ export async function fetchAdminAuditLogAction() {
     return { entries: result.rows };
 }
 
+export async function fetchAdminAuditLogFilteredAction(filters?: {
+    action?: string;
+    entity_type?: string;
+    admin_user_id?: string;
+    from_date?: string;
+    to_date?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+}): Promise<{ entries: any[]; total: number } | { error: string }> {
+    const gate = await assertSuperAdmin();
+    if (!gate.ok) return { error: "Sem permissão" };
+
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+
+    if (filters?.action) {
+        conditions.push(`a.action = $${idx++}`);
+        params.push(filters.action);
+    }
+    if (filters?.entity_type) {
+        conditions.push(`a.entity_type = $${idx++}`);
+        params.push(filters.entity_type);
+    }
+    if (filters?.admin_user_id) {
+        conditions.push(`a.admin_user_id = $${idx++}`);
+        params.push(filters.admin_user_id);
+    }
+    if (filters?.from_date) {
+        conditions.push(`a.created_at >= $${idx++}::timestamptz`);
+        params.push(filters.from_date);
+    }
+    if (filters?.to_date) {
+        conditions.push(`a.created_at <= $${idx++}::timestamptz`);
+        params.push(filters.to_date + "T23:59:59Z");
+    }
+    if (filters?.search) {
+        conditions.push(`(a.entity_id::text ILIKE $${idx} OR a.action ILIKE $${idx})`);
+        params.push(`%${filters.search}%`);
+        idx++;
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const limit = filters?.limit || 50;
+    const offset = filters?.offset || 0;
+
+    const countResult = await pool.query(
+        `SELECT COUNT(*)::int AS total FROM admin_audit_log a ${where}`,
+        params
+    );
+
+    const result = await pool.query(
+        `SELECT a.id, a.action, a.entity_type, a.entity_id, a.old_value, a.new_value,
+                a.created_at, a.admin_user_id, u.name AS admin_name
+         FROM admin_audit_log a JOIN users u ON u.id = a.admin_user_id
+         ${where}
+         ORDER BY a.created_at DESC
+         LIMIT $${idx++} OFFSET $${idx++}`,
+        [...params, limit, offset]
+    );
+
+    return { entries: result.rows, total: countResult.rows[0]?.total || 0 };
+}
+
 // ─── Write Actions (CRUD) ───
 
 async function adminWriteAction(
@@ -210,7 +275,47 @@ export async function updatePlanAction(slug: string, data: any) {
     return adminWriteAction(`/api/v1/admin/plans/${slug}`, "PUT", data);
 }
 
+export async function updatePlanFullAction(slug: string, data: {
+    name: string;
+    price_cents: number;
+    stripe_price_id?: string;
+    capabilities: Record<string, boolean>;
+    ai_model_config: Record<string, any>;
+    limits: Record<string, any>;
+    features_description: string[];
+    active: boolean;
+}): Promise<{ success?: boolean; error?: string }> {
+    const gate = await assertSuperAdmin();
+    if (!gate.ok) return { error: "Sem permissão" };
+
+    await pool.query(
+        `UPDATE subscription_plans SET name=$1, price_cents=$2, stripe_price_id=$3,
+         capabilities=$4::jsonb, ai_model_config=$5::jsonb, limits=$6::jsonb,
+         features_description=$7::jsonb, active=$8 WHERE slug=$9`,
+        [data.name, data.price_cents, data.stripe_price_id || null,
+         JSON.stringify(data.capabilities), JSON.stringify(data.ai_model_config),
+         JSON.stringify(data.limits), JSON.stringify(data.features_description), data.active, slug]
+    );
+    return { success: true };
+}
+
 // Workspaces
+export async function changeWorkspacePlanAction(workspaceId: string, planSlug: string): Promise<{ success?: boolean; error?: string }> {
+    const gate = await assertSuperAdmin();
+    if (!gate.ok) return { error: "Sem permissão" };
+
+    try {
+        const res = await callLauraGo<{ success: boolean }>(`/api/v1/admin/workspaces/${workspaceId}/plan`, {
+            method: "PUT",
+            body: { plan_slug: planSlug },
+        });
+        if (res) return { success: true };
+    } catch { /* fallback */ }
+
+    await pool.query("UPDATE workspaces SET plan_slug = $1 WHERE id = $2", [planSlug, workspaceId]);
+    return { success: true };
+}
+
 export async function suspendWorkspaceAction(id: string, reason: string) {
     return adminWriteAction(`/api/v1/admin/workspaces/${id}/suspend`, "PUT", { reason });
 }
@@ -264,7 +369,7 @@ export type AdminCategoryTemplate = {
     emoji: string;
     color: string;
     description: string | null;
-    subcategories: { name: string; emoji: string }[];
+    subcategories: { name: string; emoji: string; description?: string }[];
     sort_order: number;
     active: boolean;
 };
@@ -285,7 +390,7 @@ export async function fetchAdminCategoryTemplatesFullAction(): Promise<{ templat
 
 export async function createCategoryTemplateFullAction(data: {
     name: string; emoji: string; color: string; description?: string;
-    subcategories: { name: string; emoji: string }[];
+    subcategories: { name: string; emoji: string; description?: string }[];
 }): Promise<{ success?: boolean; error?: string }> {
     const gate = await assertSuperAdmin();
     if (!gate.ok) return { error: "Sem permissão" };
@@ -301,7 +406,7 @@ export async function createCategoryTemplateFullAction(data: {
 
 export async function updateCategoryTemplateFullAction(id: string, data: {
     name: string; emoji: string; color: string; description?: string;
-    subcategories: { name: string; emoji: string }[];
+    subcategories: { name: string; emoji: string; description?: string }[];
     active?: boolean;
 }): Promise<{ success?: boolean; error?: string }> {
     const gate = await assertSuperAdmin();
@@ -407,5 +512,42 @@ export async function deleteEmailTemplateAction(id: string): Promise<{ success?:
     if (!gate.ok) return { error: "Sem permissão" };
 
     await pool.query("DELETE FROM email_templates WHERE id = $1", [id]);
+    return { success: true };
+}
+
+// ─── Goal Templates Full CRUD ───
+
+export async function createGoalTemplateFullAction(data: {
+    name: string; emoji: string; color: string; description?: string; default_target_cents?: number;
+}): Promise<{ success?: boolean; error?: string }> {
+    const gate = await assertSuperAdmin();
+    if (!gate.ok) return { error: "Sem permissão" };
+
+    await pool.query(
+        `INSERT INTO goal_templates (name, emoji, color, description, default_target_cents, sort_order)
+         VALUES ($1, $2, $3, $4, $5, (SELECT COALESCE(MAX(sort_order),0)+1 FROM goal_templates))`,
+        [data.name, data.emoji || "🎯", data.color || "#8B5CF6", data.description || null, data.default_target_cents || 0]
+    );
+    return { success: true };
+}
+
+export async function updateGoalTemplateFullAction(id: string, data: {
+    name: string; emoji: string; color: string; description?: string; default_target_cents?: number; active?: boolean;
+}): Promise<{ success?: boolean; error?: string }> {
+    const gate = await assertSuperAdmin();
+    if (!gate.ok) return { error: "Sem permissão" };
+
+    await pool.query(
+        `UPDATE goal_templates SET name=$1, emoji=$2, color=$3, description=$4, default_target_cents=$5, active=COALESCE($6, active) WHERE id=$7`,
+        [data.name, data.emoji, data.color, data.description || null, data.default_target_cents || 0, data.active ?? null, id]
+    );
+    return { success: true };
+}
+
+export async function deleteGoalTemplateFullAction(id: string): Promise<{ success?: boolean; error?: string }> {
+    const gate = await assertSuperAdmin();
+    if (!gate.ok) return { error: "Sem permissão" };
+
+    await pool.query("DELETE FROM goal_templates WHERE id = $1", [id]);
     return { success: true };
 }

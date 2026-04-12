@@ -1165,3 +1165,47 @@ func TestAPIE2E_UpdateSettings(t *testing.T) {
 		t.Errorf("update settings: status = %d", status)
 	}
 }
+
+func TestAPIE2E_SeedCategories(t *testing.T) {
+	app, pool, teardown := apiE2ESetup(t)
+	defer teardown()
+	_, userID := seedAPIWorkspace(t, context.Background(), pool, false)
+	cookie := buildSessionCookie(userID)
+
+	payload := map[string]interface{}{
+		"categories": []map[string]interface{}{
+			{
+				"name": "Alimentação", "emoji": "🍔", "color": "#EF4444",
+				"subcategories": []map[string]interface{}{
+					{"name": "Restaurantes", "emoji": "🍽️", "description": "Almoço e jantar fora"},
+					{"name": "Mercado", "emoji": "🛒", "description": "Compras de supermercado"},
+				},
+			},
+			{
+				"name": "Transporte", "emoji": "🚗", "color": "#3B82F6",
+				"subcategories": []map[string]interface{}{
+					{"name": "Combustível", "emoji": "⛽"},
+				},
+			},
+		},
+	}
+
+	status, body := performJSONRequest(t, app, "POST", "/api/v1/categories/seed", cookie, payload)
+	if status != 201 {
+		t.Fatalf("seed categories: status = %d, body = %v", status, body)
+	}
+
+	listStatus, listBody := performRequest(t, app, "GET", "/api/v1/categories", cookie)
+	if listStatus != 200 {
+		t.Fatalf("list categories: status = %d", listStatus)
+	}
+	cats, _ := listBody["categories"].([]interface{})
+	if len(cats) < 2 {
+		t.Errorf("esperava >= 2 categorias seeded, veio %d", len(cats))
+	}
+	first := cats[0].(map[string]interface{})
+	subs, _ := first["subcategories"].([]interface{})
+	if len(subs) == 0 {
+		t.Errorf("esperava subcategorias seeded na primeira categoria")
+	}
+}

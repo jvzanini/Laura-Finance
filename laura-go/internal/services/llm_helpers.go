@@ -1,0 +1,126 @@
+package services
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+)
+
+func lookupEnv(key string) (string, bool) {
+	v := os.Getenv(key)
+	return v, v != ""
+}
+
+// groqChatCompletion faz uma chamada OpenAI-compatible para Groq.
+func groqChatCompletion(model string, temperature float32, systemPrompt, userMessage string) (string, error) {
+	apiKey := getProviderKey("groq")
+	if apiKey == "" {
+		return "", fmt.Errorf("GROQ_API_KEY não configurada")
+	}
+	return openaiCompatibleChat("https://api.groq.com/openai/v1/chat/completions", apiKey, model, temperature, systemPrompt, userMessage)
+}
+
+// groqTranscribeAudio faz transcrição via Groq Whisper.
+func groqTranscribeAudio(model string, data []byte, filename string) (string, error) {
+	apiKey := getProviderKey("groq")
+	if apiKey == "" {
+		return "", fmt.Errorf("GROQ_API_KEY não configurada")
+	}
+	return openaiCompatibleTranscribe("https://api.groq.com/openai/v1/audio/transcriptions", apiKey, model, data, filename)
+}
+
+// openaiCompatibleChat funciona com qualquer API que segue o formato OpenAI (Groq, OpenAI, Gemini).
+func openaiCompatibleChat(endpoint, apiKey, model string, temperature float32, systemPrompt, userMessage string) (string, error) {
+	reqBody := map[string]interface{}{
+		"model":       model,
+		"temperature": temperature,
+		"messages": []map[string]string{
+			{"role": "system", "content": systemPrompt},
+			{"role": "user", "content": userMessage},
+		},
+	}
+
+	jsonData, _ := json.Marshal(reqBody)
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("LLM API unreachable: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("LLM API error (status %d): %s", resp.StatusCode, body)
+	}
+
+	var result struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("error decoding LLM response: %v", err)
+	}
+	if len(result.Choices) == 0 {
+		return "", fmt.Errorf("empty choices from LLM")
+	}
+	return result.Choices[0].Message.Content, nil
+}
+
+// openaiCompatibleTranscribe funciona com Groq Whisper e OpenAI Whisper.
+func openaiCompatibleTranscribe(endpoint, apiKey, model string, data []byte, filename string) (string, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	part, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		return "", err
+	}
+	if _, err := io.Copy(part, bytes.NewReader(data)); err != nil {
+		return "", err
+	}
+	_ = writer.WriteField("model", model)
+	_ = writer.WriteField("language", "pt")
+	if err := writer.Close(); err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("POST", endpoint, body)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("Whisper API unreachable: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("Whisper API error (status %d): %s", resp.StatusCode, respBody)
+	}
+
+	var result struct {
+		Text string `json:"text"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+	return result.Text, nil
+}

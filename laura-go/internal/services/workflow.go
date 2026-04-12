@@ -10,12 +10,20 @@ import (
 
 // ProcessMessageFlow processes raw text or audio coming from Whatsmeow into structured Transaction
 func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, audioBytes []byte, replyFunc func(string)) {
+	// Resolver plano do workspace para usar o provider correto
+	planSlug := GetWorkspacePlanSlug(workspaceID)
+	caps := GetPlanCapabilities(planSlug)
+
 	finalText := text
 
-	// Se for audio, convertemos Whisper
+	// Se for audio, checar capability e converter via Whisper
 	if len(audioBytes) > 0 {
-		fmt.Printf("[Background Goroutine] Detected Audio Voice. Converting via Groq Whisper...\n")
-		transcribed, err := TranscribeAudio(audioBytes, "voice.ogg")
+		if !caps.Audio {
+			replyFunc("Seu plano atual nao suporta mensagens de audio. Envie por texto ou faca upgrade para o plano VIP.")
+			return
+		}
+		fmt.Printf("[Background Goroutine] Detected Audio Voice. Converting via %s Whisper...\n", planSlug)
+		transcribed, err := TranscribeAudioForPlan(audioBytes, "voice.ogg", planSlug)
 		if err != nil {
 			log.Printf("[Error] Transcribing audio: %v\n", err)
 			finalText = "[Audio Incompreensível ou Falha]"
@@ -77,7 +85,7 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 	fmt.Printf("[ProcessMessageFlow Started] Passing to Brain/LLM... [%s]\n", finalText)
 
 	// Extraction with LLM
-	rawJsonStr, parsedTx, err := ExtractTransactionFromText(finalText)
+	rawJsonStr, parsedTx, err := ExtractTransactionFromText(finalText, planSlug)
 
 	if db.Pool != nil {
 		logStatus := "processed"

@@ -1,13 +1,26 @@
 import { Resend } from "resend";
+import { pool } from "@/lib/db";
 
 const apiKey = process.env.RESEND_API_KEY;
 if (!apiKey) console.warn("[email] RESEND_API_KEY não configurada — emails não serão enviados");
 const resend = new Resend(apiKey || "re_placeholder");
 
+async function getSenderFrom(): Promise<string> {
+    try {
+        const res = await pool.query("SELECT value FROM system_config WHERE key = 'sender_email'");
+        const emailRes = await pool.query("SELECT value FROM system_config WHERE key = 'sender_name'");
+        const email = res.rows[0]?.value ? JSON.parse(res.rows[0].value) : "laura@suaempresa.com";
+        const name = emailRes.rows[0]?.value ? JSON.parse(emailRes.rows[0].value) : "Laura Finance";
+        return `${name} <${email}>`;
+    } catch {
+        return "Laura Finance <laura@suaempresa.com>";
+    }
+}
+
 export async function sendReceiptEmail(to: string, planName: string, amount: string) {
     try {
         const data = await resend.emails.send({
-            from: "Laura Finance <laura@suaempresa.com>", // Necessário configurar um domínio real na Resend // TODO real domain
+            from: await getSenderFrom(),
             to: [to],
             subject: "Seu Comprovante Laura Finance",
             html: `
@@ -33,7 +46,7 @@ export async function sendReceiptEmail(to: string, planName: string, amount: str
 export async function sendVerifyEmailEmail(to: string, verifyUrl: string, userName: string) {
     try {
         const data = await resend.emails.send({
-            from: "Laura Finance <laura@suaempresa.com>",
+            from: await getSenderFrom(),
             to: [to],
             subject: "Confirme seu e-mail — Laura Finance",
             html: `
@@ -68,7 +81,7 @@ export async function sendVerifyEmailEmail(to: string, verifyUrl: string, userNa
 export async function sendPasswordResetEmail(to: string, resetUrl: string, userName: string) {
     try {
         const data = await resend.emails.send({
-            from: "Laura Finance <laura@suaempresa.com>",
+            from: await getSenderFrom(),
             to: [to],
             subject: "Recuperação de senha — Laura Finance",
             html: `
@@ -105,7 +118,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string, userN
 export async function sendWelcomeEmail(to: string, tempPassword: string, role: string) {
     try {
         const data = await resend.emails.send({
-            from: "Laura Finance <laura@suaempresa.com>",
+            from: await getSenderFrom(),
             to: [to],
             subject: "Acesso Liberado: Laura Finance",
             html: `

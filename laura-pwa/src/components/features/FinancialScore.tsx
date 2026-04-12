@@ -11,20 +11,30 @@ type ScoreFactors = {
     debtLevel: number;       // inverse of debt ratio
 };
 
-function calculateScore(factors: ScoreFactors): number {
-    const weights = { billsOnTime: 0.35, budgetRespect: 0.25, savingsRate: 0.25, debtLevel: 0.15 };
+type ScoreConfig = {
+    weights: { billsOnTime: number; budgetRespect: number; savingsRate: number; debtLevel: number };
+    thresholds: { excellent: number; good: number; fair: number };
+};
+
+const DEFAULT_CONFIG: ScoreConfig = {
+    weights: { billsOnTime: 0.35, budgetRespect: 0.25, savingsRate: 0.25, debtLevel: 0.15 },
+    thresholds: { excellent: 80, good: 60, fair: 40 },
+};
+
+function calculateScore(factors: ScoreFactors, config: ScoreConfig = DEFAULT_CONFIG): number {
+    const w = config.weights;
     return Math.round(
-        factors.billsOnTime * weights.billsOnTime +
-        factors.budgetRespect * weights.budgetRespect +
-        factors.savingsRate * weights.savingsRate +
-        factors.debtLevel * weights.debtLevel
+        factors.billsOnTime * w.billsOnTime +
+        factors.budgetRespect * w.budgetRespect +
+        factors.savingsRate * w.savingsRate +
+        factors.debtLevel * w.debtLevel
     );
 }
 
-function getScoreConfig(score: number) {
-    if (score >= 80) return { label: "Excelente", color: "#10B981", gradient: "from-emerald-500 to-emerald-400", emoji: "🏆", desc: "Sua saúde financeira está incrível!" };
-    if (score >= 60) return { label: "Bom", color: "#3B82F6", gradient: "from-blue-500 to-blue-400", emoji: "👍", desc: "Você está no caminho certo!" };
-    if (score >= 40) return { label: "Regular", color: "#F59E0B", gradient: "from-amber-500 to-amber-400", emoji: "⚡", desc: "Atenção com alguns indicadores." };
+function getScoreConfig(score: number, thresholds = DEFAULT_CONFIG.thresholds) {
+    if (score >= thresholds.excellent) return { label: "Excelente", color: "#10B981", gradient: "from-emerald-500 to-emerald-400", emoji: "🏆", desc: "Sua saúde financeira está incrível!" };
+    if (score >= thresholds.good) return { label: "Bom", color: "#3B82F6", gradient: "from-blue-500 to-blue-400", emoji: "👍", desc: "Você está no caminho certo!" };
+    if (score >= thresholds.fair) return { label: "Regular", color: "#F59E0B", gradient: "from-amber-500 to-amber-400", emoji: "⚡", desc: "Atenção com alguns indicadores." };
     return { label: "Crítico", color: "#EF4444", gradient: "from-red-500 to-red-400", emoji: "⚠️", desc: "Hora de reavaliar seus gastos." };
 }
 

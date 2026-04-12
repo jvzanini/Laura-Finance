@@ -5,6 +5,24 @@ import { createSession, getSession } from "@/lib/session";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { DEFAULT_SEED_CATEGORIES } from "@/app/(dashboard)/categories/default-seed";
+
+async function getCategoryTemplatesFromDB(): Promise<typeof DEFAULT_SEED_CATEGORIES | null> {
+    try {
+        const res = await pool.query(
+            "SELECT name, emoji, color, description, subcategories FROM category_templates WHERE active = true ORDER BY sort_order"
+        );
+        if (res.rowCount && res.rowCount > 0) {
+            return res.rows.map(r => ({
+                name: r.name,
+                emoji: r.emoji || "📂",
+                color: r.color || "#808080",
+                description: r.description || "",
+                subcategories: (typeof r.subcategories === "string" ? JSON.parse(r.subcategories) : r.subcategories) || [],
+            }));
+        }
+    } catch { /* fallback to hardcoded */ }
+    return null;
+}
 import { createVerifyEmailToken } from "@/lib/verifyEmailToken";
 import { sendVerifyEmailEmail } from "@/lib/email";
 
@@ -50,10 +68,11 @@ export async function registerAction(formData: FormData) {
             [workspaceId, name, email, passwordHash, "proprietário"]
         );
 
-        // Auto-seed: popula o workspace novo com a taxonomia completa
-        // (8 categorias × 36 subcategorias). Dentro da mesma transação para
-        // que um user recém-criado NUNCA exista sem categorias padrão.
-        for (const cat of DEFAULT_SEED_CATEGORIES) {
+        // Auto-seed: popula o workspace novo com a taxonomia completa.
+        // Tenta ler de category_templates (configurável via admin panel).
+        // Se não houver templates no banco, usa o fallback hardcoded.
+        const seedCategories = await getCategoryTemplatesFromDB() || DEFAULT_SEED_CATEGORIES;
+        for (const cat of seedCategories) {
             const catRes = await client.query(
                 `INSERT INTO categories (workspace_id, name, emoji, color, description, monthly_limit_cents)
                  VALUES ($1, $2, $3, $4, $5, 0) RETURNING id`,

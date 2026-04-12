@@ -2,15 +2,61 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"math"
+	"sync"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 )
 
-// ScoreFactors é o shape dos 4 fatores ponderados que compõem o Score
-// Financeiro (Story 9.2 do BMAD). Precisa ficar em paridade com o tipo
-// correspondente em laura-pwa/src/lib/actions/financialScore.ts.
+type ScoreWeights struct {
+	BillsOnTime   float64 `json:"billsOnTime"`
+	BudgetRespect float64 `json:"budgetRespect"`
+	SavingsRate   float64 `json:"savingsRate"`
+	DebtLevel     float64 `json:"debtLevel"`
+}
+
+var (
+	cachedWeights   *ScoreWeights
+	cachedWeightsMu sync.Mutex
+)
+
+var defaultWeights = ScoreWeights{
+	BillsOnTime: 0.35, BudgetRespect: 0.25, SavingsRate: 0.25, DebtLevel: 0.15,
+}
+
+func getScoreWeights() ScoreWeights {
+	cachedWeightsMu.Lock()
+	defer cachedWeightsMu.Unlock()
+
+	if cachedWeights != nil {
+		return *cachedWeights
+	}
+
+	if db.Pool != nil {
+		ctx := context.Background()
+		var raw []byte
+		err := db.Pool.QueryRow(ctx, "SELECT value FROM system_config WHERE key = 'score_weights'").Scan(&raw)
+		if err == nil {
+			var w ScoreWeights
+			if json.Unmarshal(raw, &w) == nil && w.BillsOnTime+w.BudgetRespect+w.SavingsRate+w.DebtLevel > 0 {
+				cachedWeights = &w
+				return w
+			}
+		}
+	}
+	return defaultWeights
+}
+
+// InvalidateScoreWeightsCache limpa o cache para forçar recarga.
+func InvalidateScoreWeightsCache() {
+	cachedWeightsMu.Lock()
+	cachedWeights = nil
+	cachedWeightsMu.Unlock()
+}
+
 type ScoreFactors struct {
 	BillsOnTime   int
 	BudgetRespect int
@@ -18,13 +64,13 @@ type ScoreFactors struct {
 	DebtLevel     int
 }
 
-// Score calcula o score agregado a partir dos fatores.
 func (f ScoreFactors) Score() int {
+	w := getScoreWeights()
 	return int(math.Round(
-		float64(f.BillsOnTime)*0.35 +
-			float64(f.BudgetRespect)*0.25 +
-			float64(f.SavingsRate)*0.25 +
-			float64(f.DebtLevel)*0.15,
+		float64(f.BillsOnTime)*w.BillsOnTime +
+			float64(f.BudgetRespect)*w.BudgetRespect +
+			float64(f.SavingsRate)*w.SavingsRate +
+			float64(f.DebtLevel)*w.DebtLevel,
 	))
 }
 
@@ -40,11 +86,27 @@ var fallbackFactors = ScoreFactors{
 // ComputeScoreFactors calcula os 4 fatores atuais para um workspace.
 // Replica a lógica da fetchFinancialScoreAction do PWA — quando alguma
 // divergência aparecer, trate como bug e alinhe os dois lados.
+func getScoreLookbackDays() int {
+	if db.Pool != nil {
+		ctx := context.Background()
+		var raw []byte
+		err := db.Pool.QueryRow(ctx, "SELECT value FROM system_config WHERE key = 'score_lookback_days'").Scan(&raw)
+		if err == nil {
+			var days int
+			if json.Unmarshal(raw, &days) == nil && days > 0 {
+				return days
+			}
+		}
+	}
+	return 90
+}
+
 func ComputeScoreFactors(ctx context.Context, workspaceID string) ScoreFactors {
 	if db.Pool == nil {
 		return fallbackFactors
 	}
 	f := fallbackFactors
+	lookback := getScoreLookbackDays()
 
 	// budgetRespect
 	var totalCats, respectedCats int
@@ -90,7 +152,7 @@ func ComputeScoreFactors(ctx context.Context, workspaceID string) ScoreFactors {
 		`SELECT COALESCE(SUM(amount), 0)::int
 		 FROM transactions
 		 WHERE workspace_id = $1 AND type = 'income'
-		   AND transaction_date >= CURRENT_DATE - INTERVAL '90 days'`,
+		   AND transaction_date >= CURRENT_DATE - INTERVAL '` + fmt.Sprintf("%d", lookback) + ` days'`,
 		workspaceID).Scan(&incomeAvg90)
 	monthlyIncomeAvg := 0
 	if incomeAvg90 > 0 {
@@ -104,7 +166,7 @@ func ComputeScoreFactors(ctx context.Context, workspaceID string) ScoreFactors {
 		`SELECT COALESCE(SUM(total_fees_cents), 0)::int
 		 FROM debt_rollovers
 		 WHERE workspace_id = $1
-		   AND created_at >= CURRENT_DATE - INTERVAL '90 days'`,
+		   AND created_at >= CURRENT_DATE - INTERVAL '` + fmt.Sprintf("%d", lookback) + ` days'`,
 		workspaceID).Scan(&feesCents)
 
 	if monthlyIncomeAvg > 0 {
@@ -124,7 +186,7 @@ func ComputeScoreFactors(ctx context.Context, workspaceID string) ScoreFactors {
 			)::int
 		 FROM invoices
 		 WHERE workspace_id = $1
-		   AND due_date >= CURRENT_DATE - INTERVAL '90 days'`,
+		   AND due_date >= CURRENT_DATE - INTERVAL '` + fmt.Sprintf("%d", lookback) + ` days'`,
 		workspaceID).Scan(&onTime, &settled)
 	if settled > 0 {
 		f.BillsOnTime = int(math.Round(float64(onTime) / float64(settled) * 100))

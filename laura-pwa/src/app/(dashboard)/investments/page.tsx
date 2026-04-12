@@ -11,6 +11,7 @@ import {
     ArrowUpRight, ArrowDownRight, Building2, Loader2
 } from "lucide-react";
 import { fetchInvestmentsAction, addInvestmentAction } from "@/lib/actions/investments";
+import { fetchBrokerOptionsAction, fetchInvestmentTypeOptionsAction } from "@/lib/actions/options";
 
 type Investment = {
     id: string;
@@ -25,7 +26,7 @@ type Investment = {
 
 
 
-const BROKER_OPTIONS = [
+const FALLBACK_BROKERS = [
     { label: "🏦 Ágora", value: "Ágora" },
     { label: "🏦 BTG", value: "BTG" },
     { label: "🏦 Clear", value: "Clear" },
@@ -36,6 +37,12 @@ const BROKER_OPTIONS = [
     { label: "💎 Binance", value: "Binance" },
     { label: "📈 IC Markets", value: "IC Markets" },
     { label: "📊 IQ Option", value: "IQ Option" },
+];
+
+const FALLBACK_TYPES = [
+    { label: "Investimentos", value: "Investimentos" },
+    { label: "Cripto", value: "Cripto" },
+    { label: "Poupança", value: "Poupança" },
 ];
 
 function fmt(cents: number) {
@@ -53,10 +60,24 @@ export default function InvestmentsPage() {
     const [inputInvested, setInputInvested] = useState("");
     const [inputCurrent, setInputCurrent] = useState("");
     const [inputMonthly, setInputMonthly] = useState("");
+    const [brokerOptions, setBrokerOptions] = useState(FALLBACK_BROKERS);
+    const [typeOptions, setTypeOptions] = useState(FALLBACK_TYPES);
 
     useEffect(() => {
         loadInvestments();
+        loadOptions();
     }, []);
+
+    const loadOptions = async () => {
+        try {
+            const [brokers, types] = await Promise.all([
+                fetchBrokerOptionsAction(),
+                fetchInvestmentTypeOptionsAction(),
+            ]);
+            if (brokers.length > 0) setBrokerOptions(brokers.map((b: any) => ({ label: `${b.emoji || '🏦'} ${b.name}`, value: b.name })));
+            if (types.length > 0) setTypeOptions(types.map((t: any) => ({ label: t.name, value: t.name })));
+        } catch { /* keep fallbacks */ }
+    };
 
     const loadInvestments = async () => {
         setLoading(true);
@@ -203,7 +224,7 @@ export default function InvestmentsPage() {
                                 <Select value={broker} onValueChange={(val) => setBroker(val || "")}>
                                     <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                     <SelectContent>
-                                        {BROKER_OPTIONS.map((b) => (
+                                        {brokerOptions.map((b) => (
                                             <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
                                         ))}
                                     </SelectContent>

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Target, Plus, Plane, Car, Home, Smartphone, PiggyBank, GraduationCap, Heart, Trophy, X, Loader2 } from "lucide-react";
 import { fetchGoalsAction, addGoalAction } from "@/lib/actions/goals";
+import { fetchGoalTemplateOptionsAction } from "@/lib/actions/options";
 
 type Goal = {
     id: string;
@@ -21,7 +22,7 @@ type Goal = {
     color: string;
 };
 
-const PRESET_GOALS = [
+const FALLBACK_PRESETS = [
     { name: "Viagem", icon: "✈️", color: "#3B82F6" },
     { name: "Carro", icon: "🚗", color: "#10B981" },
     { name: "Casa Própria", icon: "🏠", color: "#F59E0B" },
@@ -119,10 +120,21 @@ export default function GoalsPage() {
     const [goalTarget, setGoalTarget] = useState("");
     const [goalDeadline, setGoalDeadline] = useState("");
     const [goalDesc, setGoalDesc] = useState("");
+    const [presets, setPresets] = useState(FALLBACK_PRESETS);
 
     useEffect(() => {
         loadGoals();
+        loadPresets();
     }, []);
+
+    const loadPresets = async () => {
+        try {
+            const templates = await fetchGoalTemplateOptionsAction();
+            if (templates.length > 0) {
+                setPresets(templates.map((t: any) => ({ name: t.name, icon: t.emoji || "🎯", color: t.color || "#8B5CF6" })));
+            }
+        } catch { /* keep fallbacks */ }
+    };
 
     const loadGoals = async () => {
         setLoading(true);
@@ -133,7 +145,7 @@ export default function GoalsPage() {
         setLoading(false);
     };
 
-    const handlePresetSelect = (preset: typeof PRESET_GOALS[0]) => {
+    const handlePresetSelect = (preset: typeof FALLBACK_PRESETS[0]) => {
         setSelectedPreset(preset.name);
         setGoalName(preset.name);
     };
@@ -142,7 +154,7 @@ export default function GoalsPage() {
         if (!goalName || !goalTarget || !goalDeadline) return;
         setSubmitting(true);
         
-        const presetObj = PRESET_GOALS.find(p => p.name === selectedPreset);
+        const presetObj = presets.find(p => p.name === selectedPreset);
         
         const formData = new FormData();
         formData.append("name", goalName);
@@ -202,7 +214,7 @@ export default function GoalsPage() {
                         <div>
                             <Label className="text-xs mb-2 block">Templates Rápidos</Label>
                             <div className="flex flex-wrap gap-2">
-                                {PRESET_GOALS.map((p) => (
+                                {presets.map((p) => (
                                     <button
                                         key={p.name}
                                         onClick={() => handlePresetSelect(p)}

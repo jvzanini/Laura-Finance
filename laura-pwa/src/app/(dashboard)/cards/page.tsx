@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { CreditCard, Plus, Calendar, AlertCircle, Building2, User, Trash2, Edit2, Loader2 } from "lucide-react";
 import { fetchCardsAction, deleteCardAction, addCardAction } from "@/lib/actions/cards";
+import { fetchBankOptionsAction, fetchCardBrandOptionsAction } from "@/lib/actions/options";
 
 type CardData = {
     id: string;
@@ -27,7 +28,7 @@ type CardData = {
     creditLimit: number;
 };
 
-const BANKS = [
+const FALLBACK_BANKS = [
     "Nubank", "Banco Inter", "C6 Bank", "Bradesco", "Itaú", "Santander",
     "Caixa Econômica", "Banco do Brasil", "BTG Pactual", "PagBank", "Neon",
     "Banco Pan", "Safra", "Mercado Pago", "PicPay",
@@ -86,6 +87,11 @@ export default function CardsPage() {
     const [loading, setLoading] = useState(true);
     const [open, setOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [banks, setBanks] = useState<string[]>(FALLBACK_BANKS);
+    const [brands, setBrands] = useState<{ name: string; slug: string }[]>([
+        { name: "Mastercard", slug: "mastercard" }, { name: "Visa", slug: "visa" },
+        { name: "Elo", slug: "elo" }, { name: "American Express", slug: "amex" },
+    ]);
 
     // Form states
     const [name, setName] = useState("");
@@ -96,12 +102,24 @@ export default function CardsPage() {
     const [dueDay, setDueDay] = useState("");
     const [lastFour, setLastFour] = useState("");
     const [bankBroker, setBankBroker] = useState("");
-    const [holder, setHolder] = useState("João Vitor");
+    const [holder, setHolder] = useState("");
     const [creditLimit, setCreditLimit] = useState("");
 
     useEffect(() => {
         loadCards();
+        loadOptions();
     }, []);
+
+    const loadOptions = async () => {
+        try {
+            const [bankOpts, brandOpts] = await Promise.all([
+                fetchBankOptionsAction(),
+                fetchCardBrandOptionsAction(),
+            ]);
+            if (bankOpts.length > 0) setBanks(bankOpts.map((b: any) => b.name));
+            if (brandOpts.length > 0) setBrands(brandOpts.map((b: any) => ({ name: b.name, slug: b.slug })));
+        } catch { /* keep fallbacks */ }
+    };
 
     const loadCards = async () => {
         setLoading(true);
@@ -200,7 +218,7 @@ export default function CardsPage() {
                                     <Select value={bankBroker} onValueChange={(val) => setBankBroker(val || "")}>
                                         <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                         <SelectContent>
-                                            {BANKS.map((b) => (
+                                            {banks.map((b) => (
                                                 <SelectItem key={b} value={b}>{b}</SelectItem>
                                             ))}
                                         </SelectContent>
@@ -211,10 +229,9 @@ export default function CardsPage() {
                                     <Select value={brand} onValueChange={(val) => setBrand(val || "")}>
                                         <SelectTrigger className="h-9 bg-background"><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="mastercard">Mastercard</SelectItem>
-                                            <SelectItem value="visa">Visa</SelectItem>
-                                            <SelectItem value="elo">Elo</SelectItem>
-                                            <SelectItem value="amex">American Express</SelectItem>
+                                            {brands.map((b) => (
+                                                <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -231,13 +248,7 @@ export default function CardsPage() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Titular</Label>
-                                    <Select value={holder} onValueChange={(v) => setHolder(v || "")}>
-                                        <SelectTrigger className="h-9 bg-background"><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="João Vitor">João Vitor</SelectItem>
-                                            <SelectItem value="Maria Laura">Maria Laura</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <Input value={holder} onChange={(e) => setHolder(e.target.value)} placeholder="Nome do titular" className="h-9 bg-background" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Limite de Crédito (R$)</Label>

@@ -140,3 +140,80 @@ export async function fetchAdminAuditLogAction() {
     );
     return { entries: result.rows };
 }
+
+// ─── Write Actions (CRUD) ───
+
+async function adminWriteAction(
+    goPath: string,
+    method: "POST" | "PUT" | "DELETE",
+    body?: any
+): Promise<{ success?: boolean; id?: string; error?: string }> {
+    const gate = await assertSuperAdmin();
+    if (!gate.ok) return { error: "Sem permissão" };
+
+    try {
+        const res = await callLauraGo<{ success: boolean; id?: string }>(goPath, {
+            method: method as any,
+            body: body || undefined,
+        });
+        if (res) return { success: true, id: res.id };
+    } catch (err: any) {
+        if (err?.status >= 400 && err?.status < 500) {
+            return { error: err.message || "Erro de validação" };
+        }
+        console.warn("[admin:write] laura-go failed, no fallback for writes");
+    }
+
+    return { error: "Operação não disponível sem laura-go" };
+}
+
+// Config
+export async function saveAdminConfigAction(key: string, value: any) {
+    return adminWriteAction(`/api/v1/admin/config/${key}`, "PUT", { value });
+}
+
+// Processors
+export async function createProcessorAction(data: any) {
+    return adminWriteAction("/api/v1/admin/processors", "POST", data);
+}
+export async function updateProcessorAction(id: string, data: any) {
+    return adminWriteAction(`/api/v1/admin/processors/${id}`, "PUT", data);
+}
+export async function deleteProcessorAction(id: string) {
+    return adminWriteAction(`/api/v1/admin/processors/${id}`, "DELETE");
+}
+
+// Category templates
+export async function createCategoryTemplateAction(data: any) {
+    return adminWriteAction("/api/v1/admin/category-templates", "POST", data);
+}
+export async function updateCategoryTemplateAction(id: string, data: any) {
+    return adminWriteAction(`/api/v1/admin/category-templates/${id}`, "PUT", data);
+}
+export async function deleteCategoryTemplateAction(id: string) {
+    return adminWriteAction(`/api/v1/admin/category-templates/${id}`, "DELETE");
+}
+
+// Generic option CRUD (banks, brands, brokers, investment-types, goal-templates)
+export async function createOptionAction(resource: string, data: any) {
+    return adminWriteAction(`/api/v1/admin/${resource}`, "POST", data);
+}
+export async function toggleOptionAction(resource: string, id: string, active: boolean) {
+    return adminWriteAction(`/api/v1/admin/${resource}/${id}`, "PUT", { active });
+}
+export async function deleteOptionAction(resource: string, id: string) {
+    return adminWriteAction(`/api/v1/admin/${resource}/${id}`, "DELETE");
+}
+
+// Plans
+export async function updatePlanAction(slug: string, data: any) {
+    return adminWriteAction(`/api/v1/admin/plans/${slug}`, "PUT", data);
+}
+
+// Workspaces
+export async function suspendWorkspaceAction(id: string, reason: string) {
+    return adminWriteAction(`/api/v1/admin/workspaces/${id}/suspend`, "PUT", { reason });
+}
+export async function reactivateWorkspaceAction(id: string) {
+    return adminWriteAction(`/api/v1/admin/workspaces/${id}/reactivate`, "PUT");
+}

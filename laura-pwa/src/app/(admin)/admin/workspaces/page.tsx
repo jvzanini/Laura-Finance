@@ -1,4 +1,5 @@
 import { fetchAdminWorkspacesAction } from "@/lib/actions/adminConfig";
+import { SuspendButton, ReactivateButton } from "@/components/admin/WorkspaceActions";
 import { Users, AlertTriangle } from "lucide-react";
 
 export default async function WorkspacesPage() {
@@ -26,6 +27,7 @@ export default async function WorkspacesPage() {
                                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Transacoes</th>
                                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
                                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Criado em</th>
+                                <th className="text-center px-4 py-3 font-medium text-muted-foreground">Acao</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -65,6 +67,13 @@ export default async function WorkspacesPage() {
                                         </td>
                                         <td className="px-4 py-3 text-xs text-muted-foreground">
                                             {new Date(ws.created_at).toLocaleDateString("pt-BR")}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {isSuspended ? (
+                                                <ReactivateButton workspaceId={ws.id} />
+                                            ) : (
+                                                <SuspendButton workspaceId={ws.id} />
+                                            )}
                                         </td>
                                     </tr>
                                 );

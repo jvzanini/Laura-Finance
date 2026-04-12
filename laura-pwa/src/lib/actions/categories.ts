@@ -47,6 +47,19 @@ export async function addCategoryAction(formData: FormData) {
         }
         const limitCents = Math.round(parsedFloat * 100);
 
+        try {
+            const goResp = await callLauraGo<{ id: string; success: boolean }>("/api/v1/categories", {
+                method: "POST",
+                body: { name, emoji, color, description, monthly_limit_cents: limitCents },
+            });
+            if (goResp) {
+                revalidatePath("/categories");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[categories:add] laura-go failed, fallback:", err);
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query("SELECT workspace_id FROM users WHERE id = $1", [session.userId]);
@@ -167,6 +180,19 @@ export async function seedCategoriesAction(categoriesData: any) {
     try {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Não autorizado." };
+
+        try {
+            const goResp = await callLauraGo<{ success: boolean }>("/api/v1/categories/seed", {
+                method: "POST",
+                body: { categories: categoriesData },
+            });
+            if (goResp) {
+                revalidatePath("/categories");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[categories:seed] laura-go failed, fallback:", err);
+        }
 
         const client = await pool.connect();
         try {

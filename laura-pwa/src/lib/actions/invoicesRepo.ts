@@ -122,6 +122,18 @@ export async function markInvoicePaidAction(invoiceId: string) {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Sem sessão ativa." };
 
+        try {
+            const goResp = await callLauraGo<{ success: boolean }>(`/api/v1/invoices/${invoiceId}/pay`, {
+                method: "POST",
+            });
+            if (goResp) {
+                revalidatePath("/invoices");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[invoices:markPaid] laura-go failed, fallback:", err);
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query(
@@ -179,6 +191,19 @@ export async function createInvoiceAction(formData: FormData) {
             return { error: "Valor da fatura inválido." };
         }
         const totalCents = Math.round(parsedFloat * 100);
+
+        try {
+            const goResp = await callLauraGo<{ success: boolean }>("/api/v1/invoices", {
+                method: "POST",
+                body: { card_id: cardId, month_ref: monthRef, total_cents: totalCents, due_date: dueDate },
+            });
+            if (goResp) {
+                revalidatePath("/invoices");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[invoices:create] laura-go failed, fallback:", err);
+        }
 
         const client = await pool.connect();
         try {

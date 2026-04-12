@@ -112,6 +112,15 @@ export async function deleteTransactionAction(transactionId: string): Promise<{ 
             return { error: "Não autorizado" };
         }
 
+        try {
+            const goResp = await callLauraGo<{ success: boolean }>(`/api/v1/transactions/${transactionId}`, {
+                method: "DELETE",
+            });
+            if (goResp) return { success: true };
+        } catch (err) {
+            console.warn("[transactions:delete] laura-go failed, fallback:", err);
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query("SELECT workspace_id FROM users WHERE id = $1", [session.userId]);
@@ -140,6 +149,16 @@ export async function updateTransactionCategoryAction(transactionId: string, cat
         const session = await getSession();
         if (!session || !session.userId) {
             return { error: "Não autorizado" };
+        }
+
+        try {
+            const goResp = await callLauraGo<{ success: boolean }>(`/api/v1/transactions/${transactionId}/category`, {
+                method: "PUT",
+                body: { category_id: categoryId },
+            });
+            if (goResp) return { success: true };
+        } catch (err) {
+            console.warn("[transactions:updateCategory] laura-go failed, fallback:", err);
         }
 
         const client = await pool.connect();

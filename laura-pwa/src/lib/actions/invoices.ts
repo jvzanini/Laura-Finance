@@ -33,6 +33,28 @@ export async function addDebtRolloverAction(data: {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Sem sessão ativa." };
 
+        try {
+            const goResp = await callLauraGo<{ id: string; success: boolean }>("/api/v1/debt-rollovers", {
+                method: "POST",
+                body: {
+                    card_id: data.cardId,
+                    institution: data.institution,
+                    invoice_value_cents: data.invoiceValueCents,
+                    total_fees_cents: data.totalFeesCents,
+                    total_operations: data.totalOperations,
+                    installments: data.installments,
+                    fee_percentage: data.feePercentage,
+                    operations_json: data.operationsJson,
+                },
+            });
+            if (goResp) {
+                revalidatePath("/invoices/history");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[debt-rollovers:add] laura-go failed, fallback:", err);
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query("SELECT workspace_id FROM users WHERE id = $1", [session.userId]);
@@ -40,7 +62,7 @@ export async function addDebtRolloverAction(data: {
 
             await client.query(
                 `INSERT INTO debt_rollovers (
-                    workspace_id, card_id, institution, invoice_value_cents, 
+                    workspace_id, card_id, institution, invoice_value_cents,
                     total_fees_cents, total_operations, installments, fee_percentage, operations_json
                  )
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,

@@ -57,6 +57,22 @@ export async function addPhoneAction(formData: FormData) {
             return { error: "Falha ao validar o número. A interface backend (Laura-Go) está offline ou inacessível." };
         }
 
+        try {
+            const goResp = await callLauraGo<{ id: string; success: boolean }>("/api/v1/members", {
+                method: "POST",
+                body: { name, phone_number, role: role || "membro" },
+            });
+            if (goResp) {
+                revalidatePath("/dashboard");
+                return { success: true };
+            }
+        } catch (goErr: any) {
+            if (goErr?.status === 409) {
+                return { error: "Este número já está em uso em um Workspace da Laura." };
+            }
+            console.warn("[phones:add] laura-go failed, fallback:", goErr);
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query("SELECT workspace_id, role FROM users WHERE id = $1", [session.userId]);
@@ -66,7 +82,6 @@ export async function addPhoneAction(formData: FormData) {
                 return { error: "Sem privilégios suficientes para adicionar membros." };
             }
 
-            // Evita duplicação do mesmo número para outro workspace
             const phoneExists = await client.query("SELECT id FROM phones WHERE phone_number = $1", [phone_number]);
             if (phoneExists.rowCount && phoneExists.rowCount > 0) {
                 return { error: "Este número já está em uso em um Workspace da Laura." };
@@ -123,6 +138,18 @@ export async function deletePhoneAction(id: string) {
     try {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Acesso negado." };
+
+        try {
+            const goResp = await callLauraGo<{ success: boolean }>(`/api/v1/members/${id}`, {
+                method: "DELETE",
+            });
+            if (goResp) {
+                revalidatePath("/dashboard");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[phones:delete] laura-go failed, fallback:", err);
+        }
 
         const client = await pool.connect();
         try {

@@ -134,6 +134,22 @@ export async function updateUserProfileAction(formData: FormData) {
 
         const phoneNumber = phoneNumberRaw ? phoneNumberRaw.replace(/\D/g, "") : null;
 
+        try {
+            const goResp = await callLauraGo<{ success: boolean }>("/api/v1/me/profile", {
+                method: "PUT",
+                body: { name, email, phone_number: phoneNumber || "" },
+            });
+            if (goResp) {
+                revalidatePath("/settings");
+                return { success: true };
+            }
+        } catch (goErr: any) {
+            if (goErr?.status === 409) {
+                return { error: "Este e-mail já está em uso por outro usuário." };
+            }
+            console.warn("[profile:update] laura-go failed, fallback:", goErr);
+        }
+
         const client = await pool.connect();
         try {
             const dupe = await client.query(
@@ -182,6 +198,19 @@ export async function updateUserSettingsAction(settings: Partial<UserSettings>) 
         if (typeof settings.notifications === "boolean") sanitized.notifications = settings.notifications;
         if (typeof settings.darkMode === "boolean") sanitized.darkMode = settings.darkMode;
 
+        try {
+            const goResp = await callLauraGo<{ success: boolean }>("/api/v1/me/settings", {
+                method: "PUT",
+                body: { settings: sanitized },
+            });
+            if (goResp) {
+                revalidatePath("/settings");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[settings:update] laura-go failed, fallback:", err);
+        }
+
         await pool.query(
             `UPDATE users
              SET settings = settings || $1::jsonb
@@ -212,6 +241,19 @@ export async function changePasswordAction(formData: FormData) {
 
         if (!currentPassword || !newPassword || newPassword.length < 6) {
             return { error: "Informe a senha atual e uma nova senha com 6+ caracteres." };
+        }
+
+        try {
+            const goResp = await callLauraGo<{ success: boolean }>("/api/v1/me/password", {
+                method: "PUT",
+                body: { current_password: currentPassword, new_password: newPassword },
+            });
+            if (goResp) return { success: true };
+        } catch (goErr: any) {
+            if (goErr?.status === 403) {
+                return { error: "Senha atual incorreta." };
+            }
+            console.warn("[password:change] laura-go failed, fallback:", goErr);
         }
 
         const client = await pool.connect();

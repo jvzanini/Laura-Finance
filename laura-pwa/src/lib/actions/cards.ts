@@ -153,6 +153,18 @@ export async function deleteCardAction(id: string) {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Acesso negado." };
 
+        try {
+            const goResp = await callLauraGo<{ success: boolean }>(`/api/v1/cards/${id}`, {
+                method: "DELETE",
+            });
+            if (goResp) {
+                revalidatePath("/cards");
+                return { success: true };
+            }
+        } catch (err) {
+            console.warn("[cards:delete] laura-go failed, fallback:", err);
+        }
+
         const client = await pool.connect();
         try {
             const userRes = await client.query("SELECT workspace_id FROM users WHERE id = $1", [session.userId]);

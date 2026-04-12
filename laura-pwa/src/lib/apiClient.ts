@@ -28,7 +28,7 @@ export type LauraApiError = {
  */
 export async function callLauraGo<T>(
     path: string,
-    options: { method?: "GET" | "POST"; body?: unknown } = {}
+    options: { method?: "GET" | "POST" | "PUT" | "DELETE"; body?: unknown } = {}
 ): Promise<T | null> {
     if (!API_BASE) return null;
 

@@ -138,6 +138,14 @@ func RegisterRoutes(app *fiber.App) {
 
 	// Audit log
 	admin.Get("/audit-log", handleAdminListAuditLog)
+
+	// WhatsApp instances
+	admin.Get("/whatsapp/instances", handleAdminListWhatsAppInstances)
+	admin.Post("/whatsapp/instances", handleAdminCreateWhatsAppInstance)
+	admin.Post("/whatsapp/instances/:id/connect", handleAdminConnectWhatsAppInstance)
+	admin.Post("/whatsapp/instances/:id/disconnect", handleAdminDisconnectWhatsAppInstance)
+	admin.Get("/whatsapp/instances/:id/qr", handleAdminGetQRCode)
+	admin.Delete("/whatsapp/instances/:id", handleAdminDeleteWhatsAppInstance)
 }
 
 // getCORSOrigins retorna a lista de origens permitidas. Em dev

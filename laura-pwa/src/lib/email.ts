@@ -1,6 +1,8 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY || "re_mock_token_");
+const apiKey = process.env.RESEND_API_KEY;
+if (!apiKey) console.warn("[email] RESEND_API_KEY não configurada — emails não serão enviados");
+const resend = new Resend(apiKey || "re_placeholder");
 
 export async function sendReceiptEmail(to: string, planName: string, amount: string) {
     try {

@@ -70,9 +70,74 @@ func RegisterRoutes(app *fiber.App) {
 	api.Get("/dashboard/upcoming-bills", handleUpcomingBills)
 	api.Get("/dashboard/category-budgets", handleCategoryBudgets)
 
+	// Opções públicas (para selects do PWA — só ativos)
+	api.Get("/options/banks", handlePublicOptions("bank_options", "sort_order, name"))
+	api.Get("/options/card-brands", handlePublicOptions("card_brand_options", "sort_order, name"))
+	api.Get("/options/brokers", handlePublicOptions("broker_options", "sort_order, name"))
+	api.Get("/options/investment-types", handlePublicOptions("investment_type_options", "sort_order, name"))
+	api.Get("/options/goal-templates", handlePublicOptions("goal_templates", "sort_order, name"))
+
 	// Rotas admin — chain adicional
 	admin := api.Group("/admin", RequireSuperAdmin())
 	admin.Get("/overview", handleAdminOverview)
+
+	// Config global
+	admin.Get("/config", handleAdminListConfig)
+	admin.Put("/config/:key", handleAdminUpdateConfig)
+
+	// Planos de assinatura
+	admin.Get("/plans", handleAdminListPlans)
+	admin.Put("/plans/:slug", handleAdminUpdatePlan)
+
+	// Payment processors
+	admin.Get("/processors", handleAdminListProcessors)
+	admin.Post("/processors", handleAdminCreateProcessor)
+	admin.Put("/processors/:id", handleAdminUpdateProcessor)
+	admin.Delete("/processors/:id", handleAdminDeleteProcessor)
+
+	// Category templates
+	admin.Get("/category-templates", handleAdminListCategoryTemplates)
+	admin.Post("/category-templates", handleAdminCreateCategoryTemplate)
+	admin.Put("/category-templates/:id", handleAdminUpdateCategoryTemplate)
+	admin.Delete("/category-templates/:id", handleAdminDeleteCategoryTemplate)
+
+	// Goal templates
+	admin.Get("/goal-templates", handleAdminListOptions("goal_templates"))
+	admin.Post("/goal-templates", handleAdminCreateOption("goal_templates", []string{"name"}))
+	admin.Put("/goal-templates/:id", handleAdminToggleOption("goal_templates"))
+	admin.Delete("/goal-templates/:id", handleAdminDeleteOption("goal_templates"))
+
+	// Banks
+	admin.Get("/banks", handleAdminListOptions("bank_options"))
+	admin.Post("/banks", handleAdminCreateOption("bank_options", []string{"name", "slug"}))
+	admin.Put("/banks/:id", handleAdminToggleOption("bank_options"))
+	admin.Delete("/banks/:id", handleAdminDeleteOption("bank_options"))
+
+	// Card brands
+	admin.Get("/card-brands", handleAdminListOptions("card_brand_options"))
+	admin.Post("/card-brands", handleAdminCreateOption("card_brand_options", []string{"name", "slug"}))
+	admin.Put("/card-brands/:id", handleAdminToggleOption("card_brand_options"))
+	admin.Delete("/card-brands/:id", handleAdminDeleteOption("card_brand_options"))
+
+	// Brokers
+	admin.Get("/brokers", handleAdminListOptions("broker_options"))
+	admin.Post("/brokers", handleAdminCreateOption("broker_options", []string{"name", "slug"}))
+	admin.Put("/brokers/:id", handleAdminToggleOption("broker_options"))
+	admin.Delete("/brokers/:id", handleAdminDeleteOption("broker_options"))
+
+	// Investment types
+	admin.Get("/investment-types", handleAdminListOptions("investment_type_options"))
+	admin.Post("/investment-types", handleAdminCreateOption("investment_type_options", []string{"name", "slug"}))
+	admin.Put("/investment-types/:id", handleAdminToggleOption("investment_type_options"))
+	admin.Delete("/investment-types/:id", handleAdminDeleteOption("investment_type_options"))
+
+	// Workspaces
+	admin.Get("/workspaces", handleAdminListWorkspaces)
+	admin.Put("/workspaces/:id/suspend", handleAdminSuspendWorkspace)
+	admin.Put("/workspaces/:id/reactivate", handleAdminReactivateWorkspace)
+
+	// Audit log
+	admin.Get("/audit-log", handleAdminListAuditLog)
 }
 
 // getCORSOrigins retorna a lista de origens permitidas. Em dev

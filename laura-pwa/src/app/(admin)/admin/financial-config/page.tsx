@@ -5,7 +5,6 @@ import {
     fetchAdminInvestmentTypesAction,
 } from "@/lib/actions/adminConfig";
 import { AdminOptionsCrud } from "@/components/admin/AdminOptionsCrud";
-import { Landmark, CreditCard, TrendingUp, PieChart } from "lucide-react";
 
 export default async function FinancialConfigPage() {
     const [banksRes, brandsRes, brokersRes, typesRes] = await Promise.all([
@@ -32,7 +31,7 @@ export default async function FinancialConfigPage() {
                     resource="banks"
                     items={banks}
                     title="Bancos"
-                    icon={Landmark}
+                    iconName="Landmark"
                     fields={[
                         { name: "name", label: "Nome", placeholder: "Ex: Nubank", required: true },
                         { name: "slug", label: "Slug", placeholder: "nubank" },
@@ -42,7 +41,7 @@ export default async function FinancialConfigPage() {
                     resource="card-brands"
                     items={brands}
                     title="Bandeiras de Cartao"
-                    icon={CreditCard}
+                    iconName="CreditCard"
                     fields={[
                         { name: "name", label: "Nome", placeholder: "Ex: Visa", required: true },
                         { name: "slug", label: "Slug", placeholder: "visa" },
@@ -52,7 +51,7 @@ export default async function FinancialConfigPage() {
                     resource="brokers"
                     items={brokers}
                     title="Corretoras"
-                    icon={TrendingUp}
+                    iconName="TrendingUp"
                     fields={[
                         { name: "name", label: "Nome", placeholder: "Ex: XP", required: true },
                         { name: "slug", label: "Slug", placeholder: "xp" },
@@ -64,7 +63,7 @@ export default async function FinancialConfigPage() {
                     resource="investment-types"
                     items={types}
                     title="Tipos de Investimento"
-                    icon={PieChart}
+                    iconName="PieChart"
                     fields={[
                         { name: "name", label: "Nome", placeholder: "Ex: Renda Fixa", required: true },
                         { name: "slug", label: "Slug", placeholder: "renda-fixa" },

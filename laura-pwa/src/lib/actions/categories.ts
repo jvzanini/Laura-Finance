@@ -176,15 +176,44 @@ export async function fetchCategorySummariesAction() {
     }
 }
 
+async function getCategoryTemplatesFromDB() {
+    try {
+        const result = await pool.query(
+            "SELECT name, emoji, color, description, subcategories FROM category_templates WHERE active = true ORDER BY sort_order"
+        );
+        if (result.rowCount === 0) return null;
+        return result.rows.map((r: any) => {
+            const subs = typeof r.subcategories === "string" ? JSON.parse(r.subcategories) : (r.subcategories || []);
+            return {
+                name: r.name,
+                emoji: r.emoji || "📂",
+                color: r.color || "#808080",
+                description: r.description || "",
+                subcategories: subs.map((s: any) => ({
+                    name: s.name,
+                    emoji: s.emoji || "📄",
+                    description: s.description || "",
+                })),
+            };
+        });
+    } catch {
+        return null;
+    }
+}
+
 export async function seedCategoriesAction(categoriesData: any) {
     try {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Não autorizado." };
 
+        // Use admin-configured templates from DB if available
+        const dbTemplates = await getCategoryTemplatesFromDB();
+        const seedData = dbTemplates && dbTemplates.length > 0 ? dbTemplates : categoriesData;
+
         try {
             const goResp = await callLauraGo<{ success: boolean }>("/api/v1/categories/seed", {
                 method: "POST",
-                body: { categories: categoriesData },
+                body: { categories: seedData },
             });
             if (goResp) {
                 revalidatePath("/categories");
@@ -200,7 +229,7 @@ export async function seedCategoriesAction(categoriesData: any) {
             const userRes = await client.query("SELECT workspace_id FROM users WHERE id = $1", [session.userId]);
             const workspaceId = userRes.rows[0].workspace_id;
 
-            for (const cat of categoriesData) {
+            for (const cat of seedData) {
                 const res = await client.query(
                     `INSERT INTO categories (workspace_id, name, emoji, color, description, monthly_limit_cents)
                      VALUES ($1, $2, $3, $4, $5, 0) RETURNING id`,

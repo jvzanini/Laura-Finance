@@ -5,6 +5,8 @@ const apiKey = process.env.RESEND_API_KEY;
 if (!apiKey) console.warn("[email] RESEND_API_KEY não configurada — emails não serão enviados");
 const resend = new Resend(apiKey || "re_placeholder");
 
+type TemplateVars = Record<string, string>;
+
 async function getSenderFrom(): Promise<string> {
     try {
         const res = await pool.query("SELECT value FROM system_config WHERE key = 'sender_email'");
@@ -17,13 +19,29 @@ async function getSenderFrom(): Promise<string> {
     }
 }
 
+async function getActiveTemplate(type: string): Promise<{ subject: string; html_body: string } | null> {
+    try {
+        const result = await pool.query(
+            "SELECT subject, html_body FROM email_templates WHERE type = $1 AND active = TRUE LIMIT 1",
+            [type]
+        );
+        if (result.rowCount === 0) return null;
+        return result.rows[0];
+    } catch {
+        return null;
+    }
+}
+
+function applyVars(template: string, vars: TemplateVars): string {
+    return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? "");
+}
+
 export async function sendReceiptEmail(to: string, planName: string, amount: string) {
     try {
-        const data = await resend.emails.send({
-            from: await getSenderFrom(),
-            to: [to],
-            subject: "Seu Comprovante Laura Finance",
-            html: `
+        const tpl = await getActiveTemplate("comprovante_pagamento");
+        const vars: TemplateVars = { planName, amount };
+        const subject = tpl ? applyVars(tpl.subject, vars) : "Seu Comprovante Laura Finance";
+        const html = tpl ? applyVars(tpl.html_body, vars) : `
         <div>
           <h1>Bem-vindo à Laura Finance PRO! 🎉</h1>
           <p>Seu pagamento para o plano <strong>${planName}</strong> foi aprovado com sucesso.</p>
@@ -32,8 +50,13 @@ export async function sendReceiptEmail(to: string, planName: string, amount: str
           <p>Você já pode desfrutar dos limites ilimitados da sua Inteligência Artificial no WhatsApp.</p>
           <br/>
           <p>Atenciosamente, Equipe Laura</p>
-        </div>
-      `,
+        </div>`;
+
+        const data = await resend.emails.send({
+            from: await getSenderFrom(),
+            to: [to],
+            subject,
+            html,
         });
         console.log("E-mail enviado via Resend", data);
         return data;
@@ -45,30 +68,26 @@ export async function sendReceiptEmail(to: string, planName: string, amount: str
 
 export async function sendVerifyEmailEmail(to: string, verifyUrl: string, userName: string) {
     try {
-        const data = await resend.emails.send({
-            from: await getSenderFrom(),
-            to: [to],
-            subject: "Confirme seu e-mail — Laura Finance",
-            html: `
+        const tpl = await getActiveTemplate("verificacao_email");
+        const vars: TemplateVars = { userName, verifyUrl };
+        const subject = tpl ? applyVars(tpl.subject, vars) : "Confirme seu e-mail — Laura Finance";
+        const html = tpl ? applyVars(tpl.html_body, vars) : `
         <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #0A0A0F; color: #F4F4F5;">
           <h2 style="color: #7C3AED; margin-top: 0;">Bem-vindo, ${userName}! 🎉</h2>
           <p>Obrigado por criar sua conta na Laura Finance! Só falta confirmar seu e-mail para liberar todos os recursos.</p>
           <div style="margin: 32px 0; text-align: center;">
-            <a href="${verifyUrl}"
-               style="display: inline-block; padding: 12px 32px; background: #10B981; color: #FFFFFF; text-decoration: none; border-radius: 8px; font-weight: 600;">
-              Confirmar e-mail
-            </a>
+            <a href="${verifyUrl}" style="display: inline-block; padding: 12px 32px; background: #10B981; color: #FFFFFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Confirmar e-mail</a>
           </div>
-          <p style="font-size: 12px; color: #A1A1AA;">
-            O link é válido por <strong>24 horas</strong>. Se você não criou esta conta, ignore esta mensagem.
-          </p>
+          <p style="font-size: 12px; color: #A1A1AA;">O link é válido por <strong>24 horas</strong>. Se você não criou esta conta, ignore esta mensagem.</p>
           <hr style="border: none; border-top: 1px solid #27272A; margin: 24px 0;" />
-          <p style="font-size: 11px; color: #71717A;">
-            Link completo: <br/>
-            <code style="word-break: break-all;">${verifyUrl}</code>
-          </p>
-        </div>
-      `,
+          <p style="font-size: 11px; color: #71717A;">Link completo: <br/><code style="word-break: break-all;">${verifyUrl}</code></p>
+        </div>`;
+
+        const data = await resend.emails.send({
+            from: await getSenderFrom(),
+            to: [to],
+            subject,
+            html,
         });
         console.log("E-mail de verificação enviado via Resend", data);
         return data;
@@ -80,32 +99,25 @@ export async function sendVerifyEmailEmail(to: string, verifyUrl: string, userNa
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string, userName: string) {
     try {
-        const data = await resend.emails.send({
-            from: await getSenderFrom(),
-            to: [to],
-            subject: "Recuperação de senha — Laura Finance",
-            html: `
+        const tpl = await getActiveTemplate("reset_senha");
+        const vars: TemplateVars = { userName, resetUrl };
+        const subject = tpl ? applyVars(tpl.subject, vars) : "Recuperação de senha — Laura Finance";
+        const html = tpl ? applyVars(tpl.html_body, vars) : `
         <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #0A0A0F; color: #F4F4F5;">
           <h2 style="color: #7C3AED; margin-top: 0;">Olá, ${userName}! 👋</h2>
           <p>Recebemos uma solicitação para redefinir a senha da sua conta Laura Finance.</p>
           <p>Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>30 minutos</strong>.</p>
           <div style="margin: 32px 0; text-align: center;">
-            <a href="${resetUrl}"
-               style="display: inline-block; padding: 12px 32px; background: #7C3AED; color: #FFFFFF; text-decoration: none; border-radius: 8px; font-weight: 600;">
-              Redefinir senha
-            </a>
+            <a href="${resetUrl}" style="display: inline-block; padding: 12px 32px; background: #7C3AED; color: #FFFFFF; text-decoration: none; border-radius: 8px; font-weight: 600;">Redefinir senha</a>
           </div>
-          <p style="font-size: 12px; color: #A1A1AA;">
-            Se você não pediu esse reset, ignore este e-mail — sua senha continua segura.
-            O link só funciona se aberto nos próximos 30 minutos a partir do envio.
-          </p>
-          <hr style="border: none; border-top: 1px solid #27272A; margin: 24px 0;" />
-          <p style="font-size: 11px; color: #71717A;">
-            Link completo (caso o botão não funcione): <br/>
-            <code style="word-break: break-all;">${resetUrl}</code>
-          </p>
-        </div>
-      `,
+          <p style="font-size: 12px; color: #A1A1AA;">Se você não pediu esse reset, ignore este e-mail — sua senha continua segura.</p>
+        </div>`;
+
+        const data = await resend.emails.send({
+            from: await getSenderFrom(),
+            to: [to],
+            subject,
+            html,
         });
         console.log("E-mail de reset de senha enviado via Resend", data);
         return data;
@@ -117,11 +129,10 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string, userN
 
 export async function sendWelcomeEmail(to: string, tempPassword: string, role: string) {
     try {
-        const data = await resend.emails.send({
-            from: await getSenderFrom(),
-            to: [to],
-            subject: "Acesso Liberado: Laura Finance",
-            html: `
+        const tpl = await getActiveTemplate("convite_membro");
+        const vars: TemplateVars = { email: to, tempPassword, role };
+        const subject = tpl ? applyVars(tpl.subject, vars) : "Acesso Liberado: Laura Finance";
+        const html = tpl ? applyVars(tpl.html_body, vars) : `
         <div>
           <h2>Você foi convidado! 🥳</h2>
           <p>Um acesso como <strong>${role}</strong> foi provisionado para você.</p>
@@ -130,8 +141,13 @@ export async function sendWelcomeEmail(to: string, tempPassword: string, role: s
           <p>Senha Temporária: <strong>${tempPassword}</strong></p>
           <hr />
           <p>Por favor, troque sua senha ao logar no painel PWA da Laura.</p>
-        </div>
-      `,
+        </div>`;
+
+        const data = await resend.emails.send({
+            from: await getSenderFrom(),
+            to: [to],
+            subject,
+            html,
         });
         console.log("E-mail de boas-vindas enviado via Resend", data);
         return data;

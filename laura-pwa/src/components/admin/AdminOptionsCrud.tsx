@@ -2,8 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { createOptionAction, toggleOptionAction, deleteOptionAction } from "@/lib/actions/adminConfig";
-import { Plus, Trash2, Power } from "lucide-react";
+import { Plus, Trash2, Power, Target, Landmark, CreditCard, TrendingUp, PieChart, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
+
+const ICON_MAP: Record<string, React.ElementType> = {
+    Target, Landmark, CreditCard, TrendingUp, PieChart, Package,
+};
 
 type OptionItem = {
     id: string;
@@ -27,14 +31,15 @@ export function AdminOptionsCrud({
     items,
     fields,
     title,
-    icon: Icon,
+    iconName,
 }: {
     resource: string;
     items: OptionItem[];
     fields: FieldConfig[];
     title: string;
-    icon: React.ElementType;
+    iconName?: string;
 }) {
+    const Icon = (iconName && ICON_MAP[iconName]) || Package;
     const router = useRouter();
     const [showForm, setShowForm] = useState(false);
     const [isPending, startTransition] = useTransition();

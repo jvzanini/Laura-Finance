@@ -41,7 +41,7 @@ const sections = [
     {
         label: "Configuracoes",
         items: [
-            { title: "Categorias", url: "/admin/categories", icon: Tag },
+            { title: "Categorias e Subs", url: "/admin/categories", icon: Tag },
             { title: "Objetivos", url: "/admin/goal-templates", icon: Target },
             { title: "Financeiro", url: "/admin/financial-config", icon: Landmark },
             { title: "Operadoras", url: "/admin/processors", icon: Building2 },

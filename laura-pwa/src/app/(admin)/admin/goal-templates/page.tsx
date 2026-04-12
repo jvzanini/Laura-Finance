@@ -1,6 +1,5 @@
 import { fetchAdminGoalTemplatesAction } from "@/lib/actions/adminConfig";
 import { AdminOptionsCrud } from "@/components/admin/AdminOptionsCrud";
-import { Target } from "lucide-react";
 
 export default async function GoalTemplatesPage() {
     const result = await fetchAdminGoalTemplatesAction();
@@ -17,7 +16,7 @@ export default async function GoalTemplatesPage() {
                 resource="goal-templates"
                 items={templates}
                 title="Objetivos"
-                icon={Target}
+                iconName="Target"
                 fields={[
                     { name: "name", label: "Nome", placeholder: "Ex: Viagem", required: true },
                     { name: "emoji", label: "Emoji", placeholder: "✈️" },

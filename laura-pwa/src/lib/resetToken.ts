@@ -13,11 +13,14 @@ import crypto from "crypto";
 const DEFAULT_TTL_SECONDS = 30 * 60; // 30 minutos
 
 function getSecret(): string {
-    return (
-        process.env.RESET_TOKEN_SECRET ||
-        process.env.SESSION_SECRET ||
-        "laura-reset-fallback-dev-secret"
-    );
+    const secret = process.env.RESET_TOKEN_SECRET || process.env.SESSION_SECRET;
+    if (!secret) {
+        if (process.env.NODE_ENV === "production") {
+            throw new Error("RESET_TOKEN_SECRET é obrigatória em produção");
+        }
+        return "laura-reset-fallback-dev-secret";
+    }
+    return secret;
 }
 
 function b64url(input: Buffer | string): string {

@@ -2,31 +2,34 @@ package handlers
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 )
 
 type AdminOverviewResponse struct {
-	TotalWorkspaces            int   `json:"total_workspaces"`
-	TotalUsers                 int   `json:"total_users"`
-	TotalCards                 int   `json:"total_cards"`
-	UnverifiedUsers            int   `json:"unverified_users"`
-	TotalRollovers             int   `json:"total_rollovers"`
-	RolloversThisMonth         int   `json:"rollovers_this_month"`
-	VolumeRolledCents          int64 `json:"volume_rolled_cents"`
-	VolumeRolledThisMonthCents int64 `json:"volume_rolled_this_month_cents"`
-	TotalFeesPaidCents         int64 `json:"total_fees_paid_cents"`
+	TotalWorkspaces            int     `json:"total_workspaces"`
+	TotalUsers                 int     `json:"total_users"`
+	TotalCards                 int     `json:"total_cards"`
+	UnverifiedUsers            int     `json:"unverified_users"`
+	TotalRollovers             int     `json:"total_rollovers"`
+	RolloversThisMonth         int     `json:"rollovers_this_month"`
+	VolumeRolledCents          int64   `json:"volume_rolled_cents"`
+	VolumeRolledThisMonthCents int64   `json:"volume_rolled_this_month_cents"`
+	TotalFeesPaidCents         int64   `json:"total_fees_paid_cents"`
 	AvgFeePercentage           float64 `json:"avg_fee_percentage"`
-	TransactionsThisMonth      int   `json:"transactions_this_month"`
-	ExpensesThisMonthCents     int64 `json:"expenses_this_month_cents"`
-	IncomeThisMonthCents       int64 `json:"income_this_month_cents"`
+	TransactionsThisMonth      int     `json:"transactions_this_month"`
+	ExpensesThisMonthCents     int64   `json:"expenses_this_month_cents"`
+	IncomeThisMonthCents       int64   `json:"income_this_month_cents"`
 }
 
 // handleAdminOverview retorna agregados cross-workspace para o super admin.
 // Equivalente ao fetchAdminOverviewAction do PWA.
 func handleAdminOverview(c *fiber.Ctx) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	var resp AdminOverviewResponse
 	err := db.Pool.QueryRow(ctx,
 		`SELECT
@@ -58,7 +61,8 @@ func handleAdminOverview(c *fiber.Ctx) error {
 		&resp.TransactionsThisMonth, &resp.ExpensesThisMonthCents, &resp.IncomeThisMonthCents,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleAdminOverview: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(resp)
 }

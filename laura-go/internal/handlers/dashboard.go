@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,9 +14,9 @@ import (
 // ============================================================================
 
 type CashFlowPoint struct {
-	Day     string `json:"day"`
-	Gastos  int    `json:"gastos_cents"`
-	Entradas int   `json:"entradas_cents"`
+	Day      string `json:"day"`
+	Gastos   int    `json:"gastos_cents"`
+	Entradas int    `json:"entradas_cents"`
 }
 
 type CashFlowResponse struct {
@@ -28,7 +29,8 @@ func handleCashFlow(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT DATE(transaction_date),
 		        COALESCE(SUM(amount) FILTER (WHERE type = 'expense'), 0)::int,
@@ -42,7 +44,8 @@ func handleCashFlow(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleCashFlow: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -87,7 +90,7 @@ type UpcomingBillItem struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	AmountCents int    `json:"amount_cents"`
-	DueDate     string `json:"due_date"` // YYYY-MM-DD
+	DueDate     string `json:"due_date"`  // YYYY-MM-DD
 	DueLabel    string `json:"due_label"` // DD/MM
 	DaysUntil   int    `json:"days_until"`
 	Type        string `json:"type"` // "fatura"
@@ -104,7 +107,8 @@ func handleUpcomingBills(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT i.id, COALESCE(c.name, 'Cartão removido'), i.total_cents,
 		        i.due_date, COALESCE(c.color, '#71717A')
@@ -118,7 +122,8 @@ func handleUpcomingBills(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleUpcomingBills: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -172,7 +177,8 @@ func handleCategoryBudgets(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT
 		    c.id, c.name, c.monthly_limit_cents, COALESCE(c.color, '#71717A'), c.emoji,
@@ -193,7 +199,8 @@ func handleCategoryBudgets(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleCategoryBudgets: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 

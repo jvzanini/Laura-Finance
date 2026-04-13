@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
@@ -27,7 +29,8 @@ func handleListMembers(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT id, name, phone_number, role
 		 FROM phones
@@ -36,7 +39,8 @@ func handleListMembers(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleListMembers: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -79,10 +83,11 @@ func handleCreateMember(c *fiber.Ctx) error {
 		req.Role = "membro"
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	var existing int
-	_ = db.Pool.QueryRow(ctx, "SELECT COUNT(*)::int FROM phones WHERE phone_number = $1", req.PhoneNumber).Scan(&existing)
+	_ = db.Pool.QueryRow(ctx, "SELECT COUNT(*)::int FROM phones WHERE phone_number = $1 AND workspace_id = $2", req.PhoneNumber, sess.WorkspaceID).Scan(&existing)
 	if existing > 0 {
 		return fiber.NewError(fiber.StatusConflict, "telefone já cadastrado")
 	}
@@ -95,7 +100,8 @@ func handleCreateMember(c *fiber.Ctx) error {
 		sess.WorkspaceID, req.Name, req.PhoneNumber, req.Role,
 	).Scan(&phoneID)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleCreateMember: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateMemberResponse{ID: phoneID, Success: true})
 }
@@ -111,13 +117,15 @@ func handleDeleteMember(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "id é obrigatório")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	tag, err := db.Pool.Exec(ctx,
 		"DELETE FROM phones WHERE id = $1 AND workspace_id = $2",
 		id, sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleDeleteMember: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {
 		return fiber.NewError(fiber.StatusNotFound, "membro não encontrado")

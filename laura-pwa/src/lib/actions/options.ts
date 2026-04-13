@@ -13,7 +13,15 @@ type OptionItem = {
     active: boolean;
 };
 
+const ALLOWED_OPTION_TABLES = new Set([
+    "bank_options", "card_brand_options", "broker_options",
+    "investment_type_options", "goal_templates",
+]);
+
 async function fetchOptions(goPath: string, table: string): Promise<OptionItem[]> {
+    if (!ALLOWED_OPTION_TABLES.has(table)) {
+        throw new Error(`Tabela não permitida: ${table}`);
+    }
     try {
         const res = await callLauraGo<{ items: OptionItem[] }>(goPath);
         if (res) return res.items ?? [];

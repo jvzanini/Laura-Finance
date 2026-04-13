@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
@@ -17,12 +19,14 @@ type InstanceResponse struct {
 }
 
 func handleAdminListWhatsAppInstances(c *fiber.Ctx) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT id, name, COALESCE(phone_number, ''), status, webhook_url
 		 FROM whatsapp_instances ORDER BY created_at`)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleAdminListWhatsAppInstances: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -56,14 +60,16 @@ func handleAdminCreateWhatsAppInstance(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "nome é obrigatório")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	var id string
 	err := db.Pool.QueryRow(ctx,
 		"INSERT INTO whatsapp_instances (name, webhook_url) VALUES ($1, $2) RETURNING id",
 		body.Name, nilIfEmpty(body.WebhookURL),
 	).Scan(&id)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleAdminCreateWhatsAppInstance: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 
 	whatsapp.Manager.CreateInstance(id, body.Name)
@@ -74,7 +80,8 @@ func handleAdminCreateWhatsAppInstance(c *fiber.Ctx) error {
 func handleAdminConnectWhatsAppInstance(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if err := whatsapp.Manager.ConnectInstance(id); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleAdminConnectWhatsAppInstance: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
 }
@@ -82,7 +89,8 @@ func handleAdminConnectWhatsAppInstance(c *fiber.Ctx) error {
 func handleAdminDisconnectWhatsAppInstance(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if err := whatsapp.Manager.DisconnectInstance(id); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleAdminDisconnectWhatsAppInstance: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
 }
@@ -91,7 +99,7 @@ func handleAdminGetQRCode(c *fiber.Ctx) error {
 	id := c.Params("id")
 	qr, err := whatsapp.Manager.GetQRCode(id)
 	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, err.Error())
+		return fiber.NewError(fiber.StatusNotFound, "QR code não disponível")
 	}
 	return c.JSON(fiber.Map{"qr_code": qr})
 }
@@ -100,7 +108,8 @@ func handleAdminDeleteWhatsAppInstance(c *fiber.Ctx) error {
 	id := c.Params("id")
 	whatsapp.Manager.RemoveInstance(id)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	db.Pool.Exec(ctx, "DELETE FROM whatsapp_instances WHERE id = $1", id)
 
 	return c.JSON(fiber.Map{"success": true})

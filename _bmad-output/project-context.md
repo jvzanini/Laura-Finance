@@ -87,4 +87,10 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-04-11 (segunda passagem: 4 regras novas — payment_processors SOT, paridade Go/PWA do Score, crisis context in-memory, workaround Google Drive para Turbopack)
+- ⚠️ **Sessão HMAC-SHA256 obrigatória (security hardening 2026-04-12)**: PWA (`session.ts`) e Go (`session.go`) agora usam formato `base64payload.base64hmac` com HMAC-SHA256. O secret vem de `SESSION_SECRET` env var — em produção, ausência = crash. Cookie flags: `httpOnly`, `secure` (prod), `sameSite: lax`, TTL 7 dias. Nunca reverter para base64 puro.
+- ⚠️ **Whitelist obrigatória para nomes de tabela em SQL**: Toda query que interpola nome de tabela (admin CRUD genérico) DEVE validar contra `allowedOptionTables` (Go) ou `ALLOWED_*_TABLES` (TS) antes de concatenar. Nunca aceitar input externo como nome de tabela.
+- ⚠️ **Erros internos nunca expostos ao cliente**: Todos os handlers Go logam `err` via `log.Printf` e retornam mensagem genérica "erro interno do servidor". Nunca usar `err.Error()` em respostas HTTP.
+- ⚠️ **Context timeout em todas as queries**: Handlers Go usam `context.WithTimeout(c.Context(), 10*time.Second)` com `defer cancel()`. Chamadas LLM usam `llmHTTPClient` com timeout de 30s. Nunca usar `context.Background()` em handlers (ok em testes e cron).
+- ⚠️ **Migration 000035 é pré-requisito para deploy**: Contém NOT NULL em workspace_id, CHECK constraints, índices compostos, triggers updated_at e FK fixes. Deve ser aplicada antes de qualquer workload real.
+
+Last Updated: 2026-04-13 (security hardening: sessão HMAC, whitelist SQL, erros genéricos, context timeout, migration 035)

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"strconv"
 	"time"
 
@@ -46,7 +47,8 @@ func handleListTransactions(c *fiber.Ctx) error {
 		offset = o
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	// Count total pra paginação
 	var totalCount int
@@ -69,7 +71,8 @@ func handleListTransactions(c *fiber.Ctx) error {
 		sess.WorkspaceID, limit, offset,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleListTransactions: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -101,13 +104,15 @@ func handleDeleteTransaction(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "id é obrigatório")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	tag, err := db.Pool.Exec(ctx,
 		"DELETE FROM transactions WHERE id = $1 AND workspace_id = $2",
 		id, sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleDeleteTransaction: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {
 		return fiber.NewError(fiber.StatusNotFound, "transação não encontrada")
@@ -138,13 +143,15 @@ func handleUpdateTransactionCategory(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "category_id é obrigatório")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	tag, err := db.Pool.Exec(ctx,
 		"UPDATE transactions SET category_id = $1, needs_review = false WHERE id = $2 AND workspace_id = $3",
 		req.CategoryID, id, sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleUpdateTransactionCategory: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {
 		return fiber.NewError(fiber.StatusNotFound, "transação não encontrada")

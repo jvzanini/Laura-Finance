@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { deleteSession } from "@/lib/session";
 
 export async function GET() {
-    const cookieStore = await cookies();
-    cookieStore.delete("session");
-    return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
+    await deleteSession();
+    return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3100"));
 }

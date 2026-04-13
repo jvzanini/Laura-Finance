@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
@@ -32,7 +34,8 @@ func handleReportsDRE(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	// Resolve targetDate: YYYY-MM-01 ou primeiro dia do mês corrente.
 	month := c.Query("month")
@@ -66,7 +69,8 @@ func handleReportsDRE(c *fiber.Ctx) error {
 		params...,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleReportsDRE (income): %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer incomeRows.Close()
 
@@ -95,7 +99,8 @@ func handleReportsDRE(c *fiber.Ctx) error {
 		params...,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleReportsDRE (expense): %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer expenseRows.Close()
 

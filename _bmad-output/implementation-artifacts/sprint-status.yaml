@@ -99,3 +99,12 @@ development_status:
   9-2-score-financeiro-dashboard: done
   9-3-relatorios-multidimensionais-9-abas: done
   epic-9-retrospective: optional
+
+  # Security hardening (auditoria 2026-04-12/13)
+  # Review completo + correções aplicadas em sessão, 12 de abril
+  security-hardening: done
+  security-hardening-notes: |
+    Sessão HMAC-SHA256 (Go+PWA), rate limiting, security headers,
+    whitelist SQL, erros genéricos, context timeout, migration 035,
+    Docker compose hardened, secrets fail-in-prod.
+    Pendente: aplicar migration 035, atualizar testes E2E, revogar chave Groq, CI/CD.

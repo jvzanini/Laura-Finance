@@ -32,6 +32,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ url: stripeSession.url });
     } catch (error) {
         console.error("[STRIPE_ERROR]", error);
-        return NextResponse.json({ error: "Internal Error", message: error instanceof Error ? error.message : "Desconhecido" }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao criar sessão de pagamento" }, { status: 500 });
     }
 }

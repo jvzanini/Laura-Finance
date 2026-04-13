@@ -75,7 +75,21 @@ self.addEventListener("fetch", (event) => {
                 try {
                     const fresh = await fetch(req);
                     const cache = await caches.open(RUNTIME_CACHE);
-                    cache.put(req, fresh.clone());
+                    // Não cachear rotas autenticadas
+                    const isProtected = url.pathname.startsWith("/dashboard") ||
+                        url.pathname.startsWith("/admin") ||
+                        url.pathname.startsWith("/settings") ||
+                        url.pathname.startsWith("/cards") ||
+                        url.pathname.startsWith("/transactions") ||
+                        url.pathname.startsWith("/categories") ||
+                        url.pathname.startsWith("/invoices") ||
+                        url.pathname.startsWith("/goals") ||
+                        url.pathname.startsWith("/investments") ||
+                        url.pathname.startsWith("/members") ||
+                        url.pathname.startsWith("/reports");
+                    if (!isProtected) {
+                        cache.put(req, fresh.clone());
+                    }
                     return fresh;
                 } catch {
                     const cache = await caches.open(RUNTIME_CACHE);

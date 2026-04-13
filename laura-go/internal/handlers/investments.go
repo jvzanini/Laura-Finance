@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,10 +22,10 @@ type InvestmentItem struct {
 }
 
 type InvestmentsResponse struct {
-	Investments []InvestmentItem `json:"investments"`
+	Investments                   []InvestmentItem `json:"investments"`
 	// Summary agregado pra evitar recálculo no frontend
-	TotalInvestedCents           int `json:"total_invested_cents"`
-	TotalCurrentCents            int `json:"total_current_cents"`
+	TotalInvestedCents            int `json:"total_invested_cents"`
+	TotalCurrentCents             int `json:"total_current_cents"`
 	TotalMonthlyContributionCents int `json:"total_monthly_contribution_cents"`
 }
 
@@ -71,7 +72,8 @@ func handleCreateInvestment(c *fiber.Ctx) error {
 		currentCents = *req.CurrentCents
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	var invID string
 	err := db.Pool.QueryRow(ctx,
 		`INSERT INTO investments (workspace_id, name, broker, type, invested_cents, current_cents, monthly_contribution_cents, emoji)
@@ -80,7 +82,8 @@ func handleCreateInvestment(c *fiber.Ctx) error {
 		sess.WorkspaceID, req.Name, req.Broker, req.Type, req.InvestedCents, currentCents, req.MonthlyContributionCents, req.Emoji,
 	).Scan(&invID)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleCreateInvestment: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateInvestmentResponse{ID: invID, Success: true})
 }
@@ -93,7 +96,8 @@ func handleListInvestments(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT id, name, broker, COALESCE(type, 'Investimentos'),
 		        invested_cents, current_cents,
@@ -105,7 +109,8 @@ func handleListInvestments(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleListInvestments: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 

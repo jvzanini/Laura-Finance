@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,16 +10,16 @@ import (
 )
 
 type GoalItem struct {
-	ID            string     `json:"id"`
-	Name          string     `json:"name"`
-	Description   *string    `json:"description"`
-	Emoji         string     `json:"emoji"`
-	TargetCents   int        `json:"target_cents"`
-	CurrentCents  int        `json:"current_cents"`
-	Deadline      *time.Time `json:"deadline"`
-	Color         string     `json:"color"`
-	Status        string     `json:"status"`
-	CreatedAt     time.Time  `json:"created_at"`
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	Description  *string    `json:"description"`
+	Emoji        string     `json:"emoji"`
+	TargetCents  int        `json:"target_cents"`
+	CurrentCents int        `json:"current_cents"`
+	Deadline     *time.Time `json:"deadline"`
+	Color        string     `json:"color"`
+	Status       string     `json:"status"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 type GoalsResponse struct {
@@ -62,7 +63,8 @@ func handleCreateGoal(c *fiber.Ctx) error {
 		req.Color = "#8B5CF6"
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	var goalID string
 	err := db.Pool.QueryRow(ctx,
 		`INSERT INTO financial_goals (workspace_id, name, description, emoji, target_cents, deadline, color)
@@ -71,7 +73,8 @@ func handleCreateGoal(c *fiber.Ctx) error {
 		sess.WorkspaceID, req.Name, req.Description, req.Emoji, req.TargetCents, req.Deadline, req.Color,
 	).Scan(&goalID)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleCreateGoal: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateGoalResponse{ID: goalID, Success: true})
 }
@@ -84,7 +87,8 @@ func handleListGoals(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT id, name, description, COALESCE(emoji, '🎯'), target_cents,
 		        COALESCE(current_cents, 0), deadline, COALESCE(color, '#8B5CF6'),
@@ -95,7 +99,8 @@ func handleListGoals(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleListGoals: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 

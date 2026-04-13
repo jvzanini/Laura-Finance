@@ -2,8 +2,14 @@ package handlers
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -15,12 +21,6 @@ const SessionCookieName = "laura_session_token"
 
 // sessionPayload corresponde ao shape que o PWA grava no cookie via
 // Buffer.from(JSON.stringify({userId, exp})).toString('base64').
-// O Go decodifica o mesmo formato — compartilhando o cookie, PWA e API
-// rodam autenticados pelo mesmo mecanismo sem duplicar lógica.
-//
-// Nota: esse é um mock-JWT (sem assinatura) criado no Epic 1.2 do PWA.
-// Quando a Story 1.2 migrar para JWT real assinado, este decoder também
-// precisa ser atualizado.
 type sessionPayload struct {
 	UserID string `json:"userId"`
 	Exp    int64  `json:"exp"` // unix milliseconds
@@ -29,24 +29,60 @@ type sessionPayload struct {
 // SessionContext é o payload enriquecido que o middleware guarda em
 // ctx.Locals("session") depois de validar e expandir via DB lookup.
 type SessionContext struct {
-	UserID        string
-	WorkspaceID   string
-	Email         string
-	Name          string
-	Role          string
-	IsSuperAdmin  bool
+	UserID       string
+	WorkspaceID  string
+	Email        string
+	Name         string
+	Role         string
+	IsSuperAdmin bool
 }
 
-// decodeSessionCookie lê o raw base64 do cookie e devolve o payload
-// estruturado. Retorna erro amigável se o shape for inválido ou expirado.
+// getSessionSecret retorna o segredo usado para HMAC-SHA256 dos cookies.
+func getSessionSecret() string {
+	secret := os.Getenv("SESSION_SECRET")
+	if secret != "" {
+		return secret
+	}
+	if os.Getenv("APP_ENV") == "production" {
+		log.Fatal("SESSION_SECRET obrigatória em produção")
+	}
+	return "laura-dev-session-secret-change-me"
+}
+
+// decodeSessionCookie lê o cookie no formato base64payload.base64hmac,
+// verifica o HMAC-SHA256 e devolve o payload estruturado.
 func decodeSessionCookie(raw string) (*sessionPayload, error) {
 	if raw == "" {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "cookie de sessão ausente")
 	}
-	decoded, err := base64.StdEncoding.DecodeString(raw)
+
+	parts := strings.SplitN(raw, ".", 2)
+	if len(parts) != 2 {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "cookie de sessão mal-formado")
+	}
+
+	payloadB64 := parts[0]
+	sigB64 := parts[1]
+
+	// Verificar HMAC-SHA256
+	sig, err := base64.StdEncoding.DecodeString(sigB64)
+	if err != nil {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "assinatura de sessão inválida")
+	}
+
+	mac := hmac.New(sha256.New, []byte(getSessionSecret()))
+	mac.Write([]byte(payloadB64))
+	expectedMAC := mac.Sum(nil)
+
+	if !hmac.Equal(sig, expectedMAC) {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "assinatura de sessão inválida")
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(payloadB64)
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "cookie de sessão mal-formado")
 	}
+
 	var payload sessionPayload
 	if err := json.Unmarshal(decoded, &payload); err != nil {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "payload de sessão inválido")
@@ -75,15 +111,19 @@ func RequireSession() fiber.Handler {
 			return fiber.NewError(fiber.StatusInternalServerError, "banco não inicializado")
 		}
 
-		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+		defer cancel()
+
 		var sess SessionContext
 		err = db.Pool.QueryRow(ctx,
-			`SELECT id, workspace_id, email, name, role, COALESCE(is_super_admin, FALSE)
-			 FROM users WHERE id = $1 LIMIT 1`,
+			`SELECT u.id, u.workspace_id, u.email, u.name, u.role, COALESCE(u.is_super_admin, FALSE)
+			 FROM users u
+			 JOIN workspaces w ON w.id = u.workspace_id AND w.suspended_at IS NULL
+			 WHERE u.id = $1 LIMIT 1`,
 			payload.UserID,
 		).Scan(&sess.UserID, &sess.WorkspaceID, &sess.Email, &sess.Name, &sess.Role, &sess.IsSuperAdmin)
 		if err != nil {
-			return fiber.NewError(fiber.StatusUnauthorized, "usuário da sessão não encontrado")
+			return fiber.NewError(fiber.StatusForbidden, "workspace suspenso ou usuário não encontrado")
 		}
 
 		c.Locals("session", &sess)
@@ -110,4 +150,13 @@ func RequireSuperAdmin() fiber.Handler {
 func getSession(c *fiber.Ctx) *SessionContext {
 	sess, _ := c.Locals("session").(*SessionContext)
 	return sess
+}
+
+// signSessionCookie gera o cookie no formato base64payload.base64hmac.
+func signSessionCookie(payload []byte) string {
+	payloadB64 := base64.StdEncoding.EncodeToString(payload)
+	mac := hmac.New(sha256.New, []byte(getSessionSecret()))
+	mac.Write([]byte(payloadB64))
+	sigB64 := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	return fmt.Sprintf("%s.%s", payloadB64, sigB64)
 }

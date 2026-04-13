@@ -8,7 +8,12 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"time"
 )
+
+var llmHTTPClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
 
 func lookupEnv(key string) (string, bool) {
 	v := os.Getenv(key)
@@ -53,7 +58,7 @@ func openaiCompatibleChat(endpoint, apiKey, model string, temperature float32, s
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := llmHTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("LLM API unreachable: %v", err)
 	}
@@ -105,7 +110,7 @@ func openaiCompatibleTranscribe(endpoint, apiKey, model string, data []byte, fil
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := llmHTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("Whisper API unreachable: %v", err)
 	}

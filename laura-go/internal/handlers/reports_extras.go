@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -50,7 +51,8 @@ func handleReportCategories(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 	monthClause, targetDate := resolveReportMonth(c)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	rows, err := db.Pool.Query(ctx,
 		`SELECT t.category_id, COALESCE(cat.name, 'Sem categoria'), cat.emoji,
@@ -66,7 +68,8 @@ func handleReportCategories(c *fiber.Ctx) error {
 		sess.WorkspaceID, targetDate,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleReportCategories: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -111,7 +114,8 @@ func handleReportSubcategories(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 	monthClause, targetDate := resolveReportMonth(c)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	rows, err := db.Pool.Query(ctx,
 		`SELECT t.subcategory_id, COALESCE(sc.name, 'Sem subcategoria'), sc.emoji,
@@ -129,7 +133,8 @@ func handleReportSubcategories(c *fiber.Ctx) error {
 		sess.WorkspaceID, targetDate,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleReportSubcategories: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -174,7 +179,8 @@ func handleReportCards(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 	monthClause, targetDate := resolveReportMonth(c)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	rows, err := db.Pool.Query(ctx,
 		`SELECT t.card_id, COALESCE(c.name, 'Sem cartão (dinheiro/pix)'),
@@ -191,7 +197,8 @@ func handleReportCards(c *fiber.Ctx) error {
 		sess.WorkspaceID, targetDate,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleReportCards: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -235,7 +242,8 @@ func handleReportPaymentMethods(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 	monthClause, targetDate := resolveReportMonth(c)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	rows, err := db.Pool.Query(ctx,
 		`SELECT CASE WHEN t.card_id IS NULL THEN 'dinheiro_pix' ELSE 'crédito' END,
@@ -249,7 +257,8 @@ func handleReportPaymentMethods(c *fiber.Ctx) error {
 		sess.WorkspaceID, targetDate,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleReportPaymentMethods: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -295,7 +304,8 @@ func handleReportTravel(c *fiber.Ctx) error {
 	if sess == nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	rows, err := db.Pool.Query(ctx,
 		`SELECT tag, COUNT(*)::int, COALESCE(SUM(t.amount), 0)::int
@@ -308,7 +318,8 @@ func handleReportTravel(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleReportTravel: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -328,15 +339,15 @@ func handleReportTravel(c *fiber.Ctx) error {
 // ============================================================================
 
 type ComparativeReportResponse struct {
-	CurrentMonthLabel  string  `json:"current_month_label"`
-	PreviousMonthLabel string  `json:"previous_month_label"`
-	CurrentIncomeCents int     `json:"current_income_cents"`
-	PreviousIncomeCents int    `json:"previous_income_cents"`
-	CurrentExpenseCents int    `json:"current_expense_cents"`
-	PreviousExpenseCents int   `json:"previous_expense_cents"`
-	CurrentNetCents     int    `json:"current_net_cents"`
-	PreviousNetCents    int    `json:"previous_net_cents"`
-	DeltaPercent        float64 `json:"delta_percent"`
+	CurrentMonthLabel    string  `json:"current_month_label"`
+	PreviousMonthLabel   string  `json:"previous_month_label"`
+	CurrentIncomeCents   int     `json:"current_income_cents"`
+	PreviousIncomeCents  int     `json:"previous_income_cents"`
+	CurrentExpenseCents  int     `json:"current_expense_cents"`
+	PreviousExpenseCents int     `json:"previous_expense_cents"`
+	CurrentNetCents      int     `json:"current_net_cents"`
+	PreviousNetCents     int     `json:"previous_net_cents"`
+	DeltaPercent         float64 `json:"delta_percent"`
 }
 
 func handleReportComparative(c *fiber.Ctx) error {
@@ -344,7 +355,8 @@ func handleReportComparative(c *fiber.Ctx) error {
 	if sess == nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	var currInc, currExp, prevInc, prevExp int
 	err := db.Pool.QueryRow(ctx,
@@ -374,7 +386,8 @@ func handleReportComparative(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	).Scan(&currInc, &currExp, &prevInc, &prevExp)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleReportComparative: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 
 	currentNet := currInc - currExp
@@ -432,7 +445,8 @@ func handleReportTrend(c *fiber.Ctx) error {
 	if sess == nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	rows, err := db.Pool.Query(ctx,
 		`SELECT DATE_TRUNC('month', transaction_date),
@@ -446,7 +460,8 @@ func handleReportTrend(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleReportTrend: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -489,7 +504,8 @@ func handleReportMembers(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 	monthClause, targetDate := resolveReportMonth(c)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	rows, err := db.Pool.Query(ctx,
 		`SELECT
@@ -521,7 +537,8 @@ func handleReportMembers(c *fiber.Ctx) error {
 		sess.WorkspaceID, targetDate,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleReportMembers: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 

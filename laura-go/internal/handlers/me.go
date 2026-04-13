@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"log"
+	"net/mail"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,16 +11,16 @@ import (
 )
 
 type MeResponse struct {
-	ID             string     `json:"id"`
-	Name           string     `json:"name"`
-	Email          string     `json:"email"`
-	Role           string     `json:"role"`
-	WorkspaceID    string     `json:"workspace_id"`
-	WorkspaceName  string     `json:"workspace_name"`
-	PhoneNumber    *string    `json:"phone_number"`
-	EmailVerified  bool       `json:"email_verified"`
-	IsSuperAdmin   bool       `json:"is_super_admin"`
-	CreatedAt      *time.Time `json:"created_at,omitempty"`
+	ID            string     `json:"id"`
+	Name          string     `json:"name"`
+	Email         string     `json:"email"`
+	Role          string     `json:"role"`
+	WorkspaceID   string     `json:"workspace_id"`
+	WorkspaceName string     `json:"workspace_name"`
+	PhoneNumber   *string    `json:"phone_number"`
+	EmailVerified bool       `json:"email_verified"`
+	IsSuperAdmin  bool       `json:"is_super_admin"`
+	CreatedAt     *time.Time `json:"created_at,omitempty"`
 }
 
 // handleMe retorna o perfil do usuário logado. Equivalente ao
@@ -29,7 +31,8 @@ func handleMe(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	var resp MeResponse
 	var phone *string
 	var createdAt time.Time
@@ -73,7 +76,13 @@ func handleUpdateProfile(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "nome e email são obrigatórios")
 	}
 
-	ctx := context.Background()
+	// Validação de formato de email
+	if _, err := mail.ParseAddress(req.Email); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "formato de email inválido")
+	}
+
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 
 	var existing int
 	_ = db.Pool.QueryRow(ctx, "SELECT COUNT(*)::int FROM users WHERE email = $1 AND id != $2", req.Email, sess.UserID).Scan(&existing)
@@ -86,7 +95,8 @@ func handleUpdateProfile(c *fiber.Ctx) error {
 		req.Name, req.Email, req.PhoneNumber, sess.UserID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleUpdateProfile: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
 }
@@ -106,14 +116,16 @@ func handleUpdateSettings(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	settingsJSON := mustMarshalJSON(req.Settings)
 	_, err := db.Pool.Exec(ctx,
 		"UPDATE users SET settings = COALESCE(settings, '{}'::jsonb) || $1::jsonb WHERE id = $2",
 		string(settingsJSON), sess.UserID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleUpdateSettings: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
 }
@@ -136,15 +148,17 @@ func handleChangePassword(c *fiber.Ctx) error {
 	if req.CurrentPassword == "" || req.NewPassword == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "senhas são obrigatórias")
 	}
-	if len(req.NewPassword) < 6 {
-		return fiber.NewError(fiber.StatusBadRequest, "nova senha deve ter no mínimo 6 caracteres")
+	if len(req.NewPassword) < 8 {
+		return fiber.NewError(fiber.StatusBadRequest, "nova senha deve ter no mínimo 8 caracteres")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	var storedHash string
 	err := db.Pool.QueryRow(ctx, "SELECT password_hash FROM users WHERE id = $1", sess.UserID).Scan(&storedHash)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleChangePassword: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 
 	if !checkPasswordHash(req.CurrentPassword, storedHash) {
@@ -158,7 +172,8 @@ func handleChangePassword(c *fiber.Ctx) error {
 
 	_, err = db.Pool.Exec(ctx, "UPDATE users SET password_hash = $1 WHERE id = $2", newHash, sess.UserID)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleChangePassword (update): %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
 }

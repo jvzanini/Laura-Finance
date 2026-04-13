@@ -12,15 +12,19 @@ export async function POST(req: Request) {
 
     let event: Stripe.Event;
 
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+        return new NextResponse("Webhook secret não configurado", { status: 500 });
+    }
+
     try {
         event = stripe.webhooks.constructEvent(
             body,
             signature,
-            process.env.STRIPE_WEBHOOK_SECRET!
+            webhookSecret
         );
-    } catch (error) {
-        const err = error as Error;
-        return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
+    } catch {
+        return new NextResponse("Webhook inválido", { status: 400 });
     }
 
     const session = event.data.object as Stripe.Checkout.Session;

@@ -128,7 +128,8 @@ export async function updateUserProfileAction(formData: FormData) {
         if (!name || !email) {
             return { error: "Nome e e-mail são obrigatórios." };
         }
-        if (!email.includes("@")) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
             return { error: "E-mail inválido." };
         }
 

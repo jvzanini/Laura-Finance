@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"os"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
 
 // RegisterRoutes monta todas as rotas do namespace /api/v1/* no Fiber
@@ -13,6 +17,12 @@ import (
 // Convenção: toda rota sob /api/v1/* passa por RequireSession();
 // rotas de admin adicionam RequireSuperAdmin() depois.
 func RegisterRoutes(app *fiber.App) {
+	// Rate limiting — antes de tudo
+	app.Use(limiter.New(limiter.Config{
+		Max:        60,
+		Expiration: 1 * time.Minute,
+	}))
+
 	// CORS allowing PWA to call from localhost:3100 with credentials
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     getCORSOrigins(),
@@ -20,6 +30,16 @@ func RegisterRoutes(app *fiber.App) {
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Cookie",
 		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 	}))
+
+	// Security headers
+	app.Use(func(c *fiber.Ctx) error {
+		c.Set("X-Content-Type-Options", "nosniff")
+		c.Set("X-Frame-Options", "DENY")
+		c.Set("X-XSS-Protection", "1; mode=block")
+		c.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		return c.Next()
+	})
 
 	// Health (público) — fica no namespace pra unificar
 	app.Get("/api/v1/health", func(c *fiber.Ctx) error {
@@ -148,11 +168,11 @@ func RegisterRoutes(app *fiber.App) {
 	admin.Delete("/whatsapp/instances/:id", handleAdminDeleteWhatsAppInstance)
 }
 
-// getCORSOrigins retorna a lista de origens permitidas. Em dev
-// permite localhost:3100 (PWA). Em produção, usa CORS_ORIGINS env
-// (comma-separated) ou wildcard restritivo.
+// getCORSOrigins retorna a lista de origens permitidas via env var
+// CORS_ORIGINS (comma-separated). Fallback para localhost em dev.
 func getCORSOrigins() string {
-	// Poderíamos ler de env, mas pra manter simples no skeleton
-	// inicial, hardcoded com os hosts de dev + prod placeholder.
-	return "http://localhost:3100,http://127.0.0.1:3100,https://laura.nexus.ai"
+	if origins := os.Getenv("CORS_ORIGINS"); origins != "" {
+		return origins
+	}
+	return "http://localhost:3100,http://127.0.0.1:3100"
 }

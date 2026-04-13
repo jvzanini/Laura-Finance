@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,16 +10,16 @@ import (
 )
 
 type DebtRolloverItem struct {
-	ID               string    `json:"id"`
-	CreatedAt        time.Time `json:"date"`
-	CardName         string    `json:"card"`
-	CardColor        string    `json:"card_color"`
-	Institution      string    `json:"institution"`
-	InvoiceValueCents int      `json:"invoice_value_cents"`
-	TotalFeesCents   int       `json:"total_fees_cents"`
-	TotalOperations  int       `json:"total_operations"`
-	Installments     string    `json:"installments"`
-	Status           string    `json:"status"`
+	ID                string    `json:"id"`
+	CreatedAt         time.Time `json:"date"`
+	CardName          string    `json:"card"`
+	CardColor         string    `json:"card_color"`
+	Institution       string    `json:"institution"`
+	InvoiceValueCents int       `json:"invoice_value_cents"`
+	TotalFeesCents    int       `json:"total_fees_cents"`
+	TotalOperations   int       `json:"total_operations"`
+	Installments      string    `json:"installments"`
+	Status            string    `json:"status"`
 }
 
 type DebtRolloversResponse struct {
@@ -31,7 +32,8 @@ func handleListDebtRollovers(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT dr.id, dr.created_at, COALESCE(c.name, 'Cartão removido'),
 		        COALESCE(c.color, '#808080'), dr.institution, dr.invoice_value_cents,
@@ -44,7 +46,8 @@ func handleListDebtRollovers(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleListDebtRollovers: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 
@@ -88,7 +91,8 @@ func handleCreateDebtRollover(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invoice_value_cents deve ser positivo")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	var id string
 	err := db.Pool.QueryRow(ctx,
 		`INSERT INTO debt_rollovers (
@@ -102,7 +106,8 @@ func handleCreateDebtRollover(c *fiber.Ctx) error {
 		req.FeePercentage, req.OperationsJSON,
 	).Scan(&id)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleCreateDebtRollover: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": id, "success": true})
 }

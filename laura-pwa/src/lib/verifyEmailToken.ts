@@ -7,11 +7,14 @@ import crypto from "crypto";
 const VERIFY_TTL_SECONDS = 24 * 60 * 60; // 24h (mais longo que o de reset)
 
 function getSecret(): string {
-    return (
-        process.env.VERIFY_EMAIL_SECRET ||
-        process.env.SESSION_SECRET ||
-        "laura-verify-fallback-dev-secret"
-    );
+    const secret = process.env.VERIFY_EMAIL_SECRET || process.env.SESSION_SECRET;
+    if (!secret) {
+        if (process.env.NODE_ENV === "production") {
+            throw new Error("VERIFY_EMAIL_SECRET é obrigatória em produção");
+        }
+        return "laura-verify-fallback-dev-secret";
+    }
+    return secret;
 }
 
 function b64url(input: Buffer | string): string {

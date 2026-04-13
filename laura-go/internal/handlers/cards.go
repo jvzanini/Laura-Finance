@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
@@ -63,7 +65,8 @@ func handleCreateCard(c *fiber.Ctx) error {
 		req.Color = "#7C3AED"
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	var cardID string
 	err := db.Pool.QueryRow(ctx,
 		`INSERT INTO cards (workspace_id, name, brand, color, closing_day, due_day, last_four, card_type, bank_broker, holder, credit_limit_cents)
@@ -72,7 +75,8 @@ func handleCreateCard(c *fiber.Ctx) error {
 		sess.WorkspaceID, req.Name, req.Brand, req.Color, req.ClosingDay, req.DueDay, req.LastFour, req.CardType, req.BankBroker, req.Holder, req.CreditLimitCents,
 	).Scan(&cardID)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleCreateCard: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateCardResponse{ID: cardID, Success: true})
 }
@@ -88,13 +92,15 @@ func handleDeleteCard(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "id é obrigatório")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	tag, err := db.Pool.Exec(ctx,
 		"DELETE FROM cards WHERE id = $1 AND workspace_id = $2",
 		id, sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleDeleteCard: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {
 		return fiber.NewError(fiber.StatusNotFound, "cartão não encontrado")
@@ -108,7 +114,8 @@ func handleListCards(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT id, name, brand, COALESCE(color, '#7C3AED'), closing_day, due_day, last_four,
 		        COALESCE(card_type, 'credito'), bank_broker, holder, COALESCE(credit_limit_cents, 0)
@@ -118,7 +125,8 @@ func handleListCards(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleListCards: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 

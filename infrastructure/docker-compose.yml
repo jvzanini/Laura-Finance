@@ -4,14 +4,19 @@ services:
   postgres:
     image: ankane/pgvector:latest
     environment:
-      POSTGRES_USER: laura
-      POSTGRES_PASSWORD: laura_password
-      POSTGRES_DB: laura_finance
+      POSTGRES_USER: ${POSTGRES_USER:-laura}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-laura_password}
+      POSTGRES_DB: ${POSTGRES_DB:-laura_finance}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-laura} -d ${POSTGRES_DB:-laura_finance}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:

@@ -31,11 +31,16 @@ export async function getPlanLimits(workspaceId: string): Promise<PlanLimits> {
     return DEFAULT_LIMITS;
 }
 
+const ALLOWED_TABLES = new Set(["cards", "phones", "categories", "members", "financial_goals", "investments"]);
+
 export async function checkLimit(
     workspaceId: string,
     limitKey: "max_members" | "max_cards",
     table: string
 ): Promise<{ allowed: boolean; current: number; max: number }> {
+    if (!ALLOWED_TABLES.has(table)) {
+        throw new Error(`Tabela não permitida: ${table}`);
+    }
     const limits = await getPlanLimits(workspaceId);
     const max = limits[limitKey];
 

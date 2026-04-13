@@ -67,7 +67,15 @@ export async function fetchAdminProcessorsAction() {
 
 // ─── Generic Options ───
 
+const ALLOWED_ADMIN_TABLES = new Set([
+    "bank_options", "card_brand_options", "broker_options",
+    "investment_type_options", "goal_templates", "category_templates",
+]);
+
 async function fetchAdminOptions(goPath: string, table: string) {
+    if (!ALLOWED_ADMIN_TABLES.has(table)) {
+        return { error: "Tabela não permitida" };
+    }
     const gate = await assertSuperAdmin();
     if (!gate.ok) return { error: "Sem permissão" };
 

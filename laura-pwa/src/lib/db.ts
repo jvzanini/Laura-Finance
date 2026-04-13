@@ -1,6 +1,14 @@
 import { Pool } from 'pg';
 
-// Create a singleton instance for PostgreSQL connection
+function requireEnvInProd(key: string, fallback: string): string {
+    const value = process.env[key];
+    if (value) return value;
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error(`${key} é obrigatória em produção`);
+    }
+    return fallback;
+}
+
 const globalForPg = globalThis as unknown as {
     pgPool: Pool | undefined;
 };
@@ -8,8 +16,8 @@ const globalForPg = globalThis as unknown as {
 export const pool =
     globalForPg.pgPool ??
     new Pool({
-        user: process.env.POSTGRES_USER || 'laura',
-        password: process.env.POSTGRES_PASSWORD || 'laura_password',
+        user: requireEnvInProd('POSTGRES_USER', 'laura'),
+        password: requireEnvInProd('POSTGRES_PASSWORD', 'laura_password'),
         host: process.env.POSTGRES_HOST || 'localhost',
         port: parseInt(process.env.POSTGRES_PORT || '5432'),
         database: process.env.POSTGRES_DB || 'laura_finance',

@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"math"
 	"sync"
@@ -152,8 +151,8 @@ func ComputeScoreFactors(ctx context.Context, workspaceID string) ScoreFactors {
 		`SELECT COALESCE(SUM(amount), 0)::int
 		 FROM transactions
 		 WHERE workspace_id = $1 AND type = 'income'
-		   AND transaction_date >= CURRENT_DATE - INTERVAL '` + fmt.Sprintf("%d", lookback) + ` days'`,
-		workspaceID).Scan(&incomeAvg90)
+		   AND transaction_date >= CURRENT_DATE - make_interval(days => $2)`,
+		workspaceID, lookback).Scan(&incomeAvg90)
 	monthlyIncomeAvg := 0
 	if incomeAvg90 > 0 {
 		monthlyIncomeAvg = incomeAvg90 / 3
@@ -166,8 +165,8 @@ func ComputeScoreFactors(ctx context.Context, workspaceID string) ScoreFactors {
 		`SELECT COALESCE(SUM(total_fees_cents), 0)::int
 		 FROM debt_rollovers
 		 WHERE workspace_id = $1
-		   AND created_at >= CURRENT_DATE - INTERVAL '` + fmt.Sprintf("%d", lookback) + ` days'`,
-		workspaceID).Scan(&feesCents)
+		   AND created_at >= CURRENT_DATE - make_interval(days => $2)`,
+		workspaceID, lookback).Scan(&feesCents)
 
 	if monthlyIncomeAvg > 0 {
 		ratio := float64(feesCents) / float64(monthlyIncomeAvg)
@@ -186,8 +185,8 @@ func ComputeScoreFactors(ctx context.Context, workspaceID string) ScoreFactors {
 			)::int
 		 FROM invoices
 		 WHERE workspace_id = $1
-		   AND due_date >= CURRENT_DATE - INTERVAL '` + fmt.Sprintf("%d", lookback) + ` days'`,
-		workspaceID).Scan(&onTime, &settled)
+		   AND due_date >= CURRENT_DATE - make_interval(days => $2)`,
+		workspaceID, lookback).Scan(&onTime, &settled)
 	if settled > 0 {
 		f.BillsOnTime = int(math.Round(float64(onTime) / float64(settled) * 100))
 	}

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"strconv"
 	"time"
 
@@ -28,7 +29,8 @@ func handleCurrentScore(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	f := services.ComputeScoreFactors(ctx, sess.WorkspaceID)
 	return c.JSON(ScoreFactorsResponse{
 		BillsOnTime:   f.BillsOnTime,
@@ -65,7 +67,8 @@ func handleScoreHistory(c *fiber.Ctx) error {
 		limit = l
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT snapshot_date, score, bills_on_time, budget_respect, savings_rate, debt_level
 		 FROM financial_score_snapshots
@@ -75,7 +78,8 @@ func handleScoreHistory(c *fiber.Ctx) error {
 		sess.WorkspaceID, limit,
 	)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		log.Printf("[ERROR] handleScoreHistory: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
 

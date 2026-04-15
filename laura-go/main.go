@@ -9,6 +9,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/gofiber/fiber/v2/utils"
 	"github.com/joho/godotenv"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
@@ -33,7 +35,18 @@ func main() {
 		DisableStartupMessage: false,
 	})
 
-	app.Use(logger.New())
+	app.Use(requestid.New(requestid.Config{
+		Header:     "X-Request-Id",
+		Generator:  utils.UUIDv4,
+		ContextKey: "requestid",
+	}))
+	if os.Getenv("ENVIRONMENT") == "production" {
+		app.Use(logger.New(logger.Config{
+			Format: `{"time":"${time}","status":${status},"latency":"${latency}","method":"${method}","path":"${path}","requestid":"${locals:requestid}"}` + "\n",
+		}))
+	} else {
+		app.Use(logger.New())
+	}
 	app.Use(recover.New())
 
 	app.Get("/health", func(c *fiber.Ctx) error {

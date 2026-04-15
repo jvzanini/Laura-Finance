@@ -95,6 +95,7 @@ func main() {
 		ContextKey: "requestid",
 	}))
 	app.Use(obs.LoggerMiddleware(logger))
+	app.Use(obs.ScopeEnrichmentMiddleware())
 	app.Use(recover.New())
 
 	app.Get("/health", func(c *fiber.Ctx) error {

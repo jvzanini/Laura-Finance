@@ -21,6 +21,7 @@ import (
 
 	"github.com/testcontainers/testcontainers-go"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
+	tcredis "github.com/testcontainers/testcontainers-go/modules/redis"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -31,10 +32,18 @@ var (
 
 	// SharedDSN é a connection string Postgres.
 	SharedDSN string
+
+	// SharedRedis é o container Redis compartilhado por todos os
+	// testes integration que precisam de cache / pub-sub.
+	SharedRedis *tcredis.RedisContainer
+
+	// SharedRedisURL é a connection string Redis (formato redis://host:port).
+	SharedRedisURL string
 )
 
 // TestMain sobe os containers uma vez, roda os testes do pacote
-// e tear-down ao final. Usa image pgvector/pgvector:pg16.
+// e tear-down ao final. Usa image pgvector/pgvector:pg16 e
+// redis:7-alpine.
 func TestMain(m *testing.M) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -66,8 +75,30 @@ func TestMain(m *testing.M) {
 
 	fmt.Fprintf(os.Stderr, "integration: Postgres pronto em %s\n", dsn)
 
+	rd, err := tcredis.Run(ctx, "redis:7-alpine")
+	if err != nil {
+		_ = pg.Terminate(ctx)
+		log.Printf("integration: falha ao subir Redis container: %v", err)
+		os.Exit(1)
+	}
+	SharedRedis = rd
+
+	redisURL, err := rd.ConnectionString(ctx)
+	if err != nil {
+		_ = rd.Terminate(ctx)
+		_ = pg.Terminate(ctx)
+		log.Printf("integration: falha ao obter Redis URL: %v", err)
+		os.Exit(1)
+	}
+	SharedRedisURL = redisURL
+
+	fmt.Fprintf(os.Stderr, "integration: Redis pronto em %s\n", redisURL)
+
 	code := m.Run()
 
+	if err := rd.Terminate(ctx); err != nil {
+		log.Printf("integration: teardown Redis: %v", err)
+	}
 	if err := pg.Terminate(ctx); err != nil {
 		log.Printf("integration: teardown Postgres: %v", err)
 	}

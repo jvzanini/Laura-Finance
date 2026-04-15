@@ -110,3 +110,9 @@ Configurar Grafana Agent com `scrape_config` apontando para
 - `laura-go/internal/obs/metrics.go` (metricsApp Fiber :9090).
 - `laura-go/internal/obs/metrics_custom.go` (collectors custom).
 - `laura-go/internal/obs/metrics_workspace.go` (workspace label middleware).
+
+## Grafana
+
+Dashboards: `docs/ops/grafana-dashboards/` (4 JSONs).
+
+STANDBY [GRAFANA-CLOUD] — importar manualmente após provisionar Grafana Cloud free tier.

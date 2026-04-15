@@ -109,6 +109,7 @@ func main() {
 	// Initialize Fiber
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: false,
+		ErrorHandler:          obs.GlobalErrorHandler,
 	})
 
 	app.Use(otelfiber.Middleware())

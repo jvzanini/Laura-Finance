@@ -22,10 +22,43 @@ NAO reinicia a maquina.
 Middleware `fiber/middleware/requestid` gera UUIDv4 por request e
 anexa no header `X-Request-Id` + logs (quando `ENVIRONMENT=production`).
 
-## Logs JSON em producao
+## Logger
 
-Logger Fiber emite formato JSON quando `ENVIRONMENT=production`; em
-dev, formato texto padrao.
+Logger application-level: **slog** (stdlib Go 1.21+).
+
+### Formato
+- Production (`APP_ENV=production`): JSON via `slog.NewJSONHandler`.
+- Development: text via `slog.NewTextHandler`.
+
+### Campos canonicos
+- `time` (RFC3339 UTC)
+- `level` (DEBUG | INFO | WARN | ERROR)
+- `msg` (mensagem livre, em PT-BR)
+- `request_id` (UUIDv4, injetado pelo middleware `obs.LoggerMiddleware`)
+- `trace_id` / `span_id` (quando OTel ativo — Parte E)
+- atributos custom via `slog.Info("msg", "key", value, ...)`
+
+### Como filtrar por request_id
+
+```sh
+fly logs -a laura-finance-api | jq 'select(.request_id=="abc123-...")'
+```
+
+### Configuracao de nivel
+
+`LOG_LEVEL=debug|info|warn|error` via env var. Default: `info` em prod,
+`debug` em dev.
+
+### Arquitetura
+
+- `internal/obs/context.go` — chaves tipadas + helpers `WithRequestID`,
+  `RequestIDFromCtx`, `WithLogger`, `FromCtx`.
+- `internal/obs/context_handler.go` — wrapper que extrai `request_id` +
+  `trace_id`/`span_id` do `context.Context` e anexa em cada registro.
+- `internal/obs/logger.go` — `NewLogger(env)` monta chain
+  `inner (JSON|Text) -> ContextHandler`.
+- `internal/obs/middleware.go` — `LoggerMiddleware(base)` injeta logger
+  com `request_id` bound em `c.Locals("logger")` e `c.UserContext()`.
 
 ## Referencias
 

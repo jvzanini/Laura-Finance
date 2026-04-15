@@ -82,6 +82,11 @@ func main() {
 	handlers.Cache = bootstrap.InitCache()
 	bootstrap.StartCachePubsub(pgxCtx, handlers.Cache)
 
+	// Pluggy webhook worker (feature flag FEATURE_PLUGGY_WEBHOOKS).
+	// syncFunc será injetada quando services.SyncWorkspacePluggy for
+	// implementado. Por enquanto nil → worker loga e marca error.
+	bootstrap.StartWebhookWorker(pgxCtx, pool, nil)
+
 	app.Get("/ready", health.Readiness(health.Deps{
 		DB:               pool,
 		Whatsmeow:        whatsapp.Manager,

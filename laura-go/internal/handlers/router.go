@@ -56,6 +56,11 @@ func RegisterRoutes(app *fiber.App) {
 	// Feature flag FEATURE_BANK_SYNC=off por default (STANDBY Fase 13).
 	app.Post("/api/v1/banking/sync", handleBankingSync)
 
+	// Pluggy webhook — público, autenticado via HMAC header.
+	// Rate limit já aplicado pelo limiter global (60/min). Feature flag
+	// FEATURE_PLUGGY_WEBHOOKS=true para habilitar.
+	app.Post("/api/banking/webhooks/pluggy", handlePluggyWebhook)
+
 	// Endpoint dev-only para smoke test do Sentry (dispara panic capturado
 	// pelo middleware sentryfiber + recover). Nao registra em producao.
 	if os.Getenv("APP_ENV") != "production" {

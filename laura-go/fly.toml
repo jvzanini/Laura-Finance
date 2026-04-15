@@ -37,6 +37,10 @@ kill_timeout = 30
 # Single-machine: cron in-process. Ver spec v3 5.10.
 # Pos-deploy: fly scale count 1 -a laura-finance-api.
 
+[metrics]
+  port = 9090
+  path = "/metrics"
+
 [[vm]]
   cpu_kind = "shared"
   cpus = 1

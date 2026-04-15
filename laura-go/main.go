@@ -61,8 +61,12 @@ func main() {
 	})
 
 	// Start WhatsApp Client
-	log.Println("Starting Whatsmeow Client...")
-	whatsapp.InitWhatsmeow()
+	if os.Getenv("DISABLE_WHATSAPP") == "true" {
+		log.Printf("DISABLE_WHATSAPP=true -- main pulou whatsapp init")
+	} else {
+		log.Println("Starting Whatsmeow Client...")
+		whatsapp.InitWhatsmeow()
+	}
 
 	// Start AI/Budget Cron Tasks
 	services.StartBudgetAlertCron(whatsapp.SendTextMessage)

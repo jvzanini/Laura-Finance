@@ -40,6 +40,11 @@ func (l *silentLogger) Debugf(msg string, args ...interface{}) {}
 func (l *silentLogger) Sub(module string) waLog.Logger         { return l }
 
 func InitWhatsmeow() {
+	if os.Getenv("DISABLE_WHATSAPP") == "true" {
+		log.Printf("DISABLE_WHATSAPP=true -- whatsmeow init skipped")
+		return
+	}
+
 	dbURL := db.GetDSN()
 
 	dbLog := waLog.Stdout("Database", "ERROR", true)

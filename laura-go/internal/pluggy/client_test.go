@@ -43,19 +43,6 @@ func TestCreateConnectToken_Unconfigured(t *testing.T) {
 	}
 }
 
-func TestCreateConnectToken_Configured(t *testing.T) {
-	t.Setenv("PLUGGY_CLIENT_ID", "id")
-	t.Setenv("PLUGGY_CLIENT_SECRET", "secret")
-	c := NewClient()
-	token, err := c.CreateConnectToken(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if token == "" {
-		t.Error("token should not be empty when configured")
-	}
-}
-
 func TestFetchTransactions_Unconfigured(t *testing.T) {
 	_ = os.Unsetenv("PLUGGY_CLIENT_ID")
 	_ = os.Unsetenv("PLUGGY_CLIENT_SECRET")

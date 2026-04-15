@@ -19,6 +19,7 @@ require (
 	go.mau.fi/whatsmeow v0.0.0-20260305215846-fc65416c22c4
 	go.opentelemetry.io/otel/trace v1.43.0
 	golang.org/x/crypto v0.48.0
+	golang.org/x/sync v0.20.0
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -99,7 +100,6 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/exp v0.0.0-20260212183809-81e46e3db34a // indirect
 	golang.org/x/net v0.50.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect

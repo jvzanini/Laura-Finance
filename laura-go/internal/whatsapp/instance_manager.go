@@ -82,7 +82,9 @@ func (m *InstanceManager) CreateInstance(id, name string) (*WhatsAppInstance, er
 	// Atualizar status no banco
 	if db.Pool != nil {
 		ctx := context.Background()
-		db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = 'disconnected' WHERE id = $1", id)
+		if _, err := db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = 'disconnected' WHERE id = $1", id); err != nil {
+			slog.Warn("instance_manager.CreateInstance.updateStatus", "err", err, "id", id)
+		}
 	}
 
 	return inst, nil
@@ -292,12 +294,16 @@ func updateInstanceStatus(id, status string) {
 		return
 	}
 	ctx := context.Background()
+	var err error
 	if status == "connected" {
-		db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = $1, last_connected_at = CURRENT_TIMESTAMP WHERE id = $2", status, id)
+		_, err = db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = $1, last_connected_at = CURRENT_TIMESTAMP WHERE id = $2", status, id)
 	} else if status == "disconnected" {
-		db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = $1, disconnected_at = CURRENT_TIMESTAMP WHERE id = $2", status, id)
+		_, err = db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = $1, disconnected_at = CURRENT_TIMESTAMP WHERE id = $2", status, id)
 	} else {
-		db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = $1 WHERE id = $2", status, id)
+		_, err = db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = $1 WHERE id = $2", status, id)
+	}
+	if err != nil {
+		slog.Warn("updateInstanceStatus", "err", err, "id", id, "status", status)
 	}
 }
 

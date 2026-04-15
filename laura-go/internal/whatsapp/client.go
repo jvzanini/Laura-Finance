@@ -173,7 +173,9 @@ func eventHandler(evt interface{}) {
 	case *events.LoggedOut:
 		slog.Warn("[WhatsApp] desconectado via celular — apagando sessão")
 		Client.Disconnect()
-		Client.Store.Delete(context.Background())
+		if err := Client.Store.Delete(context.Background()); err != nil {
+			slog.Warn("[WhatsApp] falha ao apagar store", "err", err)
+		}
 	}
 }
 
@@ -226,7 +228,9 @@ func HandleIncomingMessage(msg *events.Message) {
 			msgProto := &waProto.Message{
 				Conversation: proto.String(replyText),
 			}
-			Client.SendMessage(context.Background(), jid, msgProto)
+			if _, err := Client.SendMessage(context.Background(), jid, msgProto); err != nil {
+				slog.Warn("[WhatsApp] replyFunc SendMessage falhou", "err", err, "jid", jid.String())
+			}
 		}
 	}
 
@@ -243,10 +247,14 @@ func SendTextMessage(phoneNumber string, text string) {
 	defer span.End()
 
 	jid, err := types.ParseJID(phoneNumber + "@s.whatsapp.net")
-	if err == nil {
-		Client.SendMessage(ctx, jid, &waProto.Message{
-			Conversation: proto.String(text),
-		})
+	if err != nil {
+		slog.Warn("SendTextMessage: ParseJID falhou", "err", err, "phone", phoneNumber)
+		return
+	}
+	if _, sendErr := Client.SendMessage(ctx, jid, &waProto.Message{
+		Conversation: proto.String(text),
+	}); sendErr != nil {
+		slog.Warn("SendTextMessage: SendMessage falhou", "err", sendErr, "phone", phoneNumber)
 	}
 }
 

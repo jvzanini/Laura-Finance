@@ -80,6 +80,7 @@ func main() {
 
 	app.Get("/health", health.Liveness(buildVersion, startTime, buildTime))
 	handlers.Cache = bootstrap.InitCache()
+	bootstrap.StartCachePubsub(pgxCtx, handlers.Cache)
 
 	app.Get("/ready", health.Readiness(health.Deps{
 		DB:               pool,

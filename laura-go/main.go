@@ -11,6 +11,7 @@ import (
 	"time"
 
 	sentryfiber "github.com/getsentry/sentry-go/fiber"
+	"github.com/gofiber/contrib/otelfiber/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
@@ -18,6 +19,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/joho/godotenv"
+	"go.opentelemetry.io/otel"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
@@ -71,6 +73,16 @@ func main() {
 	flushSentry := obs.InitSentry(buildVersion)
 	defer flushSentry()
 
+	// OpenTelemetry tracing — NoOp quando OTEL_EXPORTER_OTLP_ENDPOINT vazio.
+	otelCtx := context.Background()
+	tp, otelShutdown, err := obs.NewTracerProvider(otelCtx, buildVersion)
+	if err != nil {
+		slog.Error("otel_init", "err", err)
+	} else {
+		otel.SetTracerProvider(tp)
+		defer func() { _ = otelShutdown(context.Background()) }()
+	}
+
 	logger := obs.NewLoggerWithSentry(appEnv)
 	slog.SetDefault(logger)
 
@@ -98,6 +110,8 @@ func main() {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: false,
 	})
+
+	app.Use(otelfiber.Middleware())
 
 	app.Use(sentryfiber.New(sentryfiber.Options{
 		Repanic:         true,

@@ -17,9 +17,11 @@ RUN mkdir -p ./internal/migrations \
          : > "./internal/migrations/${base}.down.sql"; \
        done \
     && rm -rf /tmp/migrations
+ARG BUILD_SHA=dev
+ARG BUILD_TIME=unknown
 RUN CGO_ENABLED=0 GOOS=linux go build \
         -tags "timetzdata" \
-        -ldflags="-s -w" \
+        -ldflags="-s -w -X main.buildVersion=${BUILD_SHA} -X main.buildTime=${BUILD_TIME}" \
         -o /out/laura ./
 
 FROM gcr.io/distroless/static-debian12:nonroot

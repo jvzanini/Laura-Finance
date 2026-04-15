@@ -5,6 +5,9 @@ kill_timeout = 30
 
 [build]
   dockerfile = "laura-go/Dockerfile"
+  [build.args]
+    BUILD_SHA = "${GITHUB_SHA:-dev}"
+    BUILD_TIME = "${BUILD_TIME:-unknown}"
 
 [env]
   PORT = "8080"

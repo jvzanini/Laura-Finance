@@ -71,6 +71,11 @@ func main() {
 	defer db.CloseDB()
 	slog.Info("conexão com banco estabelecida")
 
+	// Collector pgxpool stats (gauges em :9090/metrics).
+	pgxCtx, pgxCancel := context.WithCancel(context.Background())
+	defer pgxCancel()
+	obs.StartPgxStatsCollector(pgxCtx, db.Pool)
+
 	if os.Getenv("MIGRATE_ON_BOOT") == "true" {
 		if err := runMigrations(db.GetDSN()); err != nil {
 			slog.Error("runMigrations falhou", "err", err)
@@ -95,6 +100,7 @@ func main() {
 		ContextKey: "requestid",
 	}))
 	app.Use(obs.LoggerMiddleware(logger))
+	app.Use(obs.WorkspaceLabelMiddleware())
 	app.Use(obs.ScopeEnrichmentMiddleware())
 	app.Use(recover.New())
 

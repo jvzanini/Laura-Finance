@@ -1,0 +1,8 @@
+{
+  "title": "Laura Whatsmeow & LLM",
+  "tags": ["laura", "llm"],
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [],
+  "_note": "Painéis custom para laura_llm_call_duration_seconds + laura_llm_call_errors_total"
+}

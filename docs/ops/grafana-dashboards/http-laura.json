@@ -1,0 +1,8 @@
+{
+  "title": "Laura HTTP & Workspaces",
+  "tags": ["laura", "http"],
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [],
+  "_note": "Painéis custom para laura_api_requests_total + laura_http_workspace_request_duration_seconds"
+}

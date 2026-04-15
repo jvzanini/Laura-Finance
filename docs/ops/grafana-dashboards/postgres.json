@@ -1,0 +1,8 @@
+{
+  "title": "Laura Postgres",
+  "tags": ["laura", "postgres"],
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [],
+  "_note": "Importar dashboard ID 9628 + custom panels com laura_pgxpool_*"
+}

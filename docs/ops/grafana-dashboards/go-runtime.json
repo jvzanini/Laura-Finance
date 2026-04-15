@@ -1,0 +1,11 @@
+{
+  "title": "Laura Go Runtime",
+  "tags": ["laura", "go"],
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "refresh": "30s",
+  "_note": "Importar dashboard ID 10826 do Grafana.com como base e adaptar para job=laura_api"
+}

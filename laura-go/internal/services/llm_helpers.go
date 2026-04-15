@@ -29,12 +29,12 @@ func lookupEnv(key string) (string, bool) {
 }
 
 // groqChatCompletion faz uma chamada OpenAI-compatible para Groq.
-func groqChatCompletion(model string, temperature float32, systemPrompt, userMessage string) (string, error) {
+func groqChatCompletion(ctx context.Context, model string, temperature float32, systemPrompt, userMessage string) (string, error) {
 	apiKey := getProviderKey("groq")
 	if apiKey == "" {
 		return "", fmt.Errorf("GROQ_API_KEY não configurada")
 	}
-	return openaiCompatibleChat("https://api.groq.com/openai/v1/chat/completions", apiKey, model, temperature, systemPrompt, userMessage)
+	return openaiCompatibleChat(ctx, "https://api.groq.com/openai/v1/chat/completions", apiKey, model, temperature, systemPrompt, userMessage)
 }
 
 // groqTranscribeAudio faz transcrição via Groq Whisper.
@@ -61,10 +61,13 @@ func providerFromEndpoint(endpoint string) string {
 }
 
 // openaiCompatibleChat funciona com qualquer API que segue o formato OpenAI (Groq, OpenAI, Gemini).
-func openaiCompatibleChat(endpoint, apiKey, model string, temperature float32, systemPrompt, userMessage string) (string, error) {
+func openaiCompatibleChat(ctx context.Context, endpoint, apiKey, model string, temperature float32, systemPrompt, userMessage string) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	provider := providerFromEndpoint(endpoint)
 	start := time.Now()
-	_, span := otel.Tracer("laura/llm").Start(context.Background(), "llm.chat_completion",
+	ctx, span := otel.Tracer("laura/llm").Start(ctx, "llm.chat_completion",
 		trace.WithAttributes(
 			attribute.String("llm.provider", provider),
 			attribute.String("llm.model", model),
@@ -89,7 +92,7 @@ func openaiCompatibleChat(endpoint, apiKey, model string, temperature float32, s
 	}
 
 	jsonData, _ := json.Marshal(reqBody)
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}

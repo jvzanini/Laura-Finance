@@ -11,7 +11,7 @@ import (
 // LLMProvider abstrai a comunicação com diferentes provedores de IA.
 // Cada plano de assinatura pode usar um provider/modelo diferente.
 type LLMProvider interface {
-	ChatCompletion(systemPrompt, userMessage string) (string, error)
+	ChatCompletion(ctx context.Context, systemPrompt, userMessage string) (string, error)
 	TranscribeAudio(data []byte, filename string) (string, error)
 	SupportsImage() bool
 	ProviderName() string
@@ -174,9 +174,9 @@ type GroqProvider struct {
 func (g *GroqProvider) ProviderName() string { return "groq" }
 func (g *GroqProvider) SupportsImage() bool  { return false }
 
-func (g *GroqProvider) ChatCompletion(systemPrompt, userMessage string) (string, error) {
+func (g *GroqProvider) ChatCompletion(ctx context.Context, systemPrompt, userMessage string) (string, error) {
 	// Reutiliza a lógica existente mas com modelo configurável
-	return groqChatCompletion(g.config.ChatModel, g.config.Temperature, systemPrompt, userMessage)
+	return groqChatCompletion(ctx, g.config.ChatModel, g.config.Temperature, systemPrompt, userMessage)
 }
 
 func (g *GroqProvider) TranscribeAudio(data []byte, filename string) (string, error) {
@@ -192,12 +192,12 @@ type OpenAIProvider struct {
 func (o *OpenAIProvider) ProviderName() string { return "openai" }
 func (o *OpenAIProvider) SupportsImage() bool  { return true }
 
-func (o *OpenAIProvider) ChatCompletion(systemPrompt, userMessage string) (string, error) {
+func (o *OpenAIProvider) ChatCompletion(ctx context.Context, systemPrompt, userMessage string) (string, error) {
 	apiKey := getProviderKey("openai")
 	if apiKey == "" {
 		return "", fmt.Errorf("OpenAI API key não configurada")
 	}
-	return openaiCompatibleChat("https://api.openai.com/v1/chat/completions", apiKey, o.config.ChatModel, o.config.Temperature, systemPrompt, userMessage)
+	return openaiCompatibleChat(ctx, "https://api.openai.com/v1/chat/completions", apiKey, o.config.ChatModel, o.config.Temperature, systemPrompt, userMessage)
 }
 
 func (o *OpenAIProvider) TranscribeAudio(data []byte, filename string) (string, error) {
@@ -217,13 +217,14 @@ type GoogleProvider struct {
 func (g *GoogleProvider) ProviderName() string { return "google" }
 func (g *GoogleProvider) SupportsImage() bool  { return true }
 
-func (g *GoogleProvider) ChatCompletion(systemPrompt, userMessage string) (string, error) {
+func (g *GoogleProvider) ChatCompletion(ctx context.Context, systemPrompt, userMessage string) (string, error) {
 	apiKey := getProviderKey("google")
 	if apiKey == "" {
 		return "", fmt.Errorf("Google AI API key não configurada")
 	}
 	// Google Gemini usa endpoint OpenAI-compatible
 	return openaiCompatibleChat(
+		ctx,
 		"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
 		apiKey, g.config.ChatModel, g.config.Temperature, systemPrompt, userMessage,
 	)

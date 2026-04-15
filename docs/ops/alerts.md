@@ -36,3 +36,16 @@
 ## Rollback
 - Desabilitar regra Sentry via UI.
 - Remover step `notify-slack` dos workflows (commit revert).
+
+## Rate limit por regra Sentry
+
+| Regra | Trigger | Rate limit |
+|-------|---------|-----------|
+| Unhandled 5xx | rate(events) > 5/5min, environment:production | 1 alerta / 30min |
+| LLM timeout | tag:slow_call:true count > 3/10min | 1 alerta / 30min |
+| DB connection failures | level:error message:"db connection" | 1 alerta / 30min |
+
+## Alerta: LLM_LEGACY_NOCONTEXT em prod
+
+- **Trigger**: env var `LLM_LEGACY_NOCONTEXT=true` em production após T+30 dias do deploy da Fase 11 (ou seja, após 2026-05-15).
+- **Ação**: remover flag legacy + remover branch sem-context. Ver `docs/architecture.md#fluxo-de-request`.

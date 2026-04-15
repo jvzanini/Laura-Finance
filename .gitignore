@@ -44,9 +44,6 @@ laura-pwa/tests/.auth/
 # Docker volumes
 pgdata/
 
-# Embedded migrations (fonte canonica em infrastructure/migrations/)
-laura-go/internal/migrations/*.sql
-
 # Backups
 infrastructure/backups/*.sql
 infrastructure/backups/*.dump

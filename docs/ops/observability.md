@@ -142,3 +142,11 @@ Workflow padrão de debug:
 | `DB_TIMEOUT` | 504 | Timeout DB |
 | `LLM_PROVIDER_DOWN` | 503 | Provider IA fora |
 | `DEPENDENCY_DOWN` | 502 | Dependência externa fora |
+
+## Flag rollback `LLM_LEGACY_NOCONTEXT`
+
+- **Quando usar:** se o refactor de `ChatCompletion(ctx)` (Fase 13 Parte B) causar regressão em prod (deadlocks, cancelamento precoce, perda de spans).
+- **Como ativar:** `fly secrets set LLM_LEGACY_NOCONTEXT=true -a laura-finance-api && fly machine restart`.
+- **Efeito:** wrapper `ChatCompletionLegacyAware` passa a descartar o `ctx` propagado e chamar `provider.ChatCompletion(context.Background(), ...)`, replicando o comportamento pre-Fase 13.
+- **Remover quando:** validação prod estável por 30 dias (Fase 14+).
+- **Implementação:** `laura-go/internal/services/llm_legacy.go` + `Config.LLMLegacyNoContext` em `laura-go/internal/bootstrap/db.go`.

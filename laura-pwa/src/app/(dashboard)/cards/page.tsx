@@ -116,8 +116,8 @@ export default function CardsPage() {
                 fetchBankOptionsAction(),
                 fetchCardBrandOptionsAction(),
             ]);
-            if (bankOpts.length > 0) setBanks(bankOpts.map((b: any) => b.name));
-            if (brandOpts.length > 0) setBrands(brandOpts.map((b: any) => ({ name: b.name, slug: b.slug })));
+            if (bankOpts.length > 0) setBanks(bankOpts.map((b: { name: string }) => b.name));
+            if (brandOpts.length > 0) setBrands(brandOpts.map((b: { name: string; slug: string }) => ({ name: b.name, slug: b.slug })));
         } catch { /* keep fallbacks */ }
     };
 

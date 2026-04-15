@@ -131,7 +131,7 @@ export default function GoalsPage() {
         try {
             const templates = await fetchGoalTemplateOptionsAction();
             if (templates.length > 0) {
-                setPresets(templates.map((t: any) => ({ name: t.name, icon: t.emoji || "🎯", color: t.color || "#8B5CF6" })));
+                setPresets(templates.map((t: { name: string; emoji?: string | null; color?: string | null }) => ({ name: t.name, icon: t.emoji || "🎯", color: t.color || "#8B5CF6" })));
             }
         } catch { /* keep fallbacks */ }
     };
@@ -140,7 +140,7 @@ export default function GoalsPage() {
         setLoading(true);
         const res = await fetchGoalsAction();
         if (res.goals) {
-            setGoals(res.goals.map((g: any) => ({ ...g, icon: g.emoji || "🎯" })) as Goal[]);
+            setGoals(res.goals.map((g: Goal & { emoji?: string }) => ({ ...g, icon: g.emoji || "🎯" })) as Goal[]);
         }
         setLoading(false);
     };

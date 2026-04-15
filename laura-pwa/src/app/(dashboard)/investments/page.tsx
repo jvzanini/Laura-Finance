@@ -74,8 +74,8 @@ export default function InvestmentsPage() {
                 fetchBrokerOptionsAction(),
                 fetchInvestmentTypeOptionsAction(),
             ]);
-            if (brokers.length > 0) setBrokerOptions(brokers.map((b: any) => ({ label: `${b.emoji || '🏦'} ${b.name}`, value: b.name })));
-            if (types.length > 0) setTypeOptions(types.map((t: any) => ({ label: t.name, value: t.name })));
+            if (brokers.length > 0) setBrokerOptions(brokers.map((b: { name: string; emoji?: string | null }) => ({ label: `${b.emoji || '🏦'} ${b.name}`, value: b.name })));
+            if (types.length > 0) setTypeOptions(types.map((t: { name: string }) => ({ label: t.name, value: t.name })));
         } catch { /* keep fallbacks */ }
     };
 
@@ -83,7 +83,16 @@ export default function InvestmentsPage() {
         setLoading(true);
         const res = await fetchInvestmentsAction();
         if (res.investments) {
-            setInvestments(res.investments.map((i: any) => ({
+            type InvestmentApi = {
+                id: string;
+                broker: string;
+                emoji?: string | null;
+                type: string;
+                investedAmount: number;
+                currentAmount: number;
+                monthlyContribution: number;
+            };
+            setInvestments(res.investments.map((i: InvestmentApi) => ({
                 id: i.id,
                 broker: i.broker,
                 brokerEmoji: i.emoji || "🏦",

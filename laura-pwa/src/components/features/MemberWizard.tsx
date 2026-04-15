@@ -19,7 +19,8 @@ export function MemberWizard() {
     const [phone, setPhone] = useState("");
     const [role, setRole] = useState("membro");
 
-    const [members, setMembers] = useState<any[]>([]);
+    type MemberRow = { id: string; name: string; phone_number: string; role: string };
+    const [members, setMembers] = useState<MemberRow[]>([]);
 
     const loadMembers = async () => {
         const res = await fetchPhonesAction();

@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
+	"github.com/jvzanini/laura-finance/laura-go/internal/cache"
 )
 
 // RegisterRoutes monta todas as rotas do namespace /api/v1/* no Fiber
@@ -100,6 +103,20 @@ func RegisterRoutes(app *fiber.App) {
 	api.Get("/dashboard/cashflow", handleCashFlow)
 	api.Get("/dashboard/upcoming-bills", handleUpcomingBills)
 	api.Get("/dashboard/category-budgets", handleCategoryBudgets)
+
+	// Banking endpoints (Open Finance Foundation - Fase 13)
+	// Stub: retorna lista vazia até integração Pluggy concluir (Fase 14).
+	api.Get("/banking/accounts", func(c *fiber.Ctx) error {
+		sess := getSession(c)
+		if sess == nil {
+			return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		}
+		key := fmt.Sprintf("ws:%s:banking:accounts", sess.WorkspaceID)
+		result, _ := cache.GetOrCompute[[]any](c.Context(), Cache, key, 60*time.Second, func(ctx context.Context) ([]any, error) {
+			return []any{}, nil
+		})
+		return c.JSON(fiber.Map{"accounts": result})
+	})
 
 	// Opções públicas (para selects do PWA — só ativos)
 	api.Get("/options/banks", handlePublicOptions("bank_options", "sort_order, name"))

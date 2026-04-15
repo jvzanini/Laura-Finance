@@ -37,6 +37,8 @@ jobs:
           cache-dependency-path: laura-pwa/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - name: ESLint critical dirs gate
+        run: npx eslint src/lib/api --max-warnings=0
 
   build:
     runs-on: ubuntu-latest

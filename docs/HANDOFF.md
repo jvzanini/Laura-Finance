@@ -6,6 +6,34 @@
 
 ## Histórico de atualizações
 
+### 2026-04-15 — Fase 16 preparada (infra hardening)
+
+- **golangci-lint v2.11.4 habilitado** — Go 1.26 support. Config
+  `.golangci.yml` v2 (govet + ineffassign + staticcheck com checks
+  seletivos). ADR 001 resolvido. Pre-existing ST1005/QF*/SA1019
+  (whatsmeow upstream) silenciados para Fase 17 sweep.
+- **CI coverage merge** — jobs `test` + `test-integration` uploadam
+  artifacts separados (`go-coverage-short`, `go-coverage-integration`).
+  Novo job `coverage-gate` (main only) merge via gocovmerge + gate
+  30%. ADR 003 aceito.
+- **Migration rollback drill** — workflow
+  `.github/workflows/migration-drill.yml` cron semanal + dispatch:
+  aplica 37 ups → 37 downs (reverso) → 37 ups. Slack notify failure.
+- **Webhook secret rotation automation** — cron entry `@04:00`
+  diário em `services.CheckWebhookSecretAge` (query `system_config`
+  key `pluggy_webhook_secret_set_at`, gauge
+  `laura_webhook_secret_age_days`, thresholds 85d warn / 89d error
+  com Sentry capture). Seed idempotente em boot.
+- **WhatsApp coverage 1% → 16.2%** — plan B (sem mock whatsmeow):
+  cobre `InstanceManager` pure helpers (IsConnected nil-safe,
+  LastSeen/TouchLastSeen concurrent, CRUD lookups, error paths).
+- **Commits Fase 16**: 6 (golangci, drill, merge+cron+rotation,
+  whatsapp).
+- **Tag**: `phase-16-prepared`.
+- **Concerns Fase 17**: errcheck cleanup (>38 warnings), revive
+  enable, SA1019 upstream whatsmeow, mobile native foundation,
+  multi-region read replica, PWA e2e tests expandidos.
+
 ### 2026-04-15 — Fase 15 preparada (quality escalation)
 
 - **Coverage Go handlers**: 2.8% → **57.1%** (+54pp). 23 testes novos

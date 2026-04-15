@@ -11,6 +11,14 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// Hooks testáveis: por padrão apontam para as implementações reais (DB-aware).
+// Testes unitários substituem via t.Cleanup para isolar de banco/HTTP.
+var (
+	getPlanCapsFn          = GetPlanCapabilities
+	getWorkspacePlanSlugFn = GetWorkspacePlanSlug
+	transcribeAudioFn      = TranscribeAudioForPlan
+)
+
 // ProcessMessageFlow processes raw text or audio coming from Whatsmeow
 // into structured Transaction. Recebe ctx do chamador para permitir
 // deadline/cancelamento e propagação de span OTel.
@@ -24,8 +32,8 @@ func ProcessMessageFlow(ctx context.Context, workspaceID string, phoneNumber str
 	defer span.End()
 
 	// Resolver plano do workspace para usar o provider correto
-	planSlug := GetWorkspacePlanSlug(workspaceID)
-	caps := GetPlanCapabilities(planSlug)
+	planSlug := getWorkspacePlanSlugFn(workspaceID)
+	caps := getPlanCapsFn(planSlug)
 
 	finalText := text
 
@@ -36,7 +44,7 @@ func ProcessMessageFlow(ctx context.Context, workspaceID string, phoneNumber str
 			return nil
 		}
 		fmt.Printf("[Background Goroutine] Detected Audio Voice. Converting via %s Whisper...\n", planSlug)
-		transcribed, err := TranscribeAudioForPlan(audioBytes, "voice.ogg", planSlug)
+		transcribed, err := transcribeAudioFn(audioBytes, "voice.ogg", planSlug)
 		if err != nil {
 			slog.ErrorContext(ctx, "[Error] transcribing audio", "err", err)
 			finalText = "[Audio Incompreensível ou Falha]"

@@ -6,6 +6,22 @@
 
 ## Histórico de atualizações
 
+### 2026-04-15 — Fase 12 preparada (refactoring + performance + dívida técnica)
+
+- **main.go: 284 → 134 linhas.** Pacote `internal/bootstrap/` com 7 arquivos (db, logger, sentry, otel, metrics, cache, app), cada com test smoke. Pacote `internal/health/` com Liveness + Readiness errgroup + interfaces injetáveis.
+- **Cache layer**: interface `Cache` + `GetOrCompute[T]` com singleflight. `RedisCache` (go-redis/v9) + `InMemoryCache` (golang-lru/v2 + TTL). Hit ratio 80% em bench. Kill-switch `CACHE_DISABLED`. Integração POC em dashboard.
+- **Lint cleanup**: gosec G104 zerado (12 ocorrências corrigidas em 4 arquivos: handlers/admin_whatsapp.go, whatsapp/instance_manager.go + client.go, services/workflow.go + rollover.go). PWA: ESLint override `lib/api/` com `no-explicit-any: error` (gate CI `--max-warnings=0`).
+- **Migrations consolidadas**: `infrastructure/migrations/` deletada. Path canônico agora é `laura-go/internal/migrations/` via `go:embed`. Dockerfile sem COPY.
+- **Infra CI**: `docker-compose.ci.yml` (postgres pgvector + redis + api-go + pwa). `laura-pwa/Dockerfile` multi-stage Next standalone. Workflow `playwright-full.yml` orquestra docker-compose.
+- **HMAC fixture** `internal/testutil/SignedSession` para E2E + `.env.test` determinístico.
+- **Observability follow-up**: workspace_id em 9 endpoints (incluindo subtipos reports). Sentry scope com tenant_id (alias workspace_id). Tabela rate-limit por regra Sentry. Alerta LLM_LEGACY_NOCONTEXT TTL 30d.
+- **Architecture.md PT-BR** com 5 diagramas mermaid (request-flow, persistence, observability, deploy, multi-tenant) + cross-links bidirecionais para 4 runbooks novos (migrations, sentry-alerts, whatsapp, workspace-isolation) + 4 cross-links reversos em runbooks existentes.
+- **Coverage Go**: soft 5% no CI (meta 30% Fase 13).
+- **STANDBYs Fase 12**: apenas `[REDIS-INSTANCE]` (Upstash opcional, fallback InMemory cobre).
+- **Tag**: `phase-12-prepared` (local; aguarda `phase-12-deployed` pós-STANDBY).
+- **Total commits Fase 12**: ~56.
+- **Concerns Fase 13**: cache integração restante (3 endpoints), ChatCompletion(ctx) ~10 callsites, whatsmeow/LLM ping reais em /ready, 74 `no-explicit-any` em PWA `lib/actions/`, gosec G124 em testutil, golangci-lint v2.x aguardar, testcontainers full, Open Finance.
+
 ### 2026-04-15 — Fase 11 preparada (observabilidade completa)
 
 - **slog** structured logger com handler JSON em prod + ContextHandler injeta `request_id`/`trace_id`/`span_id` automaticamente. 25 arquivos migrados (`log.Printf` → `slog.*`).

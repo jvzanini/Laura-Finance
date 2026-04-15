@@ -47,9 +47,9 @@ export function AdminOptionsCrud({
 
     const handleCreate = (formData: FormData) => {
         setError("");
-        const data: Record<string, any> = {};
+        const data: Record<string, string> = {};
         for (const f of fields) {
-            data[f.name] = formData.get(f.name) as string;
+            data[f.name] = (formData.get(f.name) as string) || "";
         }
         if (!data.slug && data.name) {
             data.slug = data.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");

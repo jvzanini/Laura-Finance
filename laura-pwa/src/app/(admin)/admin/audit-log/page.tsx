@@ -23,8 +23,8 @@ export default async function AuditLogPage() {
                 "SELECT DISTINCT u.id, u.name FROM admin_audit_log a JOIN users u ON u.id = a.admin_user_id ORDER BY u.name"
             ),
         ]);
-        actionTypes = actionsRes.rows.map((r: any) => r.action);
-        entityTypes = entitiesRes.rows.map((r: any) => r.entity_type);
+        actionTypes = actionsRes.rows.map((r: { action: string }) => r.action);
+        entityTypes = entitiesRes.rows.map((r: { entity_type: string }) => r.entity_type);
         adminUsers = adminsRes.rows;
     }
 

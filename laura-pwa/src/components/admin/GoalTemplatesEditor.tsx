@@ -49,7 +49,7 @@ function TemplateForm({
     submitLabel: string;
 }) {
     const [form, setForm] = useState<FormData>(initial);
-    const set = (key: keyof FormData, val: any) => setForm((p) => ({ ...p, [key]: val }));
+    const set = <K extends keyof FormData>(key: K, val: FormData[K]) => setForm((p) => ({ ...p, [key]: val }));
 
     return (
         <div className="rounded-xl border border-border/50 bg-card p-5 space-y-4">

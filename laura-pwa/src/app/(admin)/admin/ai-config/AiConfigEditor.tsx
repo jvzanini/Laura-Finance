@@ -8,15 +8,16 @@ import {
     ChevronDown, ChevronUp,
 } from "lucide-react";
 import { updateAdminConfigAction, updatePlanAction } from "@/lib/actions/adminConfig";
+import type { JsonValue } from "@/types/admin";
 
 // ─── Types ───
 
-type ConfigMap = Record<string, any>;
+type ConfigMap = Record<string, JsonValue>;
 
 type PlanData = {
     slug: string;
     name: string;
-    ai_model_config: Record<string, any>;
+    ai_model_config: Record<string, JsonValue>;
 };
 
 type ModelInfo = {
@@ -67,7 +68,7 @@ function maskKey(val: string | undefined | null): string {
     return "*".repeat(Math.min(clean.length - 4, 30)) + clean.slice(-4);
 }
 
-function rawVal(v: any): string {
+function rawVal(v: unknown): string {
     if (v == null) return "";
     if (typeof v === "string") {
         try {
@@ -118,10 +119,11 @@ export function AiConfigEditor({ configs, plans }: { configs: ConfigMap; plans: 
         const m: Record<string, Record<string, string>> = {};
         for (const p of plans) {
             const cfg = p.ai_model_config || {};
+            const strOr = (v: JsonValue | undefined, fb = ""): string => (typeof v === "string" ? v : fb);
             m[p.slug] = {
-                provider: cfg.provider || "",
-                chat_model: cfg.chat_model || cfg.model || "",
-                whisper_model: cfg.whisper_model || "",
+                provider: strOr(cfg.provider),
+                chat_model: strOr(cfg.chat_model) || strOr(cfg.model),
+                whisper_model: strOr(cfg.whisper_model),
                 temperature: cfg.temperature != null ? String(cfg.temperature) : "",
             };
         }
@@ -135,7 +137,7 @@ export function AiConfigEditor({ configs, plans }: { configs: ConfigMap; plans: 
         setTimeout(() => setSaved((p) => ({ ...p, [key]: false })), 2500);
     };
 
-    const saveConfig = (key: string, value: any) => {
+    const saveConfig = (key: string, value: JsonValue) => {
         startTransition(async () => {
             await updateAdminConfigAction(key, value);
             markSaved(key);

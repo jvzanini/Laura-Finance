@@ -1,6 +1,8 @@
 import { fetchAdminConfigAction, fetchAdminPlansAction } from "@/lib/actions/adminConfig";
 import { AiConfigEditor } from "./AiConfigEditor";
 import { Brain } from "lucide-react";
+import type { JsonValue } from "@/types/admin";
+import { getField, getString, isObject, isString, toJsonValue } from "@/lib/typeGuards";
 
 export default async function AIConfigPage() {
     const [configResult, plansResult] = await Promise.all([
@@ -9,19 +11,29 @@ export default async function AIConfigPage() {
     ]);
 
     const configList = "configs" in configResult ? (configResult.configs ?? []) : [];
-    const configs: Record<string, any> = {};
+    const configs: Record<string, JsonValue> = {};
     for (const c of configList) {
-        configs[c.key] = c.value;
+        configs[c.key] = toJsonValue(c.value);
     }
 
-    const rawPlans = "plans" in plansResult ? (plansResult.plans ?? []) : [];
-    const plans = rawPlans.map((p: any) => ({
-        slug: p.slug,
-        name: p.name,
-        ai_model_config: typeof p.ai_model_config === "string"
-            ? JSON.parse(p.ai_model_config)
-            : (p.ai_model_config || {}),
-    }));
+    const rawPlans: unknown[] = "plans" in plansResult ? (plansResult.plans ?? []) : [];
+    const plans = rawPlans.map((p) => {
+        const cfgRaw = getField(p, "ai_model_config");
+        let aiCfg: Record<string, JsonValue> = {};
+        if (isString(cfgRaw)) {
+            try {
+                const parsed = JSON.parse(cfgRaw);
+                if (isObject(parsed)) aiCfg = parsed as Record<string, JsonValue>;
+            } catch { /* noop */ }
+        } else if (isObject(cfgRaw)) {
+            aiCfg = cfgRaw as Record<string, JsonValue>;
+        }
+        return {
+            slug: getString(p, "slug"),
+            name: getString(p, "name"),
+            ai_model_config: aiCfg,
+        };
+    });
 
     return (
         <div className="space-y-6">

@@ -1,19 +1,39 @@
 import { fetchAdminConfigAction } from "@/lib/actions/adminConfig";
 import { ScoreEditor } from "@/components/admin/ScoreEditor";
+import type { JsonValue } from "@/types/admin";
+import { getNumber } from "@/lib/typeGuards";
+
+type Weights = { billsOnTime: number; budgetRespect: number; savingsRate: number; debtLevel: number };
+type Thresholds = { excellent: number; good: number; fair: number };
 
 export default async function ScoringPage() {
     const result = await fetchAdminConfigAction();
     const configs = "configs" in result ? (result.configs ?? []) : [];
 
-    const getConfig = (key: string, fallback: any = null) => {
-        const found = configs.find((c: any) => c.key === key);
-        return found ? (typeof found.value === "string" ? JSON.parse(found.value) : found.value) : fallback;
+    const getConfig = (key: string, fallback: JsonValue = null): JsonValue => {
+        const found = configs.find((c: { key: string; value: JsonValue }) => c.key === key);
+        if (!found) return fallback;
+        if (typeof found.value === "string") {
+            try { return JSON.parse(found.value) as JsonValue; } catch { return fallback; }
+        }
+        return found.value;
     };
 
-    const weights = getConfig("score_weights", { billsOnTime: 0.35, budgetRespect: 0.25, savingsRate: 0.25, debtLevel: 0.15 });
-    const thresholds = getConfig("score_thresholds", { excellent: 80, good: 60, fair: 40 });
+    const weightsRaw = getConfig("score_weights", { billsOnTime: 0.35, budgetRespect: 0.25, savingsRate: 0.25, debtLevel: 0.15 });
+    const thresholdsRaw = getConfig("score_thresholds", { excellent: 80, good: 60, fair: 40 });
     const lookback = getConfig("score_lookback_days", 90);
 
+    const weights: Weights = {
+        billsOnTime: getNumber(weightsRaw, "billsOnTime", 0.35),
+        budgetRespect: getNumber(weightsRaw, "budgetRespect", 0.25),
+        savingsRate: getNumber(weightsRaw, "savingsRate", 0.25),
+        debtLevel: getNumber(weightsRaw, "debtLevel", 0.15),
+    };
+    const thresholds: Thresholds = {
+        excellent: getNumber(thresholdsRaw, "excellent", 80),
+        good: getNumber(thresholdsRaw, "good", 60),
+        fair: getNumber(thresholdsRaw, "fair", 40),
+    };
     return (
         <div className="space-y-6">
             <div>

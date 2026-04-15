@@ -218,7 +218,7 @@ export default function WorkspacesView({
                 </div>
                 <select
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "suspended")}
                     className="h-9 px-3 rounded-lg border border-border/50 bg-card text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
                 >
                     <option value="all">Todos status</option>

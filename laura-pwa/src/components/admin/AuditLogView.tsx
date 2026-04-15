@@ -3,14 +3,15 @@
 import { useState, useTransition, useCallback } from "react";
 import { fetchAdminAuditLogFilteredAction } from "@/lib/actions/adminConfig";
 import { Search, ChevronDown, ChevronRight, Filter, Loader2 } from "lucide-react";
+import type { JsonValue } from "@/types/admin";
 
 type AuditEntry = {
     id: string;
     action: string;
     entity_type: string;
     entity_id: string;
-    old_value: any;
-    new_value: any;
+    old_value: JsonValue;
+    new_value: JsonValue;
     created_at: string;
     admin_user_id: string;
     admin_name: string;
@@ -35,7 +36,7 @@ function getActionColor(action: string) {
     return ACTION_COLORS[action?.toUpperCase()] || "bg-zinc-800 text-zinc-400";
 }
 
-function JsonDiff({ label, data }: { label: string; data: any }) {
+function JsonDiff({ label, data }: { label: string; data: JsonValue }) {
     if (!data) return null;
     const str = typeof data === "object" ? JSON.stringify(data, null, 2) : String(data);
     return (

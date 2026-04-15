@@ -9,7 +9,7 @@ export default async function WorkspacesPage() {
 
     const workspaces = "workspaces" in wsResult ? (wsResult.workspaces ?? []) : [];
     const plans = "plans" in plansResult
-        ? (plansResult.plans ?? []).map((p: any) => ({ slug: p.slug, name: p.name }))
+        ? (plansResult.plans ?? []).map((p: { slug: string; name: string }) => ({ slug: p.slug, name: p.name }))
         : [];
 
     return (

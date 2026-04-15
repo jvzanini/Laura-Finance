@@ -76,12 +76,12 @@ export function ScoreEditor({
     const normalizeWeights = () => {
         if (totalWeight === 0) return;
         const factor = 1 / totalWeight;
-        const normalized: any = {};
+        const normalized: Weights = { billsOnTime: 0, budgetRespect: 0, savingsRate: 0, debtLevel: 0 };
         for (const k of Object.keys(weights) as (keyof Weights)[]) {
             normalized[k] = Math.round(weights[k] * factor * 100) / 100;
         }
         // Adjust rounding to sum exactly 1.0
-        const diff = 1 - Object.values(normalized as Weights).reduce((a: number, b: number) => a + b, 0);
+        const diff = 1 - Object.values(normalized).reduce((a: number, b: number) => a + b, 0);
         normalized.billsOnTime = Math.round((normalized.billsOnTime + diff) * 100) / 100;
         setWeights(normalized);
         setSaved(false);

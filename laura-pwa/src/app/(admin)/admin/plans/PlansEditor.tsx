@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Save, Check, Plus, X, CreditCard, Sparkles, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { updatePlanFullAction } from "@/lib/actions/adminConfig";
+import type { JsonValue } from "@/types/admin";
+import { getField, getNumber, getString, getStringOrNull, isObject, isString, isArray, isBoolean } from "@/lib/typeGuards";
 
 type Plan = {
     id: string;
@@ -13,26 +15,60 @@ type Plan = {
     price_cents: number;
     stripe_price_id: string | null;
     capabilities: Record<string, boolean>;
-    ai_model_config: Record<string, any>;
-    limits: Record<string, any>;
+    ai_model_config: Record<string, JsonValue>;
+    limits: Record<string, JsonValue>;
     features_description: string[];
     active: boolean;
     sort_order: number;
 };
 
-function parsePlan(raw: any): Plan {
+function parseRecord(v: unknown): Record<string, JsonValue> {
+    if (isString(v)) {
+        try {
+            const parsed = JSON.parse(v);
+            return isObject(parsed) ? (parsed as Record<string, JsonValue>) : {};
+        } catch {
+            return {};
+        }
+    }
+    return isObject(v) ? (v as Record<string, JsonValue>) : {};
+}
+
+function parseBoolRecord(v: unknown): Record<string, boolean> {
+    const rec = parseRecord(v);
+    const out: Record<string, boolean> = {};
+    for (const [k, val] of Object.entries(rec)) {
+        if (typeof val === "boolean") out[k] = val;
+    }
+    return out;
+}
+
+function parseFeatures(v: unknown): string[] {
+    if (isString(v)) {
+        try {
+            const parsed = JSON.parse(v);
+            return isArray(parsed) ? parsed.filter(isString) : [];
+        } catch {
+            return [];
+        }
+    }
+    return isArray(v) ? v.filter(isString) : [];
+}
+
+function parsePlan(raw: unknown): Plan {
+    const activeField = getField(raw, "active");
     return {
-        id: raw.id,
-        slug: raw.slug,
-        name: raw.name ?? "",
-        price_cents: raw.price_cents ?? 0,
-        stripe_price_id: raw.stripe_price_id ?? "",
-        capabilities: typeof raw.capabilities === "string" ? JSON.parse(raw.capabilities) : (raw.capabilities || {}),
-        ai_model_config: typeof raw.ai_model_config === "string" ? JSON.parse(raw.ai_model_config) : (raw.ai_model_config || {}),
-        limits: typeof raw.limits === "string" ? JSON.parse(raw.limits) : (raw.limits || {}),
-        features_description: typeof raw.features_description === "string" ? JSON.parse(raw.features_description) : (raw.features_description || []),
-        active: raw.active !== false,
-        sort_order: raw.sort_order ?? 0,
+        id: getString(raw, "id"),
+        slug: getString(raw, "slug"),
+        name: getString(raw, "name"),
+        price_cents: getNumber(raw, "price_cents"),
+        stripe_price_id: getStringOrNull(raw, "stripe_price_id") ?? "",
+        capabilities: parseBoolRecord(getField(raw, "capabilities")),
+        ai_model_config: parseRecord(getField(raw, "ai_model_config")),
+        limits: parseRecord(getField(raw, "limits")),
+        features_description: parseFeatures(getField(raw, "features_description")),
+        active: isBoolean(activeField) ? activeField : true,
+        sort_order: getNumber(raw, "sort_order"),
     };
 }
 
@@ -40,14 +76,14 @@ const AI_PROVIDERS = ["groq", "openai", "gemini"] as const;
 const CAPABILITIES = ["text", "audio", "image", "document"] as const;
 const LIMIT_NUMBERS = ["max_members", "max_cards", "max_transactions_month"] as const;
 
-function PlanCard({ plan: rawPlan }: { plan: any }) {
+function PlanCard({ plan: rawPlan }: { plan: unknown }) {
     const initial = parsePlan(rawPlan);
     const [name, setName] = useState(initial.name);
     const [priceCents, setPriceCents] = useState(initial.price_cents);
     const [stripePriceId, setStripePriceId] = useState(initial.stripe_price_id ?? "");
     const [capabilities, setCapabilities] = useState<Record<string, boolean>>(initial.capabilities);
-    const [aiConfig, setAiConfig] = useState<Record<string, any>>(initial.ai_model_config);
-    const [limits, setLimits] = useState<Record<string, any>>(initial.limits);
+    const [aiConfig, setAiConfig] = useState<Record<string, JsonValue>>(initial.ai_model_config);
+    const [limits, setLimits] = useState<Record<string, JsonValue>>(initial.limits);
     const [features, setFeatures] = useState<string[]>(initial.features_description);
     const [active, setActive] = useState(initial.active);
     const [newFeature, setNewFeature] = useState("");
@@ -87,11 +123,11 @@ function PlanCard({ plan: rawPlan }: { plan: any }) {
         setCapabilities((prev) => ({ ...prev, [cap]: !prev[cap] }));
     };
 
-    const setAiField = (key: string, value: any) => {
+    const setAiField = (key: string, value: JsonValue) => {
         setAiConfig((prev) => ({ ...prev, [key]: value }));
     };
 
-    const setLimit = (key: string, value: any) => {
+    const setLimit = (key: string, value: JsonValue) => {
         setLimits((prev) => ({ ...prev, [key]: value }));
     };
 
@@ -176,7 +212,7 @@ function PlanCard({ plan: rawPlan }: { plan: any }) {
                     <div className="space-y-1.5">
                         <label className="text-xs text-muted-foreground">Provider</label>
                         <select
-                            value={aiConfig.provider || "groq"}
+                            value={isString(aiConfig.provider) ? aiConfig.provider : "groq"}
                             onChange={(e) => setAiField("provider", e.target.value)}
                             className={`${inputClass} appearance-none cursor-pointer`}
                         >
@@ -187,20 +223,20 @@ function PlanCard({ plan: rawPlan }: { plan: any }) {
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-xs text-muted-foreground">Chat Model</label>
-                        <input value={aiConfig.chat_model || ""} onChange={(e) => setAiField("chat_model", e.target.value)} className={inputClass} />
+                        <input value={isString(aiConfig.chat_model) ? aiConfig.chat_model : ""} onChange={(e) => setAiField("chat_model", e.target.value)} className={inputClass} />
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-xs text-muted-foreground">Whisper Model</label>
-                        <input value={aiConfig.whisper_model || ""} onChange={(e) => setAiField("whisper_model", e.target.value)} className={inputClass} />
+                        <input value={isString(aiConfig.whisper_model) ? aiConfig.whisper_model : ""} onChange={(e) => setAiField("whisper_model", e.target.value)} className={inputClass} />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-xs text-muted-foreground">Temperature: {Number(aiConfig.temperature ?? 0.1).toFixed(2)}</label>
+                        <label className="text-xs text-muted-foreground">Temperature: {Number(typeof aiConfig.temperature === "number" ? aiConfig.temperature : 0.1).toFixed(2)}</label>
                         <input
                             type="range"
                             min="0"
                             max="1"
                             step="0.01"
-                            value={aiConfig.temperature ?? 0.1}
+                            value={typeof aiConfig.temperature === "number" ? aiConfig.temperature : 0.1}
                             onChange={(e) => setAiField("temperature", parseFloat(e.target.value))}
                             className="w-full h-1.5 rounded-full appearance-none bg-border accent-primary cursor-pointer"
                         />
@@ -217,7 +253,7 @@ function PlanCard({ plan: rawPlan }: { plan: any }) {
                             <label className="text-xs text-muted-foreground whitespace-nowrap">{key.replace(/_/g, " ")}</label>
                             <input
                                 type="number"
-                                value={limits[key] ?? 0}
+                                value={typeof limits[key] === "number" ? limits[key] : 0}
                                 onChange={(e) => setLimit(key, parseInt(e.target.value) || 0)}
                                 className="w-24 h-7 px-2 rounded-md bg-background border border-border text-sm text-right font-mono focus:outline-none focus:ring-1 focus:ring-primary/50"
                             />
@@ -290,12 +326,13 @@ function PlanCard({ plan: rawPlan }: { plan: any }) {
     );
 }
 
-export default function PlansEditor({ plans }: { plans: any[] }) {
+export default function PlansEditor({ plans }: { plans: unknown[] }) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {plans.map((plan: any) => (
-                <PlanCard key={plan.id || plan.slug} plan={plan} />
-            ))}
+            {plans.map((plan, idx) => {
+                const id = getString(plan, "id") || getString(plan, "slug") || String(idx);
+                return <PlanCard key={id} plan={plan} />;
+            })}
             {plans.length === 0 && (
                 <div className="col-span-full rounded-xl border border-border/50 bg-card p-8 text-center">
                     <p className="text-muted-foreground">Nenhum plano cadastrado</p>

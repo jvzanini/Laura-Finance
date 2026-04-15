@@ -4,10 +4,11 @@ import { useState, useTransition } from "react";
 import { saveAdminConfigAction } from "@/lib/actions/adminConfig";
 import { Save, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
+import type { JsonValue } from "@/types/admin";
 
 type ConfigEntry = {
     key: string;
-    value: any;
+    value: JsonValue;
     description?: string;
     type?: "text" | "number" | "boolean" | "json";
 };
@@ -16,14 +17,14 @@ export function AdminConfigEditor({ configs, filter }: { configs: ConfigEntry[];
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [saved, setSaved] = useState<Record<string, boolean>>({});
-    const [values, setValues] = useState<Record<string, any>>(() => {
-        const map: Record<string, any> = {};
+    const [values, setValues] = useState<Record<string, string>>(() => {
+        const map: Record<string, string> = {};
         for (const c of configs) {
-            let v = c.value;
+            let v: JsonValue = c.value;
             if (typeof v === "string") {
-                try { v = JSON.parse(v); } catch { /* keep as string */ }
+                try { v = JSON.parse(v) as JsonValue; } catch { /* keep as string */ }
             }
-            map[c.key] = typeof v === "object" ? JSON.stringify(v, null, 2) : String(v);
+            map[c.key] = typeof v === "object" && v !== null ? JSON.stringify(v, null, 2) : String(v);
         }
         return map;
     });
@@ -31,8 +32,8 @@ export function AdminConfigEditor({ configs, filter }: { configs: ConfigEntry[];
     const filtered = filter ? configs.filter((c) => filter.includes(c.key)) : configs;
 
     const handleSave = (key: string) => {
-        let parsed: any = values[key];
-        try { parsed = JSON.parse(parsed); } catch { /* keep as string */ }
+        let parsed: JsonValue = values[key];
+        try { parsed = JSON.parse(values[key]) as JsonValue; } catch { /* keep as string */ }
 
         startTransition(async () => {
             await saveAdminConfigAction(key, parsed);
@@ -42,7 +43,7 @@ export function AdminConfigEditor({ configs, filter }: { configs: ConfigEntry[];
         });
     };
 
-    const detectType = (key: string, value: any): "boolean" | "number" | "json" | "text" => {
+    const detectType = (key: string, value: unknown): "boolean" | "number" | "json" | "text" => {
         const v = typeof value === "string" ? value : String(value);
         if (v === "true" || v === "false") return "boolean";
         if (!isNaN(Number(v)) && v.trim() !== "" && !v.includes("{")) return "number";

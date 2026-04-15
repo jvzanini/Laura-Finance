@@ -288,6 +288,7 @@ func instanceEventHandler(inst *WhatsAppInstance, evt interface{}) {
 	case *events.Message:
 		HandleIncomingMessage(v)
 	case *events.Connected:
+		Manager.TouchLastSeen()
 		inst.mu.Lock()
 		inst.Status = "connected"
 		if inst.Client != nil && inst.Client.Store.ID != nil {

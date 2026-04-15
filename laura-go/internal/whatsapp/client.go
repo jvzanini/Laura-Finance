@@ -163,6 +163,7 @@ func eventHandler(evt interface{}) {
 	case *events.Message:
 		HandleIncomingMessage(v)
 	case *events.Connected:
+		Manager.TouchLastSeen()
 		slog.Info("[WhatsApp] conexão estabelecida")
 	case *events.OfflineSyncCompleted:
 		slog.Info("[WhatsApp] sincronização offline concluída")

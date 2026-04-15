@@ -1,5 +1,5 @@
-//go:build e2e
-// +build e2e
+//go:build e2e || integration
+// +build e2e integration
 
 package handlers
 
@@ -89,12 +89,20 @@ func findMigrationsDirAPI(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("getwd: %v", err)
 	}
-	// internal/handlers -> internal -> laura-go -> repo root
-	dir := filepath.Join(cwd, "..", "..", "..", "infrastructure", "migrations")
-	if _, err := os.Stat(dir); err != nil {
-		t.Fatalf("migrations dir não encontrado: %v", err)
+	// Procura em múltiplos locais possíveis (internal/migrations ou
+	// infrastructure/migrations), garantindo robustez ao layout do repo.
+	candidates := []string{
+		filepath.Join(cwd, "..", "migrations"),                           // internal/migrations (layout atual)
+		filepath.Join(cwd, "..", "..", "internal", "migrations"),          // quando invocado dentro de internal/handlers
+		filepath.Join(cwd, "..", "..", "..", "infrastructure", "migrations"), // layout legado
 	}
-	return dir
+	for _, dir := range candidates {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return dir
+		}
+	}
+	t.Fatalf("migrations dir não encontrado; candidatos: %v", candidates)
+	return ""
 }
 
 func applyMigrationsAPI(t *testing.T, ctx context.Context, pool *pgxpool.Pool, dir string) {
@@ -509,9 +517,11 @@ func TestAPIE2E_Cards_ComSeed(t *testing.T) {
 		 VALUES ($1, 'Nubank Principal', 'Mastercard', '#8B5CF6', 5, 15, '1234', 'credito', 500000)`,
 		workspaceID,
 	)
+	// Débito: closing_day/due_day devem ser NULL (constraint CHECK
+	// BETWEEN 1..31 adicionada pela migration 035).
 	_, _ = pool.Exec(ctx,
 		`INSERT INTO cards (workspace_id, name, brand, color, closing_day, due_day, last_four, card_type, credit_limit_cents)
-		 VALUES ($1, 'Inter Débito', 'Visa', '#F97316', 0, 0, '5678', 'debito', 0)`,
+		 VALUES ($1, 'Inter Débito', 'Visa', '#F97316', NULL, NULL, '5678', 'debito', 0)`,
 		workspaceID,
 	)
 

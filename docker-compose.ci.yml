@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: laura
+      POSTGRES_PASSWORD: laura_test
+      POSTGRES_DB: laura_finance_test
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laura -d laura_finance_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api-go:
+    build:
+      context: .
+      dockerfile: laura-go/Dockerfile
+    environment:
+      DATABASE_URL: postgres://laura:laura_test@postgres:5432/laura_finance_test?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      SESSION_SECRET: ci-secret-not-real-32bytes-padding-x
+      GROQ_API_KEY: test-fake-key
+      APP_ENV: development
+      MIGRATE_ON_BOOT: "true"
+      PORT: "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  pwa:
+    build:
+      context: ./laura-pwa
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://api-go:8080
+      NEXT_PUBLIC_BUILD_SHA: ci
+    depends_on:
+      api-go:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

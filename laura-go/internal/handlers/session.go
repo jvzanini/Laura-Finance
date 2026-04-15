@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -44,7 +44,8 @@ func getSessionSecret() string {
 		return secret
 	}
 	if os.Getenv("APP_ENV") == "production" {
-		log.Fatal("SESSION_SECRET obrigatória em produção")
+		slog.Error("SESSION_SECRET obrigatória em produção")
+		os.Exit(1)
 	}
 	return "laura-dev-session-secret-change-me"
 }

@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,7 +22,8 @@ func GetDSN() string {
 	password := os.Getenv("POSTGRES_PASSWORD")
 	if password == "" {
 		if os.Getenv("APP_ENV") == "production" {
-			log.Fatal("POSTGRES_PASSWORD obrigatória em produção")
+			slog.Error("POSTGRES_PASSWORD obrigatória em produção")
+			os.Exit(1)
 		}
 		fmt.Fprintln(os.Stderr, "[WARN] POSTGRES_PASSWORD não definida — usando default de desenvolvimento")
 		password = "laura_password"

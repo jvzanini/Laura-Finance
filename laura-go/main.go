@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -39,7 +38,7 @@ func runMigrations(dbURL string) error {
 		return err
 	}
 	v, dirty, _ := m.Version()
-	log.Printf("migrations aplicadas: version=%d dirty=%v", v, dirty)
+	slog.Info("migrations aplicadas", "version", v, "dirty", dirty)
 	return nil
 }
 
@@ -57,14 +56,16 @@ func main() {
 
 	// Initialize PostgreSQL Connection
 	if err := db.ConnectDB(); err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		slog.Error("falha ao conectar no banco", "err", err)
+		os.Exit(1)
 	}
 	defer db.CloseDB()
-	log.Println("Database connection established!")
+	slog.Info("conexão com banco estabelecida")
 
 	if os.Getenv("MIGRATE_ON_BOOT") == "true" {
 		if err := runMigrations(db.GetDSN()); err != nil {
-			log.Fatalf("runMigrations: %v", err)
+			slog.Error("runMigrations falhou", "err", err)
+			os.Exit(1)
 		}
 	}
 
@@ -119,9 +120,9 @@ func main() {
 
 	// Start WhatsApp Client
 	if os.Getenv("DISABLE_WHATSAPP") == "true" {
-		log.Printf("DISABLE_WHATSAPP=true -- main pulou whatsapp init")
+		slog.Info("DISABLE_WHATSAPP=true -- main pulou whatsapp init")
 	} else {
-		log.Println("Starting Whatsmeow Client...")
+		slog.Info("iniciando cliente Whatsmeow")
 		whatsapp.InitWhatsmeow()
 	}
 
@@ -133,11 +134,12 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Starting Laura Go Server on port %s...", port)
+	slog.Info("iniciando Laura Go server", "port", port)
 
 	go func() {
 		if err := app.Listen(":" + port); err != nil {
-			log.Fatalf("Failed to start server: %v", err)
+			slog.Error("falha ao iniciar server", "err", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -146,9 +148,9 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	log.Println("\n[System] Gracefully shutting down...")
+	slog.Info("[System] Gracefully shutting down...")
 	if whatsapp.Client != nil {
 		whatsapp.Client.Disconnect()
 	}
-	log.Println("[WhatsApp] Successfully disconnected.")
+	slog.Info("[WhatsApp] Successfully disconnected.")
 }

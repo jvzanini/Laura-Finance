@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 	"github.com/robfig/cron/v3"
@@ -15,11 +15,11 @@ func StartBudgetAlertCron(sendMessageFunc func(to string, msg string)) {
 
 	// Every day at 20:00 (8:00 PM) server time — budget alerts
 	_, err := c.AddFunc("0 20 * * *", func() {
-		log.Println("[CRON] Running daily budget check...")
+		slog.Info("[CRON] running daily budget check")
 		runDailyBudgetCheck(sendMessageFunc)
 	})
 	if err != nil {
-		log.Printf("[CRON] Failed to setup budget cron: %v", err)
+		slog.Error("[CRON] falha ao configurar budget cron", "err", err)
 		return
 	}
 
@@ -27,11 +27,11 @@ func StartBudgetAlertCron(sendMessageFunc func(to string, msg string)) {
 	// Baixo tráfego, garante que o snapshot reflete o estado "fechado" do dia anterior
 	// e alimenta o gráfico de evolução do Score Financeiro no dashboard.
 	_, err = c.AddFunc("0 3 * * *", func() {
-		log.Println("[CRON] Running daily financial score snapshot...")
+		slog.Info("[CRON] running daily financial score snapshot")
 		runDailyScoreSnapshot()
 	})
 	if err != nil {
-		log.Printf("[CRON] Failed to setup score snapshot cron: %v", err)
+		slog.Error("[CRON] falha ao configurar score snapshot cron", "err", err)
 		return
 	}
 
@@ -39,16 +39,16 @@ func StartBudgetAlertCron(sendMessageFunc func(to string, msg string)) {
 	// e dispara nudges WhatsApp. Roda 15min depois do snapshot pra garantir
 	// que o dado do dia está persistido.
 	_, err = c.AddFunc("15 3 * * *", func() {
-		log.Println("[CRON] Running daily score band check...")
+		slog.Info("[CRON] running daily score band check")
 		runDailyScoreBandCheck(sendMessageFunc)
 	})
 	if err != nil {
-		log.Printf("[CRON] Failed to setup score band cron: %v", err)
+		slog.Error("[CRON] falha ao configurar score band cron", "err", err)
 		return
 	}
 
 	c.Start()
-	log.Println("[CRON] Daily jobs started: budget check (20:00) + score snapshot (03:00) + score band nudges (03:15).")
+	slog.Info("[CRON] daily jobs started (budget 20:00 + score snapshot 03:00 + score band 03:15)")
 }
 
 func runDailyBudgetCheck(sendMessageFunc func(to string, msg string)) {
@@ -77,7 +77,7 @@ func runDailyBudgetCheck(sendMessageFunc func(to string, msg string)) {
 
 	rows, err := db.Pool.Query(context.Background(), query)
 	if err != nil {
-		log.Printf("[CRON Error] fetching budgets: %v\n", err)
+		slog.Error("[CRON] erro ao buscar budgets", "err", err)
 		return
 	}
 	defer rows.Close()

@@ -3,7 +3,7 @@ package whatsapp
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -32,7 +32,7 @@ func (l *silentLogger) Errorf(msg string, args ...interface{}) {
 	if strings.Contains(formatted, "app state") || strings.Contains(formatted, "didn't find app state key") {
 		return
 	}
-	log.Printf("[WhatsApp Error] %s\n", formatted)
+	slog.Error("[WhatsApp Error]", "msg", formatted)
 }
 func (l *silentLogger) Warnf(msg string, args ...interface{})  {}
 func (l *silentLogger) Infof(msg string, args ...interface{})  {}
@@ -41,7 +41,7 @@ func (l *silentLogger) Sub(module string) waLog.Logger         { return l }
 
 func InitWhatsmeow() {
 	if os.Getenv("DISABLE_WHATSAPP") == "true" {
-		log.Printf("DISABLE_WHATSAPP=true -- whatsmeow init skipped")
+		slog.Info("DISABLE_WHATSAPP=true -- whatsmeow init skipped")
 		return
 	}
 
@@ -51,12 +51,14 @@ func InitWhatsmeow() {
 	// whatsmeow uses standard sql database driver, so we use postgres or pgx
 	container, err := sqlstore.New(context.Background(), "postgres", dbURL, dbLog)
 	if err != nil {
-		log.Fatalf("Failed to connect to database for whatsmeow: %v", err)
+		slog.Error("falha ao conectar no banco para whatsmeow", "err", err)
+		os.Exit(1)
 	}
 
 	deviceStore, err := container.GetFirstDevice(context.Background())
 	if err != nil {
-		log.Fatalf("Failed to get device store: %v", err)
+		slog.Error("falha ao obter device store", "err", err)
+		os.Exit(1)
 	}
 
 	clientLog := &silentLogger{}
@@ -68,11 +70,12 @@ func InitWhatsmeow() {
 	_ = Client.SendPresence(context.Background(), types.PresenceUnavailable)
 
 	if Client.Store.ID == nil {
-		log.Println("[WhatsApp] No active session found. We need to link a device.")
+		slog.Info("[WhatsApp] No active session found. We need to link a device.")
 		qrChan, _ := Client.GetQRChannel(context.Background())
 		err = Client.Connect()
 		if err != nil {
-			log.Fatalf("Failed to connect whatsmeow: %v", err)
+			slog.Error("falha ao conectar whatsmeow", "err", err)
+			os.Exit(1)
 		}
 
 		go func() {
@@ -120,7 +123,7 @@ func InitWhatsmeow() {
 					} else {
 						// Only log relevant strings that are not empty
 						if evt.Event != "" && evt.Event != "success" {
-							log.Printf("[WhatsApp] Status de Login: %s\n", evt.Event)
+							slog.Info("[WhatsApp] status de login", "event", evt.Event)
 						}
 					}
 				case <-ticker.C:
@@ -145,10 +148,11 @@ func InitWhatsmeow() {
 			}
 		}()
 	} else {
-		log.Println("\n[WhatsApp] ⚡ Sessão ativa encontrada no banco de dados! Reconectando de forma invisível...")
+		slog.Info("[WhatsApp] sessão ativa encontrada — reconectando")
 		err = Client.Connect()
 		if err != nil {
-			log.Fatalf("Failed to connect whatsmeow: %v", err)
+			slog.Error("falha ao conectar whatsmeow", "err", err)
+			os.Exit(1)
 		}
 	}
 }
@@ -158,15 +162,15 @@ func eventHandler(evt interface{}) {
 	case *events.Message:
 		HandleIncomingMessage(v)
 	case *events.Connected:
-		log.Println("\n[WhatsApp] 🟢 Conexão com os servidores estabelecida com sucesso!")
+		slog.Info("[WhatsApp] conexão estabelecida")
 	case *events.OfflineSyncCompleted:
-		log.Println("\n[WhatsApp] 📥 Sincronização offline concluída!")
+		slog.Info("[WhatsApp] sincronização offline concluída")
 	case *events.Disconnected:
-		log.Println("\n[WhatsApp] 🔴 Desconectado dos servidores (tentando reconectar...)")
+		slog.Warn("[WhatsApp] desconectado dos servidores — tentando reconectar")
 	case *events.StreamReplaced:
-		log.Println("\n[WhatsApp] 🔁 Sessão substituída (O WhatsApp foi aberto em outro local de forma conflitante)")
+		slog.Warn("[WhatsApp] sessão substituída (aberta em outro local)")
 	case *events.LoggedOut:
-		log.Println("\n[WhatsApp] 🛑 Você foi desconectado via celular! APAGANDO sessão inútil...")
+		slog.Warn("[WhatsApp] desconectado via celular — apagando sessão")
 		Client.Disconnect()
 		Client.Store.Delete(context.Background())
 	}
@@ -195,11 +199,11 @@ func HandleIncomingMessage(msg *events.Message) {
 		return
 	}
 
-	log.Printf("[WhatsApp] Received Message from %s\n", senderNumberStr)
+	slog.Info("[WhatsApp] mensagem recebida", "sender", senderNumberStr)
 
 	// Auth: Determine Workspace
 	if db.Pool == nil {
-		log.Println("[App Error] DB Pool is not connected, cannot process messaging.")
+		slog.Error("[App Error] DB Pool is not connected, cannot process messaging.")
 		return
 	}
 
@@ -211,7 +215,7 @@ func HandleIncomingMessage(msg *events.Message) {
 	`, senderNumberStr).Scan(&workspaceId)
 
 	if err != nil {
-		log.Printf("[WhatsApp Auth Denied] Number %s not found in any workspace: %v\n", senderNumberStr, err)
+		slog.Warn("[WhatsApp Auth Denied] número não associado a workspace", "sender", senderNumberStr, "err", err)
 		return
 	}
 

@@ -127,8 +127,8 @@ jobs:
           go tool cover -func=coverage.out | tail -5
           pct=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
           echo "coverage: $pct%"
-          # Soft assertion (nao falha CI por enquanto) — Fase 13 fortalece para 30%
-          awk -v v="$pct" 'BEGIN{if (v+0 < 5.0) exit 1}'
+          # Gate progressivo: 12.5% em Fase 13 (baseline 13%), meta 30% em Fase 14
+          awk -v v="$pct" 'BEGIN{if (v+0 < 12.5) exit 1}'
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

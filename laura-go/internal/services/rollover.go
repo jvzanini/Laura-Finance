@@ -192,8 +192,7 @@ func SimulateRollover(workspaceID string, cardID *string, invoiceValueCts int, p
 	}
 
 	nParcelas := 0
-	fmt.Sscanf(installments, "%dx", &nParcelas)
-	if nParcelas < 1 {
+	if _, err := fmt.Sscanf(installments, "%dx", &nParcelas); err != nil || nParcelas < 1 {
 		return nil, fmt.Errorf("installments inválido: %s", installments)
 	}
 

@@ -96,11 +96,13 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 			logStatus = "needs_review"
 		}
 
-		db.Pool.Exec(context.Background(),
+		if _, logErr := db.Pool.Exec(context.Background(),
 			`INSERT INTO message_logs (workspace_id, phone_number, raw_message, processed_json, status)
 			 VALUES ($1, $2, $3, $4, $5)`,
 			workspaceID, phoneNumber, finalText, rawJsonStr, logStatus,
-		)
+		); logErr != nil {
+			slog.Warn("workflow.message_logs insert falhou", "err", logErr, "workspace", workspaceID)
+		}
 
 		if err == nil && parsedTx != nil {
 			// Let's grab the actual category if we can match it roughly, but for now we insert NULL if not matched

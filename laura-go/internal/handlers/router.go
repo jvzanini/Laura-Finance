@@ -46,6 +46,14 @@ func RegisterRoutes(app *fiber.App) {
 		return c.JSON(fiber.Map{"status": "ok", "service": "laura-go"})
 	})
 
+	// Endpoint dev-only para smoke test do Sentry (dispara panic capturado
+	// pelo middleware sentryfiber + recover). Nao registra em producao.
+	if os.Getenv("APP_ENV") != "production" {
+		app.Post("/api/_debug/panic", func(c *fiber.Ctx) error {
+			panic("smoke sentry test panic")
+		})
+	}
+
 	// Rotas autenticadas
 	api := app.Group("/api/v1")
 	api.Use(RequireSession())

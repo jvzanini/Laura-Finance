@@ -85,7 +85,7 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 	fmt.Printf("[ProcessMessageFlow Started] Passing to Brain/LLM... [%s]\n", finalText)
 
 	// Extraction with LLM
-	rawJsonStr, parsedTx, err := ExtractTransactionFromText(finalText, planSlug)
+	rawJsonStr, parsedTx, err := ExtractTransactionFromText(context.Background(), finalText, planSlug)
 
 	if db.Pool != nil {
 		logStatus := "processed"

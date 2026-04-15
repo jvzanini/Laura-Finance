@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 )
@@ -60,14 +61,17 @@ RESPOSTA:
 
 // ExtractTransactionFromText usa o LLMProvider configurado para o plano do workspace.
 // Se planSlug estiver vazio, usa o provider default (Groq Llama 70B).
-func ExtractTransactionFromText(text string, planSlug string) (string, *ParsedTransactionDef, error) {
+func ExtractTransactionFromText(ctx context.Context, text string, planSlug string) (string, *ParsedTransactionDef, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if planSlug == "" {
 		planSlug = "standard"
 	}
 
 	provider := GetProviderForPlan(planSlug)
 
-	rawContent, err := provider.ChatCompletion(nlpSystemPrompt, text)
+	rawContent, err := ChatCompletionLegacyAware(ctx, provider, nlpSystemPrompt, text)
 	if err != nil {
 		return "", nil, fmt.Errorf("LLM (%s) error: %v", provider.ProviderName(), err)
 	}
@@ -82,7 +86,7 @@ func ExtractTransactionFromText(text string, planSlug string) (string, *ParsedTr
 
 // ExtractTransactionFromTextLegacy mantém compatibilidade com código que não passa planSlug.
 func ExtractTransactionFromTextLegacy(text string) (string, *ParsedTransactionDef, error) {
-	return ExtractTransactionFromText(text, "standard")
+	return ExtractTransactionFromText(context.Background(), text, "standard")
 }
 
 // TranscribeAudioForPlan usa o provider do plano para transcrever áudio.

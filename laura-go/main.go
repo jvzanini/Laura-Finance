@@ -87,6 +87,11 @@ func main() {
 	// implementado. Por enquanto nil → worker loga e marca error.
 	bootstrap.StartWebhookWorker(pgxCtx, pool, nil)
 
+	// Fase 16: baseline de idade do PLUGGY_WEBHOOK_SECRET.
+	if err := services.SeedWebhookSecretSetAt(pgxCtx); err != nil {
+		slog.Warn("webhook_secret_seed_failed", "err", err)
+	}
+
 	app.Get("/ready", health.Readiness(health.Deps{
 		DB:               pool,
 		Whatsmeow:        whatsapp.Manager,

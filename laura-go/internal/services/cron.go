@@ -40,6 +40,17 @@ func StartBudgetAlertCron(sendMessageFunc func(to string, msg string)) {
 		return
 	}
 
+	// Daily at 04:00 — verifica idade do PLUGGY_WEBHOOK_SECRET (fase 16).
+	_, err = c.AddFunc("0 4 * * *", func() {
+		_, span := otel.Tracer("laura/cron").Start(context.Background(), "cron.check_webhook_secret_age")
+		defer span.End()
+		CheckWebhookSecretAge(context.Background())
+	})
+	if err != nil {
+		slog.Error("[CRON] falha ao configurar webhook secret age cron", "err", err)
+		return
+	}
+
 	// Every day at 03:15 — detects score band transitions (queda de faixa)
 	// e dispara nudges WhatsApp. Roda 15min depois do snapshot pra garantir
 	// que o dado do dia está persistido.

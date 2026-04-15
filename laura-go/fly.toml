@@ -1,40 +1,43 @@
-# fly.toml — template de deploy do backend Go (laura-finance).
-# Renomear "app" no primeiro `fly launch` se necessário.
-app = "laura-finance"
+app = "laura-finance-api"
 primary_region = "gru"
+kill_signal = "SIGTERM"
+kill_timeout = 30
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = "laura-go/Dockerfile"
 
 [env]
-  APP_ENV = "production"
   PORT = "8080"
-
-# Volume persistente para sessão do whatsmeow (arquivo SQLite + assets).
-# Criar com: fly volumes create whatsmeow_data --region gru --size 1
-[mounts]
-  source = "whatsmeow_data"
-  destination = "/data"
+  MIGRATE_ON_BOOT = "true"
+  LOG_LEVEL = "info"
+  ENVIRONMENT = "production"
+  TZ = "America/Sao_Paulo"
 
 [http_service]
   internal_port = 8080
   force_https = true
-  # whatsmeow mantém socket persistente — auto_stop é best-effort.
-  auto_stop_machines = "stop"
+  auto_stop_machines = "suspend"
   auto_start_machines = true
-  # 1 instância fixa: whatsmeow não escala horizontalmente sem coordenação externa.
   min_machines_running = 1
-  processes = ["app"]
 
   [[http_service.checks]]
-    grace_period = "10s"
-    interval = "30s"
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "15s"
     method = "GET"
-    timeout = "5s"
     path = "/health"
 
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/ready"
+
+# Single-machine: cron in-process. Ver spec v3 5.10.
+# Pos-deploy: fly scale count 1 -a laura-finance-api.
+
 [[vm]]
-  # 256mb é o mínimo estável para whatsmeow + pgx pool.
-  memory_mb = 256
   cpu_kind = "shared"
   cpus = 1
+  memory = "512mb"

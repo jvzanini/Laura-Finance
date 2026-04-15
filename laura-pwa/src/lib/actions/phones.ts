@@ -66,8 +66,9 @@ export async function addPhoneAction(formData: FormData) {
                 revalidatePath("/dashboard");
                 return { success: true };
             }
-        } catch (goErr: any) {
-            if (goErr?.status === 409) {
+        } catch (goErr: unknown) {
+            const status = (goErr as { status?: number } | null)?.status;
+            if (status === 409) {
                 return { error: "Este número já está em uso em um Workspace da Laura." };
             }
             console.warn("[phones:add] laura-go failed, fallback:", goErr);

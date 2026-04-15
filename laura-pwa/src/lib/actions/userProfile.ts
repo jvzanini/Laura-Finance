@@ -144,8 +144,9 @@ export async function updateUserProfileAction(formData: FormData) {
                 revalidatePath("/settings");
                 return { success: true };
             }
-        } catch (goErr: any) {
-            if (goErr?.status === 409) {
+        } catch (goErr: unknown) {
+            const status = (goErr as { status?: number } | null)?.status;
+            if (status === 409) {
                 return { error: "Este e-mail já está em uso por outro usuário." };
             }
             console.warn("[profile:update] laura-go failed, fallback:", goErr);
@@ -250,8 +251,9 @@ export async function changePasswordAction(formData: FormData) {
                 body: { current_password: currentPassword, new_password: newPassword },
             });
             if (goResp) return { success: true };
-        } catch (goErr: any) {
-            if (goErr?.status === 403) {
+        } catch (goErr: unknown) {
+            const status = (goErr as { status?: number } | null)?.status;
+            if (status === 403) {
                 return { error: "Senha atual incorreta." };
             }
             console.warn("[password:change] laura-go failed, fallback:", goErr);

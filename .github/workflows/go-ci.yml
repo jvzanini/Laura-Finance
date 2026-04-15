@@ -136,6 +136,28 @@ jobs:
           path: laura-go/coverage.out
           retention-days: 14
 
+  test-integration:
+    runs-on: ubuntu-latest
+    # Roda somente na branch principal para não gastar minutos em PRs;
+    # usa testcontainers (Docker-in-Docker) com retry em flakes de rede.
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    defaults:
+      run:
+        working-directory: laura-go
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: laura-go/go.sum
+      - name: Run integration tests with retry
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: cd laura-go && go test -tags=integration ./...
+
   build:
     runs-on: ubuntu-latest
     defaults:

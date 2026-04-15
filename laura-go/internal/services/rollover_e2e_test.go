@@ -84,17 +84,17 @@ func e2eSetup(t *testing.T) (*pgxpool.Pool, func()) {
 	return pool, teardown
 }
 
-// findMigrationsDir localiza o diretório infrastructure/migrations
-// relativo ao local do teste. Como os testes rodam a partir de
-// laura-go/internal/services, sobe 3 níveis até a raiz do repo.
+// findMigrationsDir localiza o diretório laura-go/internal/migrations
+// (fonte canônica via go:embed). Os testes rodam a partir de
+// laura-go/internal/services, sobe 1 nível até internal/.
 func findMigrationsDir(t *testing.T) string {
 	t.Helper()
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("getwd: %v", err)
 	}
-	// internal/services -> internal -> laura-go -> repo root
-	dir := filepath.Join(cwd, "..", "..", "..", "infrastructure", "migrations")
+	// internal/services -> internal/migrations
+	dir := filepath.Join(cwd, "..", "migrations")
 	if _, err := os.Stat(dir); err != nil {
 		t.Fatalf("migrations dir %s não encontrado: %v", dir, err)
 	}
@@ -113,7 +113,7 @@ func applyMigrations(t *testing.T, ctx context.Context, pool *pgxpool.Pool, dir 
 
 	var files []string
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".up.sql") {
 			files = append(files, e.Name())
 		}
 	}

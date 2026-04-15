@@ -3,11 +3,49 @@ package health
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/sync/errgroup"
 )
+
+// llmPingCache evita chamar o provider LLM em cada /ready.
+var llmPingCache atomic.Value // *llmPingCacheEntry
+
+type llmPingCacheEntry struct {
+	status string
+	expiry time.Time
+}
+
+// llmCheck retorna resultado do check LLM. NoOp (skipped) se disabled.
+// Cache 5min para evitar custo (ping real hits o provider).
+func llmCheck(ctx context.Context, llm LLMPinger, disabled bool) checkResult {
+	if disabled || llm == nil {
+		return checkResult{Status: "skipped"}
+	}
+
+	if cached := llmPingCache.Load(); cached != nil {
+		if entry, ok := cached.(*llmPingCacheEntry); ok && time.Now().Before(entry.expiry) {
+			return checkResult{Status: entry.status}
+		}
+	}
+
+	cctx, ccancel := context.WithTimeout(ctx, 3*time.Second)
+	defer ccancel()
+
+	status := "reachable"
+	if err := llm.Ping(cctx); err != nil {
+		status = "unreachable"
+	}
+
+	llmPingCache.Store(&llmPingCacheEntry{
+		status: status,
+		expiry: time.Now().Add(5 * time.Minute),
+	})
+
+	return checkResult{Status: status}
+}
 
 // DBPinger é a interface mínima exigida do pool DB.
 type DBPinger interface {

@@ -1,0 +1,23 @@
+# STANDBY [VERCEL-AUTH] — falha ate VERCEL_TOKEN + ORG_ID + PROJECT_ID no GH Secrets.
+name: deploy-pwa
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'laura-pwa/**'
+      - '.github/workflows/deploy-pwa.yml'
+  workflow_dispatch:
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    concurrency: deploy-pwa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./laura-pwa
+          vercel-args: '--prod'

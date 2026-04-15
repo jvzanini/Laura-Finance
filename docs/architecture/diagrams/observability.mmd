@@ -1,0 +1,7 @@
+flowchart TB
+    Fiber --> slog
+    slog --> Sentry
+    Fiber --> OTel
+    Fiber --> Prometheus
+    Prometheus --> Grafana
+    Sentry --> Slack

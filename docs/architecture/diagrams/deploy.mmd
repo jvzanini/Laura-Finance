@@ -1,0 +1,7 @@
+flowchart LR
+    GitHub --> GoCI
+    GoCI --> FlyDeploy
+    GitHub --> PWACI
+    PWACI --> VercelDeploy
+    GitHub --> BackupCron
+    BackupCron --> FlyPostgres

@@ -1,0 +1,11 @@
+sequenceDiagram
+    participant Client
+    participant Vercel
+    participant API
+    participant DB
+    Client->>Vercel: HTTPS
+    Vercel->>API: /api/v1/*
+    API->>DB: pgxpool
+    DB-->>API: rows
+    API-->>Vercel: JSON
+    Vercel-->>Client: HTML/JSON

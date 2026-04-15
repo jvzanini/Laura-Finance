@@ -1,8 +1,3 @@
-//go:build sprintE_wip
-
-// banking_webhook.go é parte do Sprint E (Pluggy webhooks) e ainda
-// depende de APIs que serão introduzidas lá (db.GetDB etc). Build tag
-// temporária evita quebrar os demais sprints.
 package handlers
 
 import (

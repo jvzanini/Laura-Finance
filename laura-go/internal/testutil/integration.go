@@ -41,10 +41,18 @@ var (
 	SharedRedisURL string
 )
 
-// TestMain sobe os containers uma vez, roda os testes do pacote
-// e tear-down ao final. Usa image pgvector/pgvector:pg16 e
-// redis:7-alpine.
+// TestMain local sobe os containers uma vez para o próprio pacote
+// `testutil` quando rodado isoladamente. Outros pacotes devem chamar
+// `testutil.RunWithContainers(m)` a partir do seu próprio TestMain.
 func TestMain(m *testing.M) {
+	os.Exit(RunWithContainers(m))
+}
+
+// RunWithContainers inicializa Postgres + Redis compartilhados,
+// executa `m.Run()` e garante teardown. Exposta para permitir que
+// outros pacotes (handlers_test etc.) bootstrapem a mesma
+// infraestrutura sem duplicar código.
+func RunWithContainers(m *testing.M) int {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
@@ -61,7 +69,7 @@ func TestMain(m *testing.M) {
 	)
 	if err != nil {
 		log.Printf("integration: falha ao subir Postgres container: %v (pulando tests)", err)
-		os.Exit(0)
+		return 0
 	}
 	SharedPG = pg
 
@@ -69,7 +77,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		_ = pg.Terminate(ctx)
 		log.Printf("integration: falha ao obter DSN: %v", err)
-		os.Exit(1)
+		return 1
 	}
 	SharedDSN = dsn
 
@@ -79,7 +87,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		_ = pg.Terminate(ctx)
 		log.Printf("integration: falha ao subir Redis container: %v", err)
-		os.Exit(1)
+		return 1
 	}
 	SharedRedis = rd
 
@@ -88,7 +96,7 @@ func TestMain(m *testing.M) {
 		_ = rd.Terminate(ctx)
 		_ = pg.Terminate(ctx)
 		log.Printf("integration: falha ao obter Redis URL: %v", err)
-		os.Exit(1)
+		return 1
 	}
 	SharedRedisURL = redisURL
 
@@ -102,5 +110,5 @@ func TestMain(m *testing.M) {
 	if err := pg.Terminate(ctx); err != nil {
 		log.Printf("integration: teardown Postgres: %v", err)
 	}
-	os.Exit(code)
+	return code
 }

@@ -3,6 +3,7 @@ module github.com/jvzanini/laura-finance/laura-go
 go 1.26.1
 
 require (
+	github.com/getsentry/sentry-go v0.45.1
 	github.com/gofiber/fiber/v2 v2.52.12
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/jackc/pgx/v5 v5.8.0

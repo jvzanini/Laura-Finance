@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/gofiber/fiber/v2/utils"
@@ -21,6 +21,7 @@ import (
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 	"github.com/jvzanini/laura-finance/laura-go/internal/handlers"
 	"github.com/jvzanini/laura-finance/laura-go/internal/migrations"
+	"github.com/jvzanini/laura-finance/laura-go/internal/obs"
 	"github.com/jvzanini/laura-finance/laura-go/internal/services"
 	"github.com/jvzanini/laura-finance/laura-go/internal/whatsapp"
 )
@@ -46,6 +47,14 @@ func main() {
 	// Load environment variables (mostly for local development)
 	_ = godotenv.Load(".env")
 
+	// Observability: structured logger (slog).
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = os.Getenv("ENVIRONMENT")
+	}
+	logger := obs.NewLogger(appEnv)
+	slog.SetDefault(logger)
+
 	// Initialize PostgreSQL Connection
 	if err := db.ConnectDB(); err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
@@ -69,13 +78,7 @@ func main() {
 		Generator:  utils.UUIDv4,
 		ContextKey: "requestid",
 	}))
-	if os.Getenv("ENVIRONMENT") == "production" {
-		app.Use(logger.New(logger.Config{
-			Format: `{"time":"${time}","status":${status},"latency":"${latency}","method":"${method}","path":"${path}","requestid":"${locals:requestid}"}` + "\n",
-		}))
-	} else {
-		app.Use(logger.New())
-	}
+	app.Use(obs.LoggerMiddleware(logger))
 	app.Use(recover.New())
 
 	app.Get("/health", func(c *fiber.Ctx) error {

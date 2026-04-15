@@ -55,6 +55,11 @@ jobs:
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+          STRIPE_SECRET_KEY: sk_test_dummy_for_build_only_not_used
+          STRIPE_WEBHOOK_SECRET: whsec_dummy_for_build_only
+          RESEND_API_KEY: re_dummy_for_build_only
+          DATABASE_URL: postgres://dummy:dummy@localhost:5432/dummy?sslmode=disable
+          SESSION_SECRET: dummy_session_secret_only_for_build_32bytes_padding_xx
 
   vitest:
     runs-on: ubuntu-latest

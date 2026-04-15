@@ -6,6 +6,8 @@
 
 ## Histórico de atualizações
 
+- 2026-04-15: golangci-lint job CI desabilitado temporariamente (Go 1.26 incompatibilidade). Reabilitar em Fase 12+.
+
 ### 2026-04-15 — Fase 10 preparada
 
 - CI/CD Go + PWA scaffolds (go-ci, pwa-ci, playwright, security).

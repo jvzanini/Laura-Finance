@@ -6,7 +6,32 @@
 
 ## Histórico de atualizações
 
-- 2026-04-15: golangci-lint job CI desabilitado temporariamente (Go 1.26 incompatibilidade). Reabilitar em Fase 12+.
+### 2026-04-15 — Fase 11 preparada (observabilidade completa)
+
+- **slog** structured logger com handler JSON em prod + ContextHandler injeta `request_id`/`trace_id`/`span_id` automaticamente. 25 arquivos migrados (`log.Printf` → `slog.*`).
+- **Error response padronizado**: 11 códigos canônicos + helper `RespondError` + Fiber global ErrorHandler classifica erros (pgx, fiber.Error, deadline).
+- **Sentry SDK** Go (gated por `SENTRY_DSN_API`, NoOp vazio) + Fiber adapter + slog hook (Error → CaptureException, Warn → CaptureMessage) + scope enrichment (request_id/workspace_id/user_id). PWA `@sentry/nextjs` com `withSentryConfig` + source maps via CI secret.
+- **Prometheus metrics** em port `:9090` separada (não exposta pelo HTTP service principal); 12 collectors customizados (pgxpool, llm, cron, backup) + 5 endpoints com label `workspace_id` (cardinalidade controlada).
+- **OpenTelemetry tracing**: TracerProvider NoOp graceful (vazio = no-op) + otelfiber middleware + otelpgx no pgxpool + spans manuais em llm/whatsapp/cron.
+- **Health enriquecido**: `/ready` com errgroup + 3 checks paralelos (db Ping 500ms + whatsmeow + llm) + timeout global 3s. `/health` com `version`/`build_time`/`uptime_seconds` via `-ldflags`.
+- **Backup automation**: `POST /api/ops/backup` com X-Ops-Token + workflow semanal `backup-fly-pg.yml` + drill quinzenal `backup-drill.yml` (DB ephemeral `laura-drill-<sha>` + smoke 6 tabelas + destroy regex guard + Slack notify).
+- **Alertas**: 3 regras Sentry documentadas + Slack notify em failure de deploys + pool exhaustion monitor + LLM timeout >10s warn.
+- **Dashboards Grafana**: 4 stubs JSON + README de import.
+- **Runbooks**: rollback, secrets-rotation, incident-response (SEV1/2/3), error-debugging, alerts, backup, observability.
+- **STANDBYs Fase 11**: SENTRY-DSN-API, SENTRY-DSN-PWA, SENTRY-AUTH-TOKEN, SLACK-WEBHOOK, GRAFANA-CLOUD, OTEL-COLLECTOR-URL, FLY-API-TOKEN-BACKUP, PAGERDUTY (opt).
+- **Tag**: `phase-11-prepared` (local; aguarda `phase-11-deployed` pós-STANDBYs).
+- **Total commits Fase 11**: ~50.
+
+### 2026-04-15 — Sanitização git + repo público (LEI #1.2 ativada)
+
+- GitHub bloqueou Actions por billing em repo PRIVATE.
+- Audit 3-pass de segurança executado: gitleaks Pass 1 detectou GROQ_API_KEY no histórico, Pass 2 grep manual confirmou apenas placeholders no working tree, Pass 3 executou `git filter-repo --replace-text` + force push.
+- Repo tornado PÚBLICO via `gh repo edit --visibility public`.
+- Backup bundle salvo em `../laura-finance-pre-sanitize-20260415-032841.bundle`.
+- STANDBY [GROQ-REVOKE] continua ativo (chave precisa ser revogada no console Groq mesmo após sanitização).
+
+### 2026-04-15 — golangci-lint desabilitado (CI fix)
+- golangci-lint v1.64.8 (built with Go 1.24) não suporta Go 1.26. Reabilitar quando v2.x sair com suporte.
 
 ### 2026-04-15 — Fase 10 preparada
 

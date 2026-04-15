@@ -40,8 +40,11 @@ func SignedSession(t *testing.T, userID string) *http.Cookie {
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(payloadB64))
 	sigB64 := base64.StdEncoding.EncodeToString(mac.Sum(nil))
-	return &http.Cookie{
-		Name:  SessionCookieName,
-		Value: fmt.Sprintf("%s.%s", payloadB64, sigB64),
+	return &http.Cookie{ // #nosec G124 — test helper, atributos production-grade aplicados pelo handler real em session.go
+		Name:     SessionCookieName,
+		Value:    fmt.Sprintf("%s.%s", payloadB64, sigB64),
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	}
 }

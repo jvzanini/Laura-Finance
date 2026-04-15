@@ -23,3 +23,25 @@ jobs:
           flyctl postgres create --name "$EPH" --region gru --vm-size shared-cpu-1x --volume-size 10 --initial-cluster-size 1 --yes
       - name: Restore latest backup
         run: flyctl postgres backup restore --latest -a "$EPH_NAME"
+      - name: Smoke SELECT count
+        run: |
+          for tbl in users workspaces transactions categories cards goals; do
+            flyctl postgres connect -a "$EPH_NAME" -c "SELECT count(*) FROM ${tbl};" || exit 1
+          done
+      - name: Destroy ephemeral (regex guard)
+        if: always()
+        run: |
+          if [[ "$EPH_NAME" =~ ^laura-drill-[a-f0-9]{7,}$ ]]; then
+            flyctl apps destroy "$EPH_NAME" --yes
+          else
+            echo "REFUSED: app name does not match laura-drill-* pattern: $EPH_NAME"
+            exit 1
+          fi
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        with:
+          payload: |
+            {"text": "backup drill ${{ job.status }} — ${{ env.EPH_NAME }}"}

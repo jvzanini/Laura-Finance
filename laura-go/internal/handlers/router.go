@@ -52,6 +52,10 @@ func RegisterRoutes(app *fiber.App) {
 	// Ops backup endpoint — autenticado via X-Ops-Token (fora do /api/v1)
 	app.Post("/api/ops/backup", OpsBackupHandler)
 
+	// Banking sync endpoint — autenticado via X-Ops-Token (ops-only).
+	// Feature flag FEATURE_BANK_SYNC=off por default (STANDBY Fase 13).
+	app.Post("/api/v1/banking/sync", handleBankingSync)
+
 	// Endpoint dev-only para smoke test do Sentry (dispara panic capturado
 	// pelo middleware sentryfiber + recover). Nao registra em producao.
 	if os.Getenv("APP_ENV") != "production" {
@@ -117,6 +121,9 @@ func RegisterRoutes(app *fiber.App) {
 		})
 		return c.JSON(fiber.Map{"accounts": result})
 	})
+
+	// Banking — Open Finance (Fase 13 foundation).
+	api.Post("/banking/connect", handleBankingConnect)
 
 	// Opções públicas (para selects do PWA — só ativos)
 	api.Get("/options/banks", handlePublicOptions("bank_options", "sort_order, name"))

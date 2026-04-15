@@ -156,6 +156,9 @@ func handleCreateCategory(c *fiber.Ctx) error {
 		slog.Error("handleCreateCategory", "err", err)
 		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 	}
+	if err := cache.InvalidateWorkspace(c.Context(), Cache, sess.WorkspaceID, []string{"categories"}); err != nil {
+		slog.WarnContext(c.Context(), "cache_invalidate_failed", "err", err)
+	}
 	return c.Status(fiber.StatusCreated).JSON(CreateCategoryResponse{ID: catID, Success: true})
 }
 
@@ -230,6 +233,9 @@ func handleSeedCategories(c *fiber.Ctx) error {
 	if err := tx.Commit(ctx); err != nil {
 		slog.Error("handleSeedCategories (commit)", "err", err)
 		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
+	}
+	if err := cache.InvalidateWorkspace(c.Context(), Cache, sess.WorkspaceID, []string{"categories"}); err != nil {
+		slog.WarnContext(c.Context(), "cache_invalidate_failed", "err", err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"success": true})
 }

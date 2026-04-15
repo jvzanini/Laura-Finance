@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jvzanini/laura-finance/laura-go/internal/cache"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 )
 
@@ -117,6 +118,9 @@ func handleDeleteTransaction(c *fiber.Ctx) error {
 	if tag.RowsAffected() == 0 {
 		return fiber.NewError(fiber.StatusNotFound, "transação não encontrada")
 	}
+	if err := cache.InvalidateWorkspace(c.Context(), Cache, sess.WorkspaceID, []string{"dashboard", "score", "reports", "categories"}); err != nil {
+		slog.WarnContext(c.Context(), "cache_invalidate_failed", "err", err)
+	}
 	return c.JSON(fiber.Map{"success": true})
 }
 
@@ -155,6 +159,9 @@ func handleUpdateTransactionCategory(c *fiber.Ctx) error {
 	}
 	if tag.RowsAffected() == 0 {
 		return fiber.NewError(fiber.StatusNotFound, "transação não encontrada")
+	}
+	if err := cache.InvalidateWorkspace(c.Context(), Cache, sess.WorkspaceID, []string{"dashboard", "score", "reports", "categories"}); err != nil {
+		slog.WarnContext(c.Context(), "cache_invalidate_failed", "err", err)
 	}
 	return c.JSON(fiber.Map{"success": true})
 }

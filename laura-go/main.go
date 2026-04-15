@@ -81,6 +81,7 @@ func main() {
 	app.Get("/health", health.Liveness(buildVersion, startTime, buildTime))
 	app.Get("/ready", health.Readiness(health.Deps{
 		DB:               pool,
+		Whatsmeow:        whatsapp.Manager,
 		Version:          buildVersion,
 		WhatsAppDisabled: cfg.DisableWhatsApp,
 	}))

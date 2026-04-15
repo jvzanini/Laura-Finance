@@ -1,20 +1,33 @@
 //go:build integration
 
-package cache
+package cache_test
 
 import (
 	"context"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/jvzanini/laura-finance/laura-go/internal/cache"
+	"github.com/jvzanini/laura-finance/laura-go/internal/testutil"
 )
 
-func TestRedisCache_SetGet(t *testing.T) {
-	url := os.Getenv("REDIS_URL")
-	if url == "" {
-		t.Skip("REDIS_URL ausente — STANDBY [REDIS-INSTANCE]")
+// resolveRedisURL prefere o container compartilhado (testutil.SharedRedisURL)
+// mas cai para REDIS_URL do env quando executado fora do TestMain (ex: go
+// test direto neste pacote).
+func resolveRedisURL() string {
+	if testutil.SharedRedisURL != "" {
+		return testutil.SharedRedisURL
 	}
-	r, err := NewRedisCache(url)
+	return os.Getenv("REDIS_URL")
+}
+
+func TestRedisCache_SetGet(t *testing.T) {
+	url := resolveRedisURL()
+	if url == "" {
+		t.Skip("Redis indisponível — sem SharedRedisURL nem REDIS_URL")
+	}
+	r, err := cache.NewRedisCache(url)
 	if err != nil {
 		t.Fatalf("NewRedisCache: %v", err)
 	}
@@ -32,13 +45,13 @@ func TestRedisCache_SetGet(t *testing.T) {
 }
 
 func TestRedisCache_TTLExpiry(t *testing.T) {
-	url := os.Getenv("REDIS_URL")
+	url := resolveRedisURL()
 	if url == "" {
-		t.Skip("REDIS_URL ausente")
+		t.Skip("Redis indisponível")
 	}
-	r, _ := NewRedisCache(url)
+	r, _ := cache.NewRedisCache(url)
 	ctx := context.Background()
-	r.Set(ctx, "test:ttl", []byte("v"), 100*time.Millisecond)
+	_ = r.Set(ctx, "test:ttl", []byte("v"), 100*time.Millisecond)
 	time.Sleep(200 * time.Millisecond)
 	_, hit, _ := r.Get(ctx, "test:ttl")
 	if hit {

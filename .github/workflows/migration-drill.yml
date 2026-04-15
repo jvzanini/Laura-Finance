@@ -1,0 +1,67 @@
+name: Migration Rollback Drill
+
+# Valida semanalmente que todas as migrations (up + down) são
+# aplicáveis em ordem. Sobe Postgres pgvector ephemeral, aplica
+# 37 ups → 37 downs em ordem reversa → 37 ups de novo. Falha em
+# qualquer erro.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # segunda 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: laura
+          POSTGRES_PASSWORD: laura_drill
+          POSTGRES_DB: laura_drill
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U laura"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: laura_drill
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply all up.sql (pass 1)
+        run: |
+          set -e
+          for f in $(ls laura-go/internal/migrations/*.up.sql | sort); do
+            echo "UP: $f"
+            psql -h localhost -p 5432 -U laura -d laura_drill -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Apply all down.sql (reverse order)
+        run: |
+          set -e
+          for f in $(ls laura-go/internal/migrations/*.down.sql | sort -r); do
+            echo "DOWN: $f"
+            psql -h localhost -p 5432 -U laura -d laura_drill -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Apply all up.sql (pass 2 — reaplica)
+        run: |
+          set -e
+          for f in $(ls laura-go/internal/migrations/*.up.sql | sort); do
+            echo "UP-2: $f"
+            psql -h localhost -p 5432 -U laura -d laura_drill -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Notify on failure
+        if: ${{ failure() && secrets.SLACK_WEBHOOK_URL != '' }}
+        run: |
+          curl -X POST -H 'Content-Type: application/json' \
+            --data '{"text":"🚨 Migration drill falhou em laura-finance. Ver logs do workflow."}' \
+            "${{ secrets.SLACK_WEBHOOK_URL }}"

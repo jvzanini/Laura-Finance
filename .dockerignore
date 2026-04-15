@@ -1,0 +1,43 @@
+# .dockerignore raiz — usado quando build context é o repo todo.
+# Exclui artefatos que nao devem ir pra dentro do build.
+
+.git/
+.github/
+.vscode/
+.idea/
+.claude/
+node_modules/
+**/node_modules/
+**/.next/
+**/dist/
+**/build/
+**/coverage/
+**/playwright-report/
+**/test-results/
+**/*.log
+**/*.test
+**/.DS_Store
+**/Thumbs.db
+
+# Secrets (sanity)
+.env
+.env.*
+!**/.env.example
+*.pem
+*.key
+.git-secrets-to-purge.txt
+
+# Docs/dev
+docs/superpowers/
+_bmad/
+_bmad-output/
+*.md
+!laura-go/**/*.md
+
+# Backups
+infrastructure/backups/
+
+# Binaries
+laura-go/bin/
+**/*.dump
+**/*.bundle

@@ -12,11 +12,20 @@ import (
 // criticalRoutes — unico lugar onde label de cardinalidade alta
 // (workspace_id) eh permitido. Os 5 endpoints canonicos de negocio.
 var criticalRoutes = map[string]bool{
-	"/api/v1/transactions": true,
-	"/api/v1/dashboard":    true,
-	"/api/v1/score":        true,
-	"/api/v1/reports":      true,
-	"/api/v1/auth/login":   true,
+	"/api/v1/transactions":            true,
+	"/api/v1/dashboard":               true,
+	"/api/v1/score":                   true,
+	"/api/v1/reports":                 true,
+	"/api/v1/auth/login":              true,
+	"/api/v1/reports/dre":             true,
+	"/api/v1/reports/categories":      true,
+	"/api/v1/reports/subcategories":   true,
+	"/api/v1/reports/cards":           true,
+	"/api/v1/reports/payment-methods": true,
+	"/api/v1/reports/travel":          true,
+	"/api/v1/reports/comparative":     true,
+	"/api/v1/reports/trend":           true,
+	"/api/v1/reports/members":         true,
 }
 
 var workspaceHTTP = promauto.NewHistogramVec(prometheus.HistogramOpts{

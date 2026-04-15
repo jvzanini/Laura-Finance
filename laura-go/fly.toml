@@ -1,0 +1,40 @@
+# fly.toml — template de deploy do backend Go (laura-finance).
+# Renomear "app" no primeiro `fly launch` se necessário.
+app = "laura-finance"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  APP_ENV = "production"
+  PORT = "8080"
+
+# Volume persistente para sessão do whatsmeow (arquivo SQLite + assets).
+# Criar com: fly volumes create whatsmeow_data --region gru --size 1
+[mounts]
+  source = "whatsmeow_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # whatsmeow mantém socket persistente — auto_stop é best-effort.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # 1 instância fixa: whatsmeow não escala horizontalmente sem coordenação externa.
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[[vm]]
+  # 256mb é o mínimo estável para whatsmeow + pgx pool.
+  memory_mb = 256
+  cpu_kind = "shared"
+  cpus = 1

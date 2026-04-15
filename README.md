@@ -56,6 +56,16 @@ infrastructure/    Docker Compose + 34 migrations PostgreSQL
 
 ## Setup Local
 
+### Hooks de git (recomendado)
+
+Ative o pre-commit hook que roda `gitleaks` em arquivos staged:
+
+```bash
+git config core.hooksPath .githooks
+# Instale o gitleaks (opcional mas recomendado)
+brew install gitleaks   # macOS
+```
+
 ### Pre-requisitos
 
 - Docker + Docker Compose

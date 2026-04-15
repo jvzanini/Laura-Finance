@@ -1,0 +1,43 @@
+# Gitleaks config — baseado nos defaults, com allowlist para placeholders
+# conhecidos do projeto (exemplos em .env.example e fixtures de teste).
+title = "Laura Finance gitleaks config"
+
+[extend]
+# Herda todos os detectores padrão do gitleaks (secretos conhecidos).
+useDefault = true
+
+[allowlist]
+description = "Allowlist global para placeholders e fixtures de teste"
+
+paths = [
+    '''(^|/)\.env\.example$''',
+    '''(^|/).*_test\.go$''',
+    '''(^|/)tests?/fixtures/''',
+    '''(^|/)docs/.*\.md$''',
+]
+
+regexes = [
+    '''YOUR_KEY_HERE''',
+    '''YOUR_PASSWORD''',
+    '''YOUR_SECRET''',
+    '''YOUR_KEY''',
+    '''gsk_YOUR[A-Z_]*''',
+    '''sk_test_YOUR[A-Z_]*''',
+    '''sk-YOUR[A-Z_]*''',
+    '''AIza_YOUR[A-Z_]*''',
+    '''re_YOUR[A-Z_]*''',
+    '''whsec_YOUR[A-Z_]*''',
+    '''GENERATE_WITH_openssl_rand_base64_32''',
+    '''test-secret-not-real-32bytes-padding-x''',
+    '''test-fake-key''',
+    '''(?i)placeholder''',
+    '''(?i)example\.(com|org)''',
+]
+
+stopwords = [
+    "example",
+    "placeholder",
+    "dummy",
+    "fake",
+    "sample",
+]

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# pre-commit hook — checagem de segredos vazados via gitleaks.
+# Ative com: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+if command -v gitleaks >/dev/null 2>&1; then
+    echo "[pre-commit] gitleaks: verificando arquivos staged..."
+    if ! gitleaks protect --staged --redact -v --config "$(git rev-parse --show-toplevel)/.gitleaks.toml"; then
+        echo "[pre-commit] ❌ gitleaks detectou possível segredo nos arquivos staged." >&2
+        echo "[pre-commit] Corrija antes de commitar ou use --no-verify se for falso positivo justificado." >&2
+        exit 1
+    fi
+    echo "[pre-commit] ✔ gitleaks OK."
+else
+    echo "[pre-commit] ⚠ gitleaks não instalado — pulando checagem de segredos." >&2
+    echo "[pre-commit] Instale com: brew install gitleaks" >&2
+fi
+
+exit 0

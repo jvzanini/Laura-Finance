@@ -1,0 +1,8 @@
+.git
+bin/
+*.test
+Dockerfile
+.env
+.env.*
+!.env.example
+vendor/

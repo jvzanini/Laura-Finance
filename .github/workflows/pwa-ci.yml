@@ -1,0 +1,86 @@
+name: PWA CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: laura-pwa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: laura-pwa/package-lock.json
+      - run: npm ci
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: laura-pwa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: laura-pwa/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: laura-pwa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: laura-pwa/package-lock.json
+      - run: npm ci
+      - name: Next build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  vitest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: laura-pwa
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect vitest config
+        id: detect
+        run: |
+          if ls vitest.config.* >/dev/null 2>&1; then
+            echo "has_vitest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_vitest=false" >> "$GITHUB_OUTPUT"
+            echo "No vitest config found — skipping."
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.has_vitest == 'true'
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: laura-pwa/package-lock.json
+      - name: Install deps
+        if: steps.detect.outputs.has_vitest == 'true'
+        run: npm ci
+      - name: Run vitest
+        if: steps.detect.outputs.has_vitest == 'true'
+        run: npx vitest run

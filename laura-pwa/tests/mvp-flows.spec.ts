@@ -1,20 +1,56 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Laura Finance MVP End-to-End PWA Flows', () => {
-    test('User can navigate to landing and access the dashboard login', async ({ page }) => {
-        // Attempting to go to the page root
-        await page.goto('/');
+// Smoke tests — apenas verificam que rotas públicas carregam e rotas
+// protegidas redirecionam para /login quando não autenticado.
+// Fixtures de auth virão em fase posterior de E2E expandido.
 
-        // Expect the page to have standard text or components.
-        // For MVP we just assert things load instead of throwing errors.
+test.describe('Laura Finance MVP — smoke tests de rotas', () => {
+    test('landing carrega', async ({ page }) => {
+        await page.goto('/');
         expect(await page.title()).not.toBeNull();
+        const body = page.locator('body');
+        await expect(body).toBeVisible();
     });
 
-    test('User can access dashboard configurations', async ({ page }) => {
-        // Test the dashboard subpath
-        await page.goto('/settings');
-        // Ensure dashboard loads something (assuming auth bypass or mock for now)
-        const locator = page.locator('body');
-        await expect(locator).toBeVisible();
+    test.describe('rotas públicas de auth', () => {
+        const publicRoutes = ['/login', '/register', '/forgot-password'];
+
+        for (const route of publicRoutes) {
+            test(`${route} carrega`, async ({ page }) => {
+                const response = await page.goto(route);
+                // Aceita 200 ou 3xx (ex: rewrite interno do Next). Rejeita 5xx.
+                if (response) {
+                    expect(response.status()).toBeLessThan(500);
+                }
+                const body = page.locator('body');
+                await expect(body).toBeVisible();
+                // Não deve exibir overlay de erro do Next.
+                await expect(page.locator('text=/Application error|Server Error/i')).toHaveCount(0);
+            });
+        }
+    });
+
+    test.describe('rotas protegidas redirecionam para /login', () => {
+        const protectedRoutes = [
+            '/dashboard',
+            '/admin',
+            '/categories',
+            '/transactions',
+            '/cards',
+            '/goals',
+            '/investments',
+            '/invoices',
+            '/reports',
+            '/settings',
+        ];
+
+        for (const route of protectedRoutes) {
+            test(`${route} sem auth → /login`, async ({ page }) => {
+                await page.goto(route);
+                // Espera a navegação estabilizar em /login (ou variação como /login?next=...).
+                await page.waitForURL(/\/login/, { timeout: 10_000 });
+                expect(page.url()).toContain('/login');
+            });
+        }
     });
 });

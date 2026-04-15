@@ -1,0 +1,137 @@
+name: Go CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  GO_VERSION: "1.26"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: laura-go
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: laura-go/go.sum
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: laura-go
+          args: --timeout=5m
+
+  vet:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: laura-go
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: laura-go/go.sum
+      - name: go vet
+        run: go vet ./...
+
+  security:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: laura-go
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: laura-go/go.sum
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - name: Run gosec
+        run: gosec ./...
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: laura-go
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: laura
+          POSTGRES_PASSWORD: laura_test
+          POSTGRES_DB: laura_finance_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U laura -d laura_finance_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://laura:laura_test@localhost:5432/laura_finance_test?sslmode=disable
+      SESSION_SECRET: test-secret-not-real-32bytes-padding-x
+      GROQ_API_KEY: test-fake-key
+      APP_ENV: development
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: laura-go/go.sum
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U laura; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Postgres did not become ready in time" >&2
+          exit 1
+      - name: Apply migrations
+        working-directory: ${{ github.workspace }}
+        run: |
+          shopt -s nullglob
+          for f in infrastructure/migrations/*.sql; do
+            echo "Applying $f"
+            PGPASSWORD=laura_test psql -h localhost -p 5432 -U laura -d laura_finance_test -v ON_ERROR_STOP=1 -f "$f"
+          done
+      - name: Run tests with race + coverage
+        run: go test -race -coverprofile=coverage.out ./...
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: go-coverage
+          path: laura-go/coverage.out
+          retention-days: 14
+
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: laura-go
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: laura-go/go.sum
+      - name: Build
+        run: go build -o bin/laura ./

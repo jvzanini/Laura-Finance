@@ -1,0 +1,52 @@
+# golangci-lint — defaults conservadores (sem regras experimentais).
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - errcheck
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosimple
+    - revive
+
+linters-settings:
+  revive:
+    severity: warning
+    rules:
+      - name: var-declaration
+      - name: package-comments
+      - name: dot-imports
+      - name: blank-imports
+      - name: context-as-argument
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+        disabled: true
+      - name: unreachable-code
+      - name: redefines-builtin-id
+
+issues:
+  exclude-dirs:
+    - vendor
+    - bin
+    - internal/mocks
+  max-issues-per-linter: 0
+  max-same-issues: 0

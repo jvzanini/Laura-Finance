@@ -3,6 +3,17 @@
 import { assertSuperAdmin } from "@/lib/actions/admin";
 import { callLauraGo } from "@/lib/apiClient";
 import { pool } from "@/lib/db";
+import type {
+    AdminAuditLogEntry,
+    AdminOptionRow,
+    AdminWorkspaceRow,
+    AdminWriteResult,
+    JsonValue,
+    PaymentProcessorRow,
+    SubscriptionPlanRow,
+    SystemConfigRow,
+} from "@/types/admin";
+import { isLauraGoError } from "@/types/admin";
 
 // ─── System Config ───
 
@@ -11,7 +22,7 @@ export async function fetchAdminConfigAction() {
     if (!gate.ok) return { error: "Sem permissão" };
 
     try {
-        const res = await callLauraGo<{ configs: any[] }>("/api/v1/admin/config");
+        const res = await callLauraGo<{ configs: SystemConfigRow[] }>("/api/v1/admin/config");
         if (res) return { configs: res.configs };
     } catch { /* fallback */ }
 
@@ -19,7 +30,7 @@ export async function fetchAdminConfigAction() {
     return { configs: result.rows };
 }
 
-export async function updateAdminConfigAction(key: string, value: any) {
+export async function updateAdminConfigAction(key: string, value: JsonValue) {
     const gate = await assertSuperAdmin();
     if (!gate.ok) return { error: "Sem permissão" };
 
@@ -42,7 +53,7 @@ export async function fetchAdminPlansAction() {
     if (!gate.ok) return { error: "Sem permissão" };
 
     try {
-        const res = await callLauraGo<{ plans: any[] }>("/api/v1/admin/plans");
+        const res = await callLauraGo<{ plans: SubscriptionPlanRow[] }>("/api/v1/admin/plans");
         if (res) return { plans: res.plans };
     } catch { /* fallback */ }
 
@@ -57,7 +68,7 @@ export async function fetchAdminProcessorsAction() {
     if (!gate.ok) return { error: "Sem permissão" };
 
     try {
-        const res = await callLauraGo<{ processors: any[] }>("/api/v1/admin/processors");
+        const res = await callLauraGo<{ processors: PaymentProcessorRow[] }>("/api/v1/admin/processors");
         if (res) return { processors: res.processors };
     } catch { /* fallback */ }
 
@@ -80,7 +91,7 @@ async function fetchAdminOptions(goPath: string, table: string) {
     if (!gate.ok) return { error: "Sem permissão" };
 
     try {
-        const res = await callLauraGo<{ items: any[] }>(goPath);
+        const res = await callLauraGo<{ items: AdminOptionRow[] }>(goPath);
         if (res) return { items: res.items };
     } catch { /* fallback */ }
 
@@ -98,7 +109,7 @@ export async function fetchAdminCategoryTemplatesAction() {
     if (!gate.ok) return { error: "Sem permissão" };
 
     try {
-        const res = await callLauraGo<{ templates: any[] }>("/api/v1/admin/category-templates");
+        const res = await callLauraGo<{ templates: AdminOptionRow[] }>("/api/v1/admin/category-templates");
         if (res) return { templates: res.templates };
     } catch { /* fallback */ }
 
@@ -113,7 +124,7 @@ export async function fetchAdminWorkspacesAction() {
     if (!gate.ok) return { error: "Sem permissão" };
 
     try {
-        const res = await callLauraGo<{ workspaces: any[] }>("/api/v1/admin/workspaces");
+        const res = await callLauraGo<{ workspaces: AdminWorkspaceRow[] }>("/api/v1/admin/workspaces");
         if (res) return { workspaces: res.workspaces };
     } catch { /* fallback */ }
 
@@ -136,7 +147,7 @@ export async function fetchAdminAuditLogAction() {
     if (!gate.ok) return { error: "Sem permissão" };
 
     try {
-        const res = await callLauraGo<{ entries: any[] }>("/api/v1/admin/audit-log");
+        const res = await callLauraGo<{ entries: AdminAuditLogEntry[] }>("/api/v1/admin/audit-log");
         if (res) return { entries: res.entries };
     } catch { /* fallback */ }
 
@@ -158,12 +169,12 @@ export async function fetchAdminAuditLogFilteredAction(filters?: {
     search?: string;
     limit?: number;
     offset?: number;
-}): Promise<{ entries: any[]; total: number } | { error: string }> {
+}): Promise<{ entries: AdminAuditLogEntry[]; total: number } | { error: string }> {
     const gate = await assertSuperAdmin();
     if (!gate.ok) return { error: "Sem permissão" };
 
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: (string | number)[] = [];
     let idx = 1;
 
     if (filters?.action) {
@@ -219,20 +230,23 @@ export async function fetchAdminAuditLogFilteredAction(filters?: {
 async function adminWriteAction(
     goPath: string,
     method: "POST" | "PUT" | "DELETE",
-    body?: any
-): Promise<{ success?: boolean; id?: string; error?: string }> {
+    body?: Record<string, JsonValue> | undefined
+): Promise<AdminWriteResult> {
     const gate = await assertSuperAdmin();
     if (!gate.ok) return { error: "Sem permissão" };
 
     try {
         const res = await callLauraGo<{ success: boolean; id?: string }>(goPath, {
-            method: method as any,
+            method,
             body: body || undefined,
         });
         if (res) return { success: true, id: res.id };
-    } catch (err: any) {
-        if (err?.status >= 400 && err?.status < 500) {
-            return { error: err.message || "Erro de validação" };
+    } catch (err: unknown) {
+        if (isLauraGoError(err)) {
+            const status = typeof err.status === "number" ? err.status : 0;
+            if (status >= 400 && status < 500) {
+                return { error: err.message || "Erro de validação" };
+            }
         }
         console.warn("[admin:write] laura-go failed, no fallback for writes");
     }
@@ -241,15 +255,15 @@ async function adminWriteAction(
 }
 
 // Config
-export async function saveAdminConfigAction(key: string, value: any) {
+export async function saveAdminConfigAction(key: string, value: JsonValue) {
     return adminWriteAction(`/api/v1/admin/config/${key}`, "PUT", { value });
 }
 
 // Processors
-export async function createProcessorAction(data: any) {
+export async function createProcessorAction(data: Record<string, JsonValue>) {
     return adminWriteAction("/api/v1/admin/processors", "POST", data);
 }
-export async function updateProcessorAction(id: string, data: any) {
+export async function updateProcessorAction(id: string, data: Record<string, JsonValue>) {
     return adminWriteAction(`/api/v1/admin/processors/${id}`, "PUT", data);
 }
 export async function deleteProcessorAction(id: string) {
@@ -257,10 +271,10 @@ export async function deleteProcessorAction(id: string) {
 }
 
 // Category templates
-export async function createCategoryTemplateAction(data: any) {
+export async function createCategoryTemplateAction(data: Record<string, JsonValue>) {
     return adminWriteAction("/api/v1/admin/category-templates", "POST", data);
 }
-export async function updateCategoryTemplateAction(id: string, data: any) {
+export async function updateCategoryTemplateAction(id: string, data: Record<string, JsonValue>) {
     return adminWriteAction(`/api/v1/admin/category-templates/${id}`, "PUT", data);
 }
 export async function deleteCategoryTemplateAction(id: string) {
@@ -268,7 +282,7 @@ export async function deleteCategoryTemplateAction(id: string) {
 }
 
 // Generic option CRUD (banks, brands, brokers, investment-types, goal-templates)
-export async function createOptionAction(resource: string, data: any) {
+export async function createOptionAction(resource: string, data: Record<string, JsonValue>) {
     return adminWriteAction(`/api/v1/admin/${resource}`, "POST", data);
 }
 export async function toggleOptionAction(resource: string, id: string, active: boolean) {
@@ -279,7 +293,7 @@ export async function deleteOptionAction(resource: string, id: string) {
 }
 
 // Plans
-export async function updatePlanAction(slug: string, data: any) {
+export async function updatePlanAction(slug: string, data: Record<string, JsonValue>) {
     return adminWriteAction(`/api/v1/admin/plans/${slug}`, "PUT", data);
 }
 
@@ -288,8 +302,8 @@ export async function updatePlanFullAction(slug: string, data: {
     price_cents: number;
     stripe_price_id?: string;
     capabilities: Record<string, boolean>;
-    ai_model_config: Record<string, any>;
-    limits: Record<string, any>;
+    ai_model_config: Record<string, JsonValue>;
+    limits: Record<string, JsonValue>;
     features_description: string[];
     active: boolean;
 }): Promise<{ success?: boolean; error?: string }> {
@@ -389,10 +403,10 @@ export async function fetchAdminCategoryTemplatesFullAction(): Promise<{ templat
     const result = await pool.query(
         "SELECT id, name, emoji, color, description, subcategories, sort_order, active FROM category_templates ORDER BY sort_order, name"
     );
-    const templates = result.rows.map((r: any) => ({
+    const templates = result.rows.map((r: AdminCategoryTemplate & { subcategories: unknown }) => ({
         ...r,
         subcategories: typeof r.subcategories === "string" ? JSON.parse(r.subcategories) : (r.subcategories || []),
-    }));
+    })) as AdminCategoryTemplate[];
     return { templates };
 }
 

@@ -85,6 +85,8 @@ func main() {
 		WhatsAppDisabled: cfg.DisableWhatsApp,
 	}))
 
+	handlers.Cache = bootstrap.InitCache()
+
 	handlers.RegisterRoutes(app)
 
 	app.Post("/api/whatsapp/validate", func(c *fiber.Ctx) error {

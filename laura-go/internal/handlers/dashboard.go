@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jvzanini/laura-finance/laura-go/internal/cache"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 )
 
@@ -29,7 +31,19 @@ func handleCashFlow(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	key := fmt.Sprintf("ws:%s:dashboard:cashflow:%s", sess.WorkspaceID, time.Now().Format("200601"))
+	resp, err := cache.GetOrCompute[CashFlowResponse](c.Context(), Cache, key, 60*time.Second, func(ctx context.Context) (CashFlowResponse, error) {
+		return computeCashFlow(ctx, sess.WorkspaceID)
+	})
+	if err != nil {
+		slog.Error("handleCashFlow", "err", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+	}
+	return c.JSON(resp)
+}
+
+func computeCashFlow(parentCtx context.Context, workspaceID string) (CashFlowResponse, error) {
+	ctx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
 	defer cancel()
 	rows, err := db.Pool.Query(ctx,
 		`SELECT DATE(transaction_date),
@@ -41,11 +55,10 @@ func handleCashFlow(c *fiber.Ctx) error {
 		   AND EXTRACT(YEAR  FROM transaction_date) = EXTRACT(YEAR  FROM CURRENT_DATE)
 		 GROUP BY DATE(transaction_date)
 		 ORDER BY DATE(transaction_date) ASC`,
-		sess.WorkspaceID,
+		workspaceID,
 	)
 	if err != nil {
-		slog.Error("handleCashFlow", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return CashFlowResponse{}, err
 	}
 	defer rows.Close()
 
@@ -79,7 +92,7 @@ func handleCashFlow(c *fiber.Ctx) error {
 			out = append(out, CashFlowPoint{Day: key, Gastos: 0, Entradas: 0})
 		}
 	}
-	return c.JSON(CashFlowResponse{Points: out})
+	return CashFlowResponse{Points: out}, nil
 }
 
 // ============================================================================

@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
+	"github.com/jvzanini/laura-finance/laura-go/internal/obs"
 )
 
 type MemberItem struct {
@@ -26,7 +28,7 @@ type MembersResponse struct {
 func handleListMembers(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -40,7 +42,7 @@ func handleListMembers(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		slog.Error("handleListMembers", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 	}
 	defer rows.Close()
 
@@ -69,15 +71,15 @@ type CreateMemberResponse struct {
 func handleCreateMember(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	var req CreateMemberRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, err)
 	}
 	if req.Name == "" || req.PhoneNumber == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "nome e telefone são obrigatórios")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, errors.New("nome e telefone são obrigatórios"))
 	}
 	if req.Role == "" {
 		req.Role = "membro"
@@ -89,7 +91,7 @@ func handleCreateMember(c *fiber.Ctx) error {
 	var existing int
 	_ = db.Pool.QueryRow(ctx, "SELECT COUNT(*)::int FROM phones WHERE phone_number = $1 AND workspace_id = $2", req.PhoneNumber, sess.WorkspaceID).Scan(&existing)
 	if existing > 0 {
-		return fiber.NewError(fiber.StatusConflict, "telefone já cadastrado")
+		return obs.RespondError(c, obs.CodeConflict, fiber.StatusConflict, errors.New("telefone já cadastrado"))
 	}
 
 	var phoneID string
@@ -101,7 +103,7 @@ func handleCreateMember(c *fiber.Ctx) error {
 	).Scan(&phoneID)
 	if err != nil {
 		slog.Error("handleCreateMember", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateMemberResponse{ID: phoneID, Success: true})
 }
@@ -109,12 +111,12 @@ func handleCreateMember(c *fiber.Ctx) error {
 func handleDeleteMember(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	id := c.Params("id")
 	if id == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "id é obrigatório")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, errors.New("id é obrigatório"))
 	}
 
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -125,10 +127,10 @@ func handleDeleteMember(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		slog.Error("handleDeleteMember", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 	}
 	if tag.RowsAffected() == 0 {
-		return fiber.NewError(fiber.StatusNotFound, "membro não encontrado")
+		return obs.RespondError(c, obs.CodeNotFound, fiber.StatusNotFound, errors.New("membro não encontrado"))
 	}
 	return c.JSON(fiber.Map{"success": true})
 }

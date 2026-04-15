@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
+	"github.com/jvzanini/laura-finance/laura-go/internal/obs"
 )
 
 type CardItem struct {
@@ -48,15 +50,15 @@ type CreateCardResponse struct {
 func handleCreateCard(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	var req CreateCardRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, err)
 	}
 	if req.Name == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "nome do cartão é obrigatório")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, errors.New("nome do cartão é obrigatório"))
 	}
 	if req.CardType == "" {
 		req.CardType = "credito"
@@ -76,7 +78,7 @@ func handleCreateCard(c *fiber.Ctx) error {
 	).Scan(&cardID)
 	if err != nil {
 		slog.Error("handleCreateCard", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateCardResponse{ID: cardID, Success: true})
 }
@@ -84,12 +86,12 @@ func handleCreateCard(c *fiber.Ctx) error {
 func handleDeleteCard(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	id := c.Params("id")
 	if id == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "id é obrigatório")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, errors.New("id é obrigatório"))
 	}
 
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -100,10 +102,10 @@ func handleDeleteCard(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		slog.Error("handleDeleteCard", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, err)
 	}
 	if tag.RowsAffected() == 0 {
-		return fiber.NewError(fiber.StatusNotFound, "cartão não encontrado")
+		return obs.RespondError(c, obs.CodeNotFound, fiber.StatusNotFound, errors.New("cartão não encontrado"))
 	}
 	return c.JSON(fiber.Map{"success": true})
 }
@@ -111,7 +113,7 @@ func handleDeleteCard(c *fiber.Ctx) error {
 func handleListCards(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -126,7 +128,7 @@ func handleListCards(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		slog.Error("handleListCards", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, err)
 	}
 	defer rows.Close()
 

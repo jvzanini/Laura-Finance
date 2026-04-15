@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
+	"github.com/jvzanini/laura-finance/laura-go/internal/obs"
 )
 
 type GoalItem struct {
@@ -43,18 +45,18 @@ type CreateGoalResponse struct {
 func handleCreateGoal(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	var req CreateGoalRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, err)
 	}
 	if req.Name == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "nome é obrigatório")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, errors.New("nome é obrigatório"))
 	}
 	if req.TargetCents <= 0 {
-		return fiber.NewError(fiber.StatusBadRequest, "valor-alvo deve ser positivo")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, errors.New("valor-alvo deve ser positivo"))
 	}
 	if req.Emoji == "" {
 		req.Emoji = "🎯"
@@ -74,7 +76,7 @@ func handleCreateGoal(c *fiber.Ctx) error {
 	).Scan(&goalID)
 	if err != nil {
 		slog.Error("handleCreateGoal", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateGoalResponse{ID: goalID, Success: true})
 }
@@ -84,7 +86,7 @@ func handleCreateGoal(c *fiber.Ctx) error {
 func handleListGoals(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -100,7 +102,7 @@ func handleListGoals(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		slog.Error("handleListGoals", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, err)
 	}
 	defer rows.Close()
 

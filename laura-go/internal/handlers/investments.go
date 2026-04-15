@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
+	"github.com/jvzanini/laura-finance/laura-go/internal/obs"
 )
 
 type InvestmentItem struct {
@@ -47,18 +49,18 @@ type CreateInvestmentResponse struct {
 func handleCreateInvestment(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	var req CreateInvestmentRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, err)
 	}
 	if req.Name == "" || req.Broker == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "nome e broker são obrigatórios")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, errors.New("nome e broker são obrigatórios"))
 	}
 	if req.InvestedCents <= 0 {
-		return fiber.NewError(fiber.StatusBadRequest, "valor investido deve ser positivo")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, errors.New("valor investido deve ser positivo"))
 	}
 	if req.Type == "" {
 		req.Type = "Investimentos"
@@ -83,7 +85,7 @@ func handleCreateInvestment(c *fiber.Ctx) error {
 	).Scan(&invID)
 	if err != nil {
 		slog.Error("handleCreateInvestment", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, err)
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateInvestmentResponse{ID: invID, Success: true})
 }
@@ -93,7 +95,7 @@ func handleCreateInvestment(c *fiber.Ctx) error {
 func handleListInvestments(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -110,7 +112,7 @@ func handleListInvestments(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		slog.Error("handleListInvestments", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, err)
 	}
 	defer rows.Close()
 

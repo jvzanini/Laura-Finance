@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
+	"github.com/jvzanini/laura-finance/laura-go/internal/obs"
 )
 
 type SubcategoryItem struct {
@@ -35,7 +37,7 @@ type CategoriesResponse struct {
 func handleListCategories(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -50,7 +52,7 @@ func handleListCategories(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		slog.Error("handleListCategories", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 	}
 	defer catRows.Close()
 
@@ -78,7 +80,7 @@ func handleListCategories(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		slog.Error("handleListCategories (subcategories)", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 	}
 	defer subRows.Close()
 
@@ -112,15 +114,15 @@ type CreateCategoryResponse struct {
 func handleCreateCategory(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	var req CreateCategoryRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, err)
 	}
 	if req.Name == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "nome é obrigatório")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, errors.New("nome é obrigatório"))
 	}
 	if req.Emoji == "" {
 		req.Emoji = "📂"
@@ -140,7 +142,7 @@ func handleCreateCategory(c *fiber.Ctx) error {
 	).Scan(&catID)
 	if err != nil {
 		slog.Error("handleCreateCategory", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateCategoryResponse{ID: catID, Success: true})
 }
@@ -167,15 +169,15 @@ type SeedCategoriesRequest struct {
 func handleSeedCategories(c *fiber.Ctx) error {
 	sess := getSession(c)
 	if sess == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
+		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
 	var req SeedCategoriesRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "JSON inválido")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, err)
 	}
 	if len(req.Categories) == 0 {
-		return fiber.NewError(fiber.StatusBadRequest, "lista de categorias vazia")
+		return obs.RespondError(c, obs.CodeValidationFailed, fiber.StatusBadRequest, errors.New("lista de categorias vazia"))
 	}
 
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
@@ -183,7 +185,7 @@ func handleSeedCategories(c *fiber.Ctx) error {
 	tx, err := db.Pool.Begin(ctx)
 	if err != nil {
 		slog.Error("handleSeedCategories (begin)", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 	}
 	defer tx.Rollback(ctx)
 
@@ -197,7 +199,7 @@ func handleSeedCategories(c *fiber.Ctx) error {
 		).Scan(&catID)
 		if err != nil {
 			slog.Error("handleSeedCategories (insert cat)", "err", err)
-			return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+			return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 		}
 
 		for _, sub := range cat.Subcategories {
@@ -208,14 +210,14 @@ func handleSeedCategories(c *fiber.Ctx) error {
 			)
 			if err != nil {
 				slog.Error("handleSeedCategories (insert sub)", "err", err)
-				return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+				return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 			}
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
 		slog.Error("handleSeedCategories (commit)", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"success": true})
 }

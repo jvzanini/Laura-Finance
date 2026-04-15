@@ -1,25 +1,31 @@
 # syntax=docker/dockerfile:1.7
 
-# ---------- Stage 1: build ----------
 FROM golang:1.26-alpine AS build
-
 WORKDIR /src
-
-# Dependências primeiro para maximizar cache.
-COPY go.mod go.sum ./
+RUN apk add --no-cache ca-certificates git
+COPY laura-go/go.mod laura-go/go.sum ./laura-go/
+WORKDIR /src/laura-go
 RUN go mod download
-
-# Copia o resto e compila binário estático.
-COPY . .
+COPY laura-go ./
+# Copia migrations canonicas e renomeia para formato golang-migrate
+# (NNN_name.sql -> NNN_name.up.sql + NNN_name.down.sql stub).
+COPY infrastructure/migrations /tmp/migrations
+RUN mkdir -p ./internal/migrations \
+    && for f in /tmp/migrations/*.sql; do \
+         base=$(basename "$f" .sql); \
+         cp "$f" "./internal/migrations/${base}.up.sql"; \
+         : > "./internal/migrations/${base}.down.sql"; \
+       done \
+    && rm -rf /tmp/migrations
 RUN CGO_ENABLED=0 GOOS=linux go build \
+        -tags "timetzdata" \
         -ldflags="-s -w" \
         -o /out/laura ./
 
-# ---------- Stage 2: runtime ----------
 FROM gcr.io/distroless/static-debian12:nonroot
-
-COPY --from=build /out/laura /laura
-
-EXPOSE 8080
+ENV TZ=America/Sao_Paulo
+WORKDIR /app
+COPY --from=build /out/laura /app/laura
 USER nonroot:nonroot
-ENTRYPOINT ["/laura"]
+EXPOSE 8080
+ENTRYPOINT ["/app/laura"]

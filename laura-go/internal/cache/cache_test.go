@@ -48,6 +48,10 @@ func (f *fakeCache) Invalidate(ctx context.Context, pattern string) error {
 	return nil
 }
 
+func (f *fakeCache) Ping(ctx context.Context) error {
+	return nil
+}
+
 func TestGetOrCompute_Hit(t *testing.T) {
 	t.Setenv("CACHE_DISABLED", "false")
 	c := newFake()

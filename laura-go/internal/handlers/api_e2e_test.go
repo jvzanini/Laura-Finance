@@ -5,7 +5,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -122,16 +121,17 @@ func applyMigrationsAPI(t *testing.T, ctx context.Context, pool *pgxpool.Pool, d
 	}
 }
 
-// buildSessionCookie produz um cookie base64 no mesmo formato que o
-// PWA grava — permite que o middleware RequireSession valide o token
-// como se fosse uma request real do browser.
+// buildSessionCookie produz um cookie no formato base64payload.base64hmac
+// assinado com SESSION_SECRET — mesmo formato que RequireSession espera.
+// Delega a assinatura para signSessionCookie (mesmo package) para garantir
+// paridade bit-a-bit com a geração em produção.
 func buildSessionCookie(userID string) string {
 	payload := map[string]interface{}{
 		"userId": userID,
 		"exp":    time.Now().Add(24 * time.Hour).UnixMilli(),
 	}
 	raw, _ := json.Marshal(payload)
-	return base64.StdEncoding.EncodeToString(raw)
+	return signSessionCookie(raw)
 }
 
 // seedAPIWorkspace cria workspace + user (normal ou super admin)

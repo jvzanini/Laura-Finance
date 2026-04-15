@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -49,6 +50,9 @@ func ConnectDB() error {
 	if err != nil {
 		return fmt.Errorf("error parsing db config: %v", err)
 	}
+
+	// OpenTelemetry tracing em queries pgx (NoOp se TracerProvider for NoOp).
+	config.ConnConfig.Tracer = otelpgx.NewTracer()
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {

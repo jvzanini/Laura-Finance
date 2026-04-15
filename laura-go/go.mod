@@ -4,6 +4,7 @@ go 1.26.1
 
 require (
 	github.com/ansrivas/fiberprometheus/v2 v2.17.0
+	github.com/exaring/otelpgx v0.10.0
 	github.com/getsentry/sentry-go v0.45.1
 	github.com/getsentry/sentry-go/fiber v0.45.1
 	github.com/gofiber/contrib/otelfiber/v2 v2.2.3

@@ -60,7 +60,53 @@ fly logs -a laura-finance-api | jq 'select(.request_id=="abc123-...")'
 - `internal/obs/middleware.go` — `LoggerMiddleware(base)` injeta logger
   com `request_id` bound em `c.Locals("logger")` e `c.UserContext()`.
 
+## Metrics
+
+Endpoint: `:9090/metrics` (interno, nao exposto pelo Fly HTTP service).
+
+### Collectors customizados
+
+| Metrica | Tipo | Labels |
+|---|---|---|
+| `laura_pgxpool_idle_conns` | gauge | - |
+| `laura_pgxpool_total_conns` | gauge | - |
+| `laura_pgxpool_acquire_count` | gauge | - |
+| `laura_pgxpool_query_duration_seconds` | histogram | - |
+| `laura_pgxpool_errors_total` | counter | type |
+| `laura_llm_call_duration_seconds` | histogram | provider, model |
+| `laura_llm_call_errors_total` | counter | provider, reason |
+| `laura_llm_timeouts_total` | counter | provider |
+| `laura_cron_job_duration_seconds` | histogram | job |
+| `laura_backup_last_success_timestamp_seconds` | gauge | - |
+| `laura_backup_last_size_bytes` | gauge | - |
+| `laura_http_workspace_request_duration_seconds` | histogram | workspace_id, route, status |
+
+### Cardinalidade controlada
+
+`workspace_id` aparece APENAS nos 5 endpoints canonicos:
+- `/api/v1/transactions`
+- `/api/v1/dashboard`
+- `/api/v1/score`
+- `/api/v1/reports`
+- `/api/v1/auth/login`
+
+Outros endpoints contam apenas pela metrica padrao `laura_api_requests_total{path,method,status}`.
+
+### Inspecao em prod
+
+```sh
+fly ssh console -a laura-finance-api -C "wget -qO- 127.0.0.1:9090/metrics | head -40"
+```
+
+### Coleta externa (Grafana Cloud — STANDBY [GRAFANA-CLOUD])
+
+Configurar Grafana Agent com `scrape_config` apontando para
+`<machine>.internal:9090/metrics`. Ver `docs/ops/grafana-dashboards/`.
+
 ## Referencias
 
 - `laura-go/main.go` (handlers + middlewares).
-- `laura-go/fly.toml` (`[[http_service.checks]]` /health + /ready).
+- `laura-go/fly.toml` (`[[http_service.checks]]` /health + /ready, `[metrics]`).
+- `laura-go/internal/obs/metrics.go` (metricsApp Fiber :9090).
+- `laura-go/internal/obs/metrics_custom.go` (collectors custom).
+- `laura-go/internal/obs/metrics_workspace.go` (workspace label middleware).

@@ -161,23 +161,9 @@ func Readiness(deps Deps) fiber.Handler {
 		})
 
 		g.Go(func() error {
-			if deps.LLM == nil {
-				mu.Lock()
-				checks["llm_provider"] = checkResult{Status: "reachable"}
-				mu.Unlock()
-				return nil
-			}
-			cctx, ccancel := context.WithTimeout(gctx, 500*time.Millisecond)
-			defer ccancel()
-			start := time.Now()
-			if err := deps.LLM.Ping(cctx); err != nil {
-				mu.Lock()
-				checks["llm_provider"] = checkResult{Status: "unreachable"}
-				mu.Unlock()
-				return nil
-			}
+			result := llmCheck(gctx, deps.LLM, deps.LLMPingDisabled)
 			mu.Lock()
-			checks["llm_provider"] = checkResult{Status: "reachable", LatencyMs: time.Since(start).Milliseconds()}
+			checks["llm_provider"] = result
 			mu.Unlock()
 			return nil
 		})
@@ -188,7 +174,7 @@ func Readiness(deps Deps) fiber.Handler {
 		if dbErr != nil {
 			status = "fail"
 			httpStatus = 503
-		} else if checks["whatsmeow"].Status == "disconnected" {
+		} else if checks["whatsmeow"].Status == "disconnected" || checks["redis"].Status == "fail" {
 			status = "degraded"
 		}
 		return c.Status(httpStatus).JSON(fiber.Map{

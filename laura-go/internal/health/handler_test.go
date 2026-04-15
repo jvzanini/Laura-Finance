@@ -70,6 +70,24 @@ func TestReadiness_DBFails_503(t *testing.T) {
 	}
 }
 
+func TestReadiness_LLMDisabled_StillOK(t *testing.T) {
+	app := fiber.New()
+	deps := Deps{
+		DB:              &mockDB{},
+		Whatsmeow:       &mockWA{connected: true},
+		Version:         "v1",
+		LLMPingDisabled: true,
+	}
+	app.Get("/ready", Readiness(deps))
+	resp, err := app.Test(httptest.NewRequest("GET", "/ready", nil), -1)
+	if err != nil {
+		t.Fatalf("Test: %v", err)
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d, want 200", resp.StatusCode)
+	}
+}
+
 func TestReadiness_WhatsmeowOff_Degraded(t *testing.T) {
 	app := fiber.New()
 	deps := Deps{

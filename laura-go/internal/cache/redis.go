@@ -39,6 +39,11 @@ func (r *RedisCache) Set(ctx context.Context, key string, val []byte, ttl time.D
 	return r.cli.Set(ctx, key, val, ttl).Err()
 }
 
+// Ping verifica conectividade com Redis (usado em health check /ready).
+func (r *RedisCache) Ping(ctx context.Context) error {
+	return r.cli.Ping(ctx).Err()
+}
+
 func (r *RedisCache) Invalidate(ctx context.Context, pattern string) error {
 	iter := r.cli.Scan(ctx, 0, pattern, 100).Iterator()
 	for iter.Next(ctx) {

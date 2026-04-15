@@ -24,13 +24,20 @@ type LLMPinger interface {
 	Ping(ctx context.Context) error
 }
 
+// RedisPinger é a interface mínima do Redis (ou cache equivalente) para health check.
+type RedisPinger interface {
+	Ping(ctx context.Context) error
+}
+
 // Deps agrupa dependências do readiness check.
 type Deps struct {
 	DB               DBPinger
 	Whatsmeow        WhatsmeowChecker
 	LLM              LLMPinger
+	Redis            RedisPinger
 	Version          string
 	WhatsAppDisabled bool
+	LLMPingDisabled  bool
 }
 
 // Liveness retorna sempre 200 — apenas confirma processo vivo.
@@ -75,6 +82,24 @@ func Readiness(deps Deps) fiber.Handler {
 				}
 				mu.Lock()
 				checks["db"] = checkResult{Status: "ok", LatencyMs: time.Since(start).Milliseconds()}
+				mu.Unlock()
+				return nil
+			})
+		}
+
+		if deps.Redis != nil {
+			g.Go(func() error {
+				cctx, ccancel := context.WithTimeout(gctx, 500*time.Millisecond)
+				defer ccancel()
+				start := time.Now()
+				if err := deps.Redis.Ping(cctx); err != nil {
+					mu.Lock()
+					checks["redis"] = checkResult{Status: "fail"}
+					mu.Unlock()
+					return nil // não bloqueia 503
+				}
+				mu.Lock()
+				checks["redis"] = checkResult{Status: "ok", LatencyMs: time.Since(start).Milliseconds()}
 				mu.Unlock()
 				return nil
 			})

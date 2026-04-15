@@ -48,6 +48,11 @@ func (m *InMemoryCache) Set(ctx context.Context, key string, val []byte, ttl tim
 	return nil
 }
 
+// Ping é NoOp para InMemoryCache (sempre disponível).
+func (m *InMemoryCache) Ping(ctx context.Context) error {
+	return nil
+}
+
 func (m *InMemoryCache) Invalidate(ctx context.Context, pattern string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

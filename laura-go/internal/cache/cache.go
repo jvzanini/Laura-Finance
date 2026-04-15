@@ -16,6 +16,7 @@ type Cache interface {
 	Get(ctx context.Context, key string) ([]byte, bool, error)
 	Set(ctx context.Context, key string, val []byte, ttl time.Duration) error
 	Invalidate(ctx context.Context, pattern string) error
+	Ping(ctx context.Context) error
 }
 
 // sg é o singleflight.Group global para deduplicação de computes em flight.

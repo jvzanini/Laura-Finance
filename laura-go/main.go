@@ -79,14 +79,16 @@ func main() {
 	}()
 
 	app.Get("/health", health.Liveness(buildVersion, startTime, buildTime))
+	handlers.Cache = bootstrap.InitCache()
+
 	app.Get("/ready", health.Readiness(health.Deps{
 		DB:               pool,
 		Whatsmeow:        whatsapp.Manager,
+		Redis:            handlers.Cache,
 		Version:          buildVersion,
 		WhatsAppDisabled: cfg.DisableWhatsApp,
+		LLMPingDisabled:  cfg.LLMPingDisabled,
 	}))
-
-	handlers.Cache = bootstrap.InitCache()
 
 	handlers.RegisterRoutes(app)
 

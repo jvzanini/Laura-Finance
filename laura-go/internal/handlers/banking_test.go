@@ -25,6 +25,10 @@ func TestBankingConnect_NotConfigured(t *testing.T) {
 }
 
 func TestBankingConnect_Configured(t *testing.T) {
+	// Pós-Fase 14 (e96e2ad): handler faz HTTP real contra Pluggy API.
+	// Com credenciais fake o /auth retorna 401 (ErrPluggyAuthFailed → 500).
+	// O importante é que NÃO retornou 501 (que é o path "não configurado").
+	// Smoke real com credenciais válidas fica em workflow pluggy-smoke.
 	t.Setenv("PLUGGY_CLIENT_ID", "test-id")
 	t.Setenv("PLUGGY_CLIENT_SECRET", "test-secret")
 	resetPluggyClient()
@@ -36,8 +40,12 @@ func TestBankingConnect_Configured(t *testing.T) {
 	if err != nil {
 		t.Fatalf("app.Test error: %v", err)
 	}
-	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("status %d, want 200", resp.StatusCode)
+	if resp.StatusCode == fiber.StatusNotImplemented {
+		t.Fatalf("status %d: handler rejected creds as not configured", resp.StatusCode)
+	}
+	// Aceita 200 (rede real liberada) ou 500 (auth fail com creds fake).
+	if resp.StatusCode != fiber.StatusOK && resp.StatusCode != fiber.StatusInternalServerError {
+		t.Fatalf("status %d, want 200 or 500", resp.StatusCode)
 	}
 }
 

@@ -29,6 +29,25 @@ func TestInMemoryCache_LRUEviction(t *testing.T) {
 	}
 }
 
+func TestInMemoryCache_Ping(t *testing.T) {
+	c, _ := NewInMemoryCache(4)
+	if err := c.Ping(context.Background()); err != nil {
+		t.Fatalf("Ping should be no-op, got %v", err)
+	}
+}
+
+func TestInMemoryCache_GetMiss(t *testing.T) {
+	c, _ := NewInMemoryCache(4)
+	ctx := context.Background()
+	v, hit, err := c.Get(ctx, "missing")
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if hit {
+		t.Fatalf("expected miss, hit=%v v=%q", hit, v)
+	}
+}
+
 func TestInMemoryCache_InvalidatePattern(t *testing.T) {
 	c, _ := NewInMemoryCache(10)
 	ctx := context.Background()

@@ -17,3 +17,15 @@ pre-push:
   commands:
     go-test-short:
       run: cd laura-go && go test -short ./...
+
+commit-msg:
+  commands:
+    validate-scope:
+      run: |
+        MSG=$(cat {1})
+        SCOPE_PATTERN='^(feat|fix|chore|docs|test|build|refactor|ci|perf|lint|security|style|hooks)\([a-z-]+\):'
+        if ! echo "$MSG" | grep -qE "$SCOPE_PATTERN"; then
+          echo "⚠ commit-msg scope inválido. Formato: type(scope): descrição"
+          echo "Valid types: feat|fix|chore|docs|test|build|refactor|ci|perf|lint|security|style|hooks"
+          exit 1
+        fi

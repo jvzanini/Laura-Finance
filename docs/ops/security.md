@@ -133,3 +133,21 @@ Config em `laura-pwa/vercel.json`:
 3. **Abuse de API:** revisar rate limiting e logs de acesso; bloquear IP
    via Fly Edge se necessário.
 4. Documentar post-mortem em `docs/ops/incidents/YYYY-MM-DD-<slug>.md`.
+
+## Playbook: chave vazada no histórico git
+
+> Use quando uma chave foi commitada e precisa ser purgada do histórico.
+> STANDBY [GROQ-REVOKE] + STANDBY [FORCE-PUSH] aguardam usuário.
+
+1. **Usuário revoga a chave antiga** no console do provedor (Groq, OpenAI, Google, Stripe, Resend etc.).
+2. **Usuário gera nova chave** + guarda local de forma segura.
+3. **Atualizar GH Secrets:** `gh secret set <NAME>` para CI.
+4. **Atualizar Fly Secrets:** `fly secrets set <NAME>=<NEW_VALUE> -a laura-finance-api`.
+5. **Backup do repo:** `cp -R "$(pwd)" "../$(basename $(pwd))-bak-$(date +%Y%m%d)"`.
+6. **Listar secrets a expurgar:** criar `.git-secrets-to-purge.txt` na raiz com a string EXATA da chave vazada (uma por linha):
+   ```
+   gsk_VkXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   ```
+7. **Executar sanitize:** `scripts/sanitize-history.sh`.
+8. **Force push:** `git push --force --all && git push --force --tags`.
+9. **Validar histórico limpo:** `git log -p -Sgsk_ --all` deve retornar vazio. Documentar resultado em "## Histórico de incidentes" abaixo.

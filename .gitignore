@@ -50,3 +50,7 @@ laura-go/internal/migrations/*.sql
 infrastructure/backups/*.sql
 infrastructure/backups/*.dump
 !infrastructure/backups/.gitkeep
+
+# Secrets purge
+.git-secrets-to-purge.txt
+*.bundle

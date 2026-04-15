@@ -6,6 +6,22 @@
 
 ## Histórico de atualizações
 
+### 2026-04-15 — Fase 14 preparada (quality maturation + Pluggy real + PWA typing)
+
+- **PWA typing sprint 1**: 71→42 warnings (−41%). 4 arquivos tipados (adminConfig/categories/userProfile/phones). `src/types/admin.ts` centraliza types compartilhados.
+- **Testcontainers Redis + CI split**: TestMain estende com SharedRedis. CI split `test-unit` PR + `test-integration` main com `nick-fields/retry@v3` 3x 30s.
+- **Coverage Go**: 15.6% → 16.6%. Gate progressivo 15% (meta 30% Fase 15).
+- **Pluggy HTTP real**: auth cache 1h50m + double-check, 4 sentinelas `ErrPluggy*`, retry 3x backoff 200ms/500ms/1s, CreateConnectToken + FetchTransactions HTTP real. 10 testes httptest mock.
+- **ProcessMessageFlow ctx cascade**: assinatura `(ctx, workspaceID, phoneNumber, text, audioBytes, replyFunc) error`. Caller com `WithTimeout(30s)`. Span OTel `laura/workflow`.
+- **ADR 001**: golangci-lint aguarda v2.x com suporte Go 1.26.
+- **Runbooks**: LLM_LEGACY_NOCONTEXT removal schedule 2026-05-15. Migration 000036 prod apply.
+- **Workflow pluggy-smoke**: manual dispatch (sandbox/prod gated).
+- **Lefthook commit-msg**: validate-scope regex.
+- **STANDBYs Fase 14**: `[PLUGGY-CLIENT-ID]` + `[PLUGGY-CLIENT-SECRET]` (parcialmente desbloqueados via httptest).
+- **Tag**: `phase-14-prepared` @ `b6c98c8`.
+- **Total commits Fase 14**: ~25.
+- **Concerns Fase 15**: coverage 30% full via integration, PWA cleanup restante (42 warnings em admin/*), pub/sub cache cross-instance, mobile native foundation.
+
 ### 2026-04-15 — Fase 13 preparada (polish + Open Finance Foundation)
 
 - **Cache full integration**: 4 endpoints (dashboard/score/reports/categories) + invalidation hooks em mutations + helper InvalidateWorkspace + stub /banking/accounts.

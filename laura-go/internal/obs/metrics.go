@@ -10,7 +10,9 @@ import (
 // aplicado no app principal para instrumentar as rotas HTTP.
 func NewMetricsApp() (*fiber.App, *fiberprometheus.FiberPrometheus) {
 	metricsApp := fiber.New(fiber.Config{DisableStartupMessage: true})
-	prom := fiberprometheus.New("laura_api")
+	// NewWithDefaultRegistry compartilha o registry com as metricas custom
+	// definidas via promauto (pgxpool, llm, cron, backup, workspace).
+	prom := fiberprometheus.NewWithDefaultRegistry("laura_api")
 	prom.RegisterAt(metricsApp, "/metrics")
 	return metricsApp, prom
 }

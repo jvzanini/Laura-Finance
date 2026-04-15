@@ -12,6 +12,7 @@ import (
 	"github.com/jvzanini/laura-finance/laura-go/internal/services"
 	"github.com/mdp/qrterminal/v3"
 	"go.mau.fi/whatsmeow"
+	"go.opentelemetry.io/otel"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
@@ -238,9 +239,12 @@ func SendTextMessage(phoneNumber string, text string) {
 	if Client == nil {
 		return
 	}
+	ctx, span := otel.Tracer("laura/whatsapp").Start(context.Background(), "whatsapp.send_text")
+	defer span.End()
+
 	jid, err := types.ParseJID(phoneNumber + "@s.whatsapp.net")
 	if err == nil {
-		Client.SendMessage(context.Background(), jid, &waProto.Message{
+		Client.SendMessage(ctx, jid, &waProto.Message{
 			Conversation: proto.String(text),
 		})
 	}

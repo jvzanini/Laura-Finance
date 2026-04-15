@@ -2,13 +2,19 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"strings"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var llmHTTPClient = &http.Client{
@@ -38,8 +44,30 @@ func groqTranscribeAudio(model string, data []byte, filename string) (string, er
 	return openaiCompatibleTranscribe("https://api.groq.com/openai/v1/audio/transcriptions", apiKey, model, data, filename)
 }
 
+// providerFromEndpoint infere o nome do provider pela URL do endpoint.
+func providerFromEndpoint(endpoint string) string {
+	switch {
+	case strings.Contains(endpoint, "groq.com"):
+		return "groq"
+	case strings.Contains(endpoint, "openai.com"):
+		return "openai"
+	case strings.Contains(endpoint, "google") || strings.Contains(endpoint, "gemini"):
+		return "google"
+	default:
+		return "unknown"
+	}
+}
+
 // openaiCompatibleChat funciona com qualquer API que segue o formato OpenAI (Groq, OpenAI, Gemini).
 func openaiCompatibleChat(endpoint, apiKey, model string, temperature float32, systemPrompt, userMessage string) (string, error) {
+	_, span := otel.Tracer("laura/llm").Start(context.Background(), "llm.chat_completion",
+		trace.WithAttributes(
+			attribute.String("llm.provider", providerFromEndpoint(endpoint)),
+			attribute.String("llm.model", model),
+		),
+	)
+	defer span.End()
+
 	reqBody := map[string]interface{}{
 		"model":       model,
 		"temperature": temperature,
@@ -87,6 +115,14 @@ func openaiCompatibleChat(endpoint, apiKey, model string, temperature float32, s
 
 // openaiCompatibleTranscribe funciona com Groq Whisper e OpenAI Whisper.
 func openaiCompatibleTranscribe(endpoint, apiKey, model string, data []byte, filename string) (string, error) {
+	_, span := otel.Tracer("laura/llm").Start(context.Background(), "llm.transcribe",
+		trace.WithAttributes(
+			attribute.String("llm.provider", providerFromEndpoint(endpoint)),
+			attribute.String("llm.model", model),
+		),
+	)
+	defer span.End()
+
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 

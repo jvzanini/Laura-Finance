@@ -7,6 +7,7 @@ import (
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 	"github.com/robfig/cron/v3"
+	"go.opentelemetry.io/otel"
 )
 
 // StartBudgetAlertCron initializa um Cron param disparar nudges baseados em tempo
@@ -15,6 +16,8 @@ func StartBudgetAlertCron(sendMessageFunc func(to string, msg string)) {
 
 	// Every day at 20:00 (8:00 PM) server time — budget alerts
 	_, err := c.AddFunc("0 20 * * *", func() {
+		_, span := otel.Tracer("laura/cron").Start(context.Background(), "cron.run_daily_budget_check")
+		defer span.End()
 		slog.Info("[CRON] running daily budget check")
 		runDailyBudgetCheck(sendMessageFunc)
 	})
@@ -27,6 +30,8 @@ func StartBudgetAlertCron(sendMessageFunc func(to string, msg string)) {
 	// Baixo tráfego, garante que o snapshot reflete o estado "fechado" do dia anterior
 	// e alimenta o gráfico de evolução do Score Financeiro no dashboard.
 	_, err = c.AddFunc("0 3 * * *", func() {
+		_, span := otel.Tracer("laura/cron").Start(context.Background(), "cron.run_daily_score_snapshot")
+		defer span.End()
 		slog.Info("[CRON] running daily financial score snapshot")
 		runDailyScoreSnapshot()
 	})
@@ -39,6 +44,8 @@ func StartBudgetAlertCron(sendMessageFunc func(to string, msg string)) {
 	// e dispara nudges WhatsApp. Roda 15min depois do snapshot pra garantir
 	// que o dado do dia está persistido.
 	_, err = c.AddFunc("15 3 * * *", func() {
+		_, span := otel.Tracer("laura/cron").Start(context.Background(), "cron.run_daily_score_band_check")
+		defer span.End()
 		slog.Info("[CRON] running daily score band check")
 		runDailyScoreBandCheck(sendMessageFunc)
 	})

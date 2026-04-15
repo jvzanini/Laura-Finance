@@ -72,7 +72,10 @@ func handleAdminCreateWhatsAppInstance(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 
-	whatsapp.Manager.CreateInstance(id, body.Name)
+	if _, err := whatsapp.Manager.CreateInstance(id, body.Name); err != nil {
+		slog.Error("handleAdminCreateWhatsAppInstance.CreateInstance", "err", err, "id", id)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro ao criar instância")
+	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": id, "success": true})
 }
@@ -106,11 +109,16 @@ func handleAdminGetQRCode(c *fiber.Ctx) error {
 
 func handleAdminDeleteWhatsAppInstance(c *fiber.Ctx) error {
 	id := c.Params("id")
-	whatsapp.Manager.RemoveInstance(id)
+	if err := whatsapp.Manager.RemoveInstance(id); err != nil {
+		slog.Warn("handleAdminDeleteWhatsAppInstance.RemoveInstance", "err", err, "id", id)
+	}
 
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
 	defer cancel()
-	db.Pool.Exec(ctx, "DELETE FROM whatsapp_instances WHERE id = $1", id)
+	if _, err := db.Pool.Exec(ctx, "DELETE FROM whatsapp_instances WHERE id = $1", id); err != nil {
+		slog.Error("handleAdminDeleteWhatsAppInstance.Delete", "err", err, "id", id)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro ao remover instância")
+	}
 
 	return c.JSON(fiber.Map{"success": true})
 }

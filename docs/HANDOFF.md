@@ -6,6 +6,20 @@
 
 ## Histórico de atualizações
 
+### 2026-04-15 — Fase 13 preparada (polish + Open Finance Foundation)
+
+- **Cache full integration**: 4 endpoints (dashboard/score/reports/categories) + invalidation hooks em mutations + helper InvalidateWorkspace + stub /banking/accounts.
+- **ChatCompletion(ctx) propagation**: interface + 3 providers (Groq/OpenAI/Google) + helper interno + caller. Spans OTel reusam ctx. Flag rollback `LLM_LEGACY_NOCONTEXT` + wrapper `ChatCompletionLegacyAware`.
+- **Health checks reais em /ready**: db + redis (Cache Ping interface) + whatsmeow (Manager.IsConnected/LastSeen/TouchLastSeen) + llm (cache 5min, default disabled). 4 checks paralelos errgroup timeout 3s.
+- **Coverage Go**: 12.4% → 13.6% (+1.5pp). Gate progressivo 12.5%, meta 30% Fase 14.
+- **gosec config canônico**: `.gosec.yml` com G706+G101 supressos.
+- **Testcontainers pgvector** TestMain compartilhado (build tag `integration`).
+- **Open Finance Foundation**: migration 000036 (bank_accounts + bank_transactions + RLS), PluggyClient skeleton, handlers /banking/connect (501 STANDBY) + /sync (X-Ops-Token + feature flag), workflow `bank-sync.yml` cron diário, runbook open-finance.md, 12 testes PASS.
+- **STANDBYs Fase 13**: `[PLUGGY-CLIENT-ID]` + `[PLUGGY-CLIENT-SECRET]` (novos) + `[REDIS-INSTANCE]` herdado.
+- **Tag**: `phase-13-prepared` @ `6b4ac3a`.
+- **Total commits Fase 13**: ~39.
+- **Concerns Fase 14**: PWA cleanup real (27 any em adminConfig.ts), testcontainers Redis + CI split, golangci-lint v2.x, coverage→30%, Pluggy impl real, ProcessMessageFlow ctx cascade.
+
 ### 2026-04-15 — Fase 12 preparada (refactoring + performance + dívida técnica)
 
 - **main.go: 284 → 134 linhas.** Pacote `internal/bootstrap/` com 7 arquivos (db, logger, sentry, otel, metrics, cache, app), cada com test smoke. Pacote `internal/health/` com Liveness + Readiness errgroup + interfaces injetáveis.

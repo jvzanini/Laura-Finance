@@ -1,0 +1,19 @@
+# lefthook.yml — hooks canonicos Laura Finance.
+# Instalacao: brew install lefthook && lefthook install
+
+pre-commit:
+  parallel: true
+  commands:
+    gitleaks:
+      run: gitleaks protect --staged --redact --no-banner
+    golangci-lint:
+      glob: "laura-go/**/*.go"
+      run: cd laura-go && golangci-lint run --new-from-rev=HEAD~1 --timeout=2m {staged_files}
+    eslint:
+      glob: "laura-pwa/**/*.{ts,tsx,js,jsx}"
+      run: cd laura-pwa && npx eslint --fix {staged_files}
+
+pre-push:
+  commands:
+    go-test-short:
+      run: cd laura-go && go test -short ./...

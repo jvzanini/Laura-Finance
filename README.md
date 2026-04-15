@@ -56,15 +56,18 @@ infrastructure/    Docker Compose + 34 migrations PostgreSQL
 
 ## Setup Local
 
-### Hooks de git (recomendado)
+## Pre-commit hooks
 
-Ative o pre-commit hook que roda `gitleaks` em arquivos staged:
+Canonico: **lefthook**.
 
-```bash
-git config core.hooksPath .githooks
-# Instale o gitleaks (opcional mas recomendado)
-brew install gitleaks   # macOS
+```sh
+brew install lefthook
+lefthook install
 ```
+
+Hooks:
+- `pre-commit`: gitleaks protect (staged) + golangci-lint (staged Go) + eslint --fix (staged TS/JS).
+- `pre-push`: go test -short.
 
 ### Pre-requisitos
 

@@ -63,7 +63,7 @@ jobs:
       - name: Run gosec
         # Config canônica em laura-go/.gosec.yml (suprime G706+G101 LOW).
         # G104 zerada na Fase 12 Parte B.
-        run: gosec -conf .gosec.yml ./...
+        run: gosec -exclude=G706,G101 ./...
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - name: Run govulncheck

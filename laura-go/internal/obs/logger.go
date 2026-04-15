@@ -23,6 +23,11 @@ func levelFromEnv(env string) slog.Level {
 
 // NewLogger monta chain base: inner (JSON prod / Text dev) → ContextHandler.
 // SentryHandler e otelslog são aplicados em wrappers separados quando habilitados.
+//
+// NOTA: bridge otelslog NÃO é necessária — o ContextHandler já extrai
+// trace_id/span_id do span ativo em context (ver context_handler.go).
+// Se quiser exportar logs como log records OTel separadamente (não só
+// como atributos em logs JSON), adicionar otelslog em fase futura.
 func NewLogger(env string) *slog.Logger {
 	opts := &slog.HandlerOptions{Level: levelFromEnv(env)}
 	var inner slog.Handler

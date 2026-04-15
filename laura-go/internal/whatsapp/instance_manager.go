@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 	"github.com/mdp/qrterminal/v3"
@@ -43,6 +44,32 @@ var Manager = &InstanceManager{
 type InstanceManager struct {
 	instances map[string]*WhatsAppInstance
 	mu        sync.RWMutex
+	// lastSeen é atualizado em eventos Connected (health check /ready).
+	lastSeenMu sync.RWMutex
+	lastSeen   time.Time
+}
+
+// IsConnected retorna true se o Client global está conectado e logado.
+// Usado pelo health check /ready (satisfaz health.WhatsmeowChecker).
+func (m *InstanceManager) IsConnected() bool {
+	if Client == nil {
+		return false
+	}
+	return Client.IsConnected() && Client.IsLoggedIn()
+}
+
+// LastSeen retorna timestamp do último evento Connected recebido.
+func (m *InstanceManager) LastSeen() time.Time {
+	m.lastSeenMu.RLock()
+	defer m.lastSeenMu.RUnlock()
+	return m.lastSeen
+}
+
+// TouchLastSeen atualiza o timestamp para agora.
+func (m *InstanceManager) TouchLastSeen() {
+	m.lastSeenMu.Lock()
+	m.lastSeen = time.Now()
+	m.lastSeenMu.Unlock()
 }
 
 // GetInstance retorna uma instância por ID.

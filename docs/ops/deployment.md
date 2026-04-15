@@ -192,3 +192,17 @@ fly secrets set BACKUP_OPS_TOKEN="$(openssl rand -hex 32)" -a laura-finance-api
 ```
 
 STANDBYs ativam quando DSN/token forem reais.
+
+## Metadados de build (exportados via /health)
+
+### Vercel (PWA)
+- `NEXT_PUBLIC_BUILD_SHA` injetada via `VERCEL_GIT_COMMIT_SHA` no Vercel build env.
+
+### Fly.io (API)
+- Build args no Dockerfile: `--build-arg BUILD_SHA=$(git rev-parse HEAD) --build-arg BUILD_TIME=$(date -u +%FT%TZ)`.
+- Workflow `deploy-api.yml` injeta automaticamente.
+
+### Validação
+```sh
+curl https://api.laura.finance/health | jq '{version, build_time}'
+```

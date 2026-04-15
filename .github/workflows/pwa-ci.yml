@@ -60,6 +60,15 @@ jobs:
           RESEND_API_KEY: re_dummy_for_build_only
           DATABASE_URL: postgres://dummy:dummy@localhost:5432/dummy?sslmode=disable
           SESSION_SECRET: dummy_session_secret_only_for_build_32bytes_padding_xx
+          POSTGRES_USER: dummy_user
+          POSTGRES_PASSWORD: dummy_pass
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: dummy_db
+          NODE_ENV: production
+          # Marca o build como CI para skipar validacoes de runtime que
+          # so fazem sentido em prod real (lib stripe, db connect at boot, etc).
+          CI: "true"
 
   vitest:
     runs-on: ubuntu-latest

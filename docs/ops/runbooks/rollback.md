@@ -1,5 +1,7 @@
 # Runbook — Rollback
 
+> Arquitetura: [#deploy-pipeline](../../architecture.md#deploy-pipeline)
+
 > Procedimentos para reverter um deploy/migration que regrediu em produção.
 > Sempre validar com smoke tests após rollback. Documentar incidente em
 > `docs/ops/incidents/YYYY-MM-DD-<slug>.md`.

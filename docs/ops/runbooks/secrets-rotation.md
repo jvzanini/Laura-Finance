@@ -1,5 +1,7 @@
 # Runbook — Rotação de secrets
 
+> Arquitetura: [#deploy-pipeline](../../architecture.md#deploy-pipeline)
+
 > Procedimentos de rotação por secret, com pré-requisitos, passos,
 > validação e fallback. **Cadência padrão:** 90 dias routine.
 > **Cadência emergencial:** imediato em suspeita de leak (ver

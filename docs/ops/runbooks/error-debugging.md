@@ -1,5 +1,7 @@
 # Runbook — Error debugging
 
+> Arquitetura: [#fluxo-de-request](../../architecture.md#fluxo-de-request)
+
 ## Quando usar
 Usuário reporta erro específico OU Sentry alerta de issue nova e você precisa achar a causa raiz.
 

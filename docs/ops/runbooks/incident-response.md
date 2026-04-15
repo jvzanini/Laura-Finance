@@ -1,5 +1,7 @@
 # Runbook — Incident response
 
+> Arquitetura: [#fluxo-de-request](../../architecture.md#fluxo-de-request)
+
 ## Quando usar
 Incidente em produção com impacto para usuários (API down, erros 5xx em massa, DB lento, WhatsApp desconectado, LLM provider fora).
 

@@ -131,6 +131,13 @@ jobs:
           done
       - name: Run tests with race + coverage
         run: go test -race -coverprofile=coverage.out ./...
+      - name: Coverage report
+        run: |
+          go tool cover -func=coverage.out | tail -5
+          pct=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "coverage: $pct%"
+          # Soft assertion (nao falha CI por enquanto) — Fase 13 fortalece para 30%
+          awk -v v="$pct" 'BEGIN{if (v+0 < 5.0) exit 1}'
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

@@ -59,6 +59,15 @@ RESPOSTA:
   "crisis_reason": "Só tem 2000 para pagar a fatura de 6000"
 }`
 
+// nlpChatFn é o hook usado por ExtractTransactionFromText para chamar o LLM.
+// Exposto como variável para permitir injeção em testes unitários sem rede.
+// Em produção, aponta para ChatCompletionLegacyAware(provider de GetProviderForPlan).
+var nlpChatFn = func(ctx context.Context, planSlug, systemPrompt, userMessage string) (string, string, error) {
+	provider := GetProviderForPlan(planSlug)
+	content, err := ChatCompletionLegacyAware(ctx, provider, systemPrompt, userMessage)
+	return provider.ProviderName(), content, err
+}
+
 // ExtractTransactionFromText usa o LLMProvider configurado para o plano do workspace.
 // Se planSlug estiver vazio, usa o provider default (Groq Llama 70B).
 func ExtractTransactionFromText(ctx context.Context, text string, planSlug string) (string, *ParsedTransactionDef, error) {
@@ -69,11 +78,9 @@ func ExtractTransactionFromText(ctx context.Context, text string, planSlug strin
 		planSlug = "standard"
 	}
 
-	provider := GetProviderForPlan(planSlug)
-
-	rawContent, err := ChatCompletionLegacyAware(ctx, provider, nlpSystemPrompt, text)
+	providerName, rawContent, err := nlpChatFn(ctx, planSlug, nlpSystemPrompt, text)
 	if err != nil {
-		return "", nil, fmt.Errorf("LLM (%s) error: %v", provider.ProviderName(), err)
+		return "", nil, fmt.Errorf("LLM (%s) error: %v", providerName, err)
 	}
 
 	var parsed ParsedTransactionDef

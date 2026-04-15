@@ -17,6 +17,7 @@ func ScopeEnrichmentMiddleware() fiber.Handler {
 			}
 			if ws, ok := c.Locals("workspace_id").(string); ok && ws != "" {
 				hub.Scope().SetTag("workspace_id", ws)
+				hub.Scope().SetTag("tenant_id", ws) // alias workspace_id
 			}
 			if uid, ok := c.Locals("user_id").(string); ok && uid != "" {
 				hub.Scope().SetUser(sentry.User{ID: uid})

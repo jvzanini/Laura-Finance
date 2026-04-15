@@ -4,6 +4,18 @@
 > Sempre que abrir nova sessão, leia primeiro `CLAUDE.md` na raiz e
 > depois este arquivo. Atualizar a cada fase concluída.
 
+## Histórico de atualizações
+
+### 2026-04-15 — Fase 10 preparada
+
+- CI/CD Go + PWA scaffolds (go-ci, pwa-ci, playwright, security).
+- Dockerfile distroless + `-tags timetzdata` + embed migrations.
+- fly.toml single-machine + healthchecks /health + /ready.
+- Patches Go: DISABLE_WHATSAPP guard, requestid middleware, logger JSON, /ready handler. Teste regressão whatsmeow auto-upgrade.
+- lefthook canônico + `.githooks/` removido.
+- Migration 000035 validada local (já aplicada); procedimento prod em `docs/ops/migrations.md`.
+- STANDBYs ativos: GROQ-REVOKE, FORCE-PUSH, VERCEL-AUTH, VERCEL-ENV, FLY-AUTH, FLY-CARD, FLY-SECRETS, FLY-PG-CREATE, STRIPE-LIVE, RESEND-DOMAIN, DNS.
+
 ## Estado atual — 2026-04-15
 
 **Modo:** desenvolvimento autônomo iniciado em 2026-04-15.
@@ -63,17 +75,23 @@ timeout, migration 035 escrita. Pendências viraram Fase 10.
 
 ## Próximos passos imediatos do agente
 
-1. Aguardar conclusão da spec v1.
-2. Review #1 da spec (checklist LEI #1).
-3. Spec v2 → review #2 → spec v3 final.
-4. Plan v1 → v2 → v3.
-5. Implementação em paralelo de tudo que não depende de credencial:
-   - Sanitização do `.env.example`
-   - Aplicar migration 035 local
-   - Workflows CI Go + PWA expandidos
-   - E2E Playwright expandido
-   - Dockerfile Go multi-stage
-   - fly.toml + vercel.json com placeholders
-   - docs/ops/security.md + deployment.md
-6. Commit + push (mesmo sem deploy ativo).
-7. Próxima fase identificada após Fase 10 entregar.
+Fase 10 preparada — todos os artefatos internos estão prontos. A execução
+do deploy real depende das STANDBYs externas. Ordem sugerida:
+
+1. **STANDBY [GROQ-REVOKE]** — usuário revoga a chave `gsk_Vk3IAz4n...`
+   no console Groq + gera nova chave.
+2. Agente executa `scripts/sanitize-history.sh` (playbook em
+   `docs/ops/security.md` §"Playbook: chave vazada no histórico git").
+3. **STANDBY [FORCE-PUSH]** — agente force-push em `master`.
+4. **STANDBY [VERCEL-AUTH]** — usuário adiciona `VERCEL_TOKEN` nos GH
+   Secrets.
+5. **STANDBY [FLY-AUTH]** + `[FLY-CARD]` — usuário adiciona
+   `FLY_API_TOKEN` + cartão na Fly.
+6. **STANDBY [FLY-PG-CREATE]** — provisionar Fly Postgres (gru) + attach
+   em `laura-finance-api`.
+7. **STANDBY [FLY-SECRETS]** — `fly secrets set` para GROQ, OPENAI,
+   GOOGLE, STRIPE, RESEND, SESSION_SECRET.
+8. Triggers `deploy-api.yml` + `deploy-pwa.yml`.
+9. Aplicar migration 000035 em prod (ver `docs/ops/migrations.md`).
+10. Smoke prod (`/health`, `/ready`, login).
+11. Tag `phase-10-deployed` + próxima fase.

@@ -151,3 +151,20 @@ Config em `laura-pwa/vercel.json`:
 7. **Executar sanitize:** `scripts/sanitize-history.sh`.
 8. **Force push:** `git push --force --all && git push --force --tags`.
 9. **Validar histórico limpo:** `git log -p -Sgsk_ --all` deve retornar vazio. Documentar resultado em "## Histórico de incidentes" abaixo.
+
+## Histórico de incidentes
+
+### 2026-04-15 — Sanitização para repo público
+
+- **Causa:** GitHub billing bloqueou Actions em repo privado ("recent account payments have failed or your spending limit needs to be increased"). LEI #1.2 do CLAUDE.md ativada — tornar repo público após audit 3-pass.
+- **Achados Pass 1 (gitleaks):** 1 leak — `generic-api-key` em `laura-go/.env:2` commit `a13a47f7` (já removido do working tree em `bd88cfe`, mas presente no histórico git).
+- **Achados Pass 2 (grep manual):** apenas placeholders em `.env.example` (gsk_YOUR_KEY_HERE, sk-YOUR_KEY_HERE, AIza_YOUR_KEY_HERE, whsec_YOUR_SECRET, re_1234MockResendKey). Workflows sem secrets hardcoded (só `${{ secrets.* }}`).
+- **Ação:**
+  - Backup bundle criado em `../laura-finance-pre-sanitize-20260415-032841.bundle`.
+  - `git filter-repo --replace-text .git-secrets-to-purge.txt --force` purgou a string GROQ completa.
+  - Remote re-adicionado (filter-repo remove por design).
+  - `git push --force --all origin` + `--force --tags origin` — sucesso.
+  - `.git-secrets-to-purge.txt` removido.
+- **Validação pós:** `gitleaks detect` retornou `no leaks found`. `git log -p -S <key-completa>` retorna vazio.
+- **STANDBY [GROQ-REVOKE] continua ativo:** usuário precisa revogar a key no console Groq mesmo após sanitização — a key ainda é tecnicamente válida; filter-repo só removeu a exposição visual no histórico público.
+- **Repo tornado PÚBLICO** via `gh repo edit jvzanini/Laura-Finance --visibility public --accept-visibility-change-consequences`.

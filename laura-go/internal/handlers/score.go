@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jvzanini/laura-finance/laura-go/internal/cache"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 	"github.com/jvzanini/laura-finance/laura-go/internal/services"
 )
@@ -29,16 +31,24 @@ func handleCurrentScore(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
-	defer cancel()
-	f := services.ComputeScoreFactors(ctx, sess.WorkspaceID)
-	return c.JSON(ScoreFactorsResponse{
-		BillsOnTime:   f.BillsOnTime,
-		BudgetRespect: f.BudgetRespect,
-		SavingsRate:   f.SavingsRate,
-		DebtLevel:     f.DebtLevel,
-		Score:         f.Score(),
+	key := fmt.Sprintf("ws:%s:score:current", sess.WorkspaceID)
+	resp, err := cache.GetOrCompute[ScoreFactorsResponse](c.Context(), Cache, key, 300*time.Second, func(parentCtx context.Context) (ScoreFactorsResponse, error) {
+		ctx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
+		defer cancel()
+		f := services.ComputeScoreFactors(ctx, sess.WorkspaceID)
+		return ScoreFactorsResponse{
+			BillsOnTime:   f.BillsOnTime,
+			BudgetRespect: f.BudgetRespect,
+			SavingsRate:   f.SavingsRate,
+			DebtLevel:     f.DebtLevel,
+			Score:         f.Score(),
+		}, nil
 	})
+	if err != nil {
+		slog.Error("handleCurrentScore", "err", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+	}
+	return c.JSON(resp)
 }
 
 type ScoreSnapshotItem struct {

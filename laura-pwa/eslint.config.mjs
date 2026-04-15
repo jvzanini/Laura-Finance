@@ -22,10 +22,9 @@ const eslintConfig = defineConfig([
       "react-hooks/set-state-in-effect": "warn",
     },
   },
-  // Diretorios criticos da Fase 11/12 (API client + types) — no-explicit-any nao tolerado.
-  // Legado em lib/actions/ permanece warn ate Fase 13 migrar para types fortes.
+  // Fase 15 Sprint C: gate no-explicit-any em todo src/ (zero tolerancia).
   {
-    files: ["src/lib/api/**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}"],
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
     },

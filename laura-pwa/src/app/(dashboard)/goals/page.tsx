@@ -140,7 +140,7 @@ export default function GoalsPage() {
         setLoading(true);
         const res = await fetchGoalsAction();
         if (res.goals) {
-            setGoals(res.goals.map((g: Goal & { emoji?: string }) => ({ ...g, icon: g.emoji || "🎯" })) as Goal[]);
+            setGoals(res.goals.map((g) => ({ ...g, icon: (g.emoji as string | undefined) || "🎯" })) as Goal[]);
         }
         setLoading(false);
     };

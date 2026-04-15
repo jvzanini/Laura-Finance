@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"os/signal"
@@ -13,13 +14,33 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/gofiber/fiber/v2/utils"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/joho/godotenv"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 	"github.com/jvzanini/laura-finance/laura-go/internal/handlers"
+	"github.com/jvzanini/laura-finance/laura-go/internal/migrations"
 	"github.com/jvzanini/laura-finance/laura-go/internal/services"
 	"github.com/jvzanini/laura-finance/laura-go/internal/whatsapp"
 )
+
+func runMigrations(dbURL string) error {
+	src, err := migrations.Source()
+	if err != nil {
+		return err
+	}
+	m, err := migrate.NewWithSourceInstance("iofs", src, dbURL)
+	if err != nil {
+		return err
+	}
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return err
+	}
+	v, dirty, _ := m.Version()
+	log.Printf("migrations aplicadas: version=%d dirty=%v", v, dirty)
+	return nil
+}
 
 func main() {
 	// Load environment variables (mostly for local development)
@@ -31,6 +52,12 @@ func main() {
 	}
 	defer db.CloseDB()
 	log.Println("Database connection established!")
+
+	if os.Getenv("MIGRATE_ON_BOOT") == "true" {
+		if err := runMigrations(db.GetDSN()); err != nil {
+			log.Fatalf("runMigrations: %v", err)
+		}
+	}
 
 	// Initialize Fiber
 	app := fiber.New(fiber.Config{

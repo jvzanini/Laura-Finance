@@ -2,8 +2,10 @@ package obs
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -116,4 +118,34 @@ func ObservePgxQueryDuration(d time.Duration) {
 // ObserveLLMTimeout incrementa contador de timeouts LLM.
 func ObserveLLMTimeout(provider string) {
 	llmTimeouts.WithLabelValues(provider).Inc()
+}
+
+// StartPoolExhaustionMonitor checa a cada 30s se o pool está perto do limite.
+// > 90% acquired → slog.Warn + sentry.CaptureMessage.
+func StartPoolExhaustionMonitor(ctx context.Context, pool *pgxpool.Pool) {
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if pool == nil {
+					continue
+				}
+				stat := pool.Stat()
+				total := stat.TotalConns()
+				if total == 0 {
+					continue
+				}
+				acquired := stat.AcquiredConns()
+				ratio := float64(acquired) / float64(total)
+				if ratio > 0.9 {
+					slog.Warn("pgxpool_near_exhaustion", "ratio", ratio, "acquired", acquired, "total", total)
+					sentry.CaptureMessage("pgxpool near exhaustion")
+				}
+			}
+		}
+	}()
 }

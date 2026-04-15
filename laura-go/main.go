@@ -98,6 +98,7 @@ func main() {
 	pgxCtx, pgxCancel := context.WithCancel(context.Background())
 	defer pgxCancel()
 	obs.StartPgxStatsCollector(pgxCtx, db.Pool)
+	obs.StartPoolExhaustionMonitor(pgxCtx, db.Pool)
 
 	if os.Getenv("MIGRATE_ON_BOOT") == "true" {
 		if err := runMigrations(db.GetDSN()); err != nil {

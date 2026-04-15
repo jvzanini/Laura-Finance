@@ -25,3 +25,11 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./laura-pwa
           vercel-args: '--prod'
+      - name: Notify Slack on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        with:
+          payload: |
+            {"text": "deploy-pwa ${{ job.status }} — commit ${{ github.sha }}"}

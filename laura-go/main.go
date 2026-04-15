@@ -98,6 +98,15 @@ func main() {
 	app.Use(obs.ScopeEnrichmentMiddleware())
 	app.Use(recover.New())
 
+	// Metrics: Fiber separado na :9090 + middleware Prometheus no app principal.
+	metricsApp, prom := obs.NewMetricsApp()
+	app.Use(prom.Middleware)
+	go func() {
+		if err := metricsApp.Listen(":9090"); err != nil {
+			slog.Error("metrics_app_listen", "err", err)
+		}
+	}()
+
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("Laura Finance Go API is healthy!")
 	})
@@ -165,6 +174,9 @@ func main() {
 	<-c
 
 	slog.Info("[System] Gracefully shutting down...")
+	if err := metricsApp.ShutdownWithTimeout(2 * time.Second); err != nil {
+		slog.Warn("metrics_app_shutdown", "err", err)
+	}
 	if whatsapp.Client != nil {
 		whatsapp.Client.Disconnect()
 	}

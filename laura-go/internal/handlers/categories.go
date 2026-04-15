@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jvzanini/laura-finance/laura-go/internal/cache"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 	"github.com/jvzanini/laura-finance/laura-go/internal/obs"
 )
@@ -40,7 +42,19 @@ func handleListCategories(c *fiber.Ctx) error {
 		return obs.RespondError(c, obs.CodeAuthInvalidCredentials, fiber.StatusUnauthorized, errors.New("sem sessão"))
 	}
 
-	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	key := fmt.Sprintf("ws:%s:categories:list", sess.WorkspaceID)
+	resp, err := cache.GetOrCompute[CategoriesResponse](c.Context(), Cache, key, 1800*time.Second, func(parentCtx context.Context) (CategoriesResponse, error) {
+		return computeCategoriesList(parentCtx, sess.WorkspaceID)
+	})
+	if err != nil {
+		slog.Error("handleListCategories", "err", err)
+		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
+	}
+	return c.JSON(resp)
+}
+
+func computeCategoriesList(parentCtx context.Context, workspaceID string) (CategoriesResponse, error) {
+	ctx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
 	defer cancel()
 
 	catRows, err := db.Pool.Query(ctx,
@@ -48,11 +62,10 @@ func handleListCategories(c *fiber.Ctx) error {
 		 FROM categories
 		 WHERE workspace_id = $1
 		 ORDER BY name ASC`,
-		sess.WorkspaceID,
+		workspaceID,
 	)
 	if err != nil {
-		slog.Error("handleListCategories", "err", err)
-		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
+		return CategoriesResponse{}, err
 	}
 	defer catRows.Close()
 
@@ -76,11 +89,10 @@ func handleListCategories(c *fiber.Ctx) error {
 		 FROM subcategories
 		 WHERE workspace_id = $1
 		 ORDER BY name ASC`,
-		sess.WorkspaceID,
+		workspaceID,
 	)
 	if err != nil {
-		slog.Error("handleListCategories (subcategories)", "err", err)
-		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
+		return CategoriesResponse{}, err
 	}
 	defer subRows.Close()
 
@@ -95,7 +107,7 @@ func handleListCategories(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.JSON(CategoriesResponse{Categories: categories})
+	return CategoriesResponse{Categories: categories}, nil
 }
 
 type CreateCategoryRequest struct {

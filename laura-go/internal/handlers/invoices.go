@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -42,7 +42,7 @@ func handleListInvoices(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleListInvoices: %v", err)
+		slog.Error("handleListInvoices", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -111,7 +111,7 @@ func handleCreateInvoice(c *fiber.Ctx) error {
 		sess.WorkspaceID, req.CardID, monthRef, req.TotalCents, req.DueDate,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleCreateInvoice: %v", err)
+		slog.Error("handleCreateInvoice", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"success": true})
@@ -136,7 +136,7 @@ func handleMarkInvoicePaid(c *fiber.Ctx) error {
 		id, sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleMarkInvoicePaid: %v", err)
+		slog.Error("handleMarkInvoicePaid", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {

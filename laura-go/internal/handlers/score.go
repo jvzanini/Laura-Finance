@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -78,7 +78,7 @@ func handleScoreHistory(c *fiber.Ctx) error {
 		sess.WorkspaceID, limit,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleScoreHistory: %v", err)
+		slog.Error("handleScoreHistory", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()

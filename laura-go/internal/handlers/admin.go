@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -61,7 +61,7 @@ func handleAdminOverview(c *fiber.Ctx) error {
 		&resp.TransactionsThisMonth, &resp.ExpensesThisMonthCents, &resp.IncomeThisMonthCents,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminOverview: %v", err)
+		slog.Error("handleAdminOverview", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(resp)

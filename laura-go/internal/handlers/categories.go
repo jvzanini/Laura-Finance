@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -49,7 +49,7 @@ func handleListCategories(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleListCategories: %v", err)
+		slog.Error("handleListCategories", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer catRows.Close()
@@ -77,7 +77,7 @@ func handleListCategories(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleListCategories (subcategories): %v", err)
+		slog.Error("handleListCategories (subcategories)", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer subRows.Close()
@@ -139,7 +139,7 @@ func handleCreateCategory(c *fiber.Ctx) error {
 		sess.WorkspaceID, req.Name, req.MonthlyLimitCents, req.Color, req.Emoji, req.Description,
 	).Scan(&catID)
 	if err != nil {
-		log.Printf("[ERROR] handleCreateCategory: %v", err)
+		slog.Error("handleCreateCategory", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateCategoryResponse{ID: catID, Success: true})
@@ -182,7 +182,7 @@ func handleSeedCategories(c *fiber.Ctx) error {
 	defer cancel()
 	tx, err := db.Pool.Begin(ctx)
 	if err != nil {
-		log.Printf("[ERROR] handleSeedCategories (begin): %v", err)
+		slog.Error("handleSeedCategories (begin)", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer tx.Rollback(ctx)
@@ -196,7 +196,7 @@ func handleSeedCategories(c *fiber.Ctx) error {
 			sess.WorkspaceID, cat.Name, cat.MonthlyLimitCents, cat.Color, cat.Emoji, cat.Description,
 		).Scan(&catID)
 		if err != nil {
-			log.Printf("[ERROR] handleSeedCategories (insert cat): %v", err)
+			slog.Error("handleSeedCategories (insert cat)", "err", err)
 			return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 		}
 
@@ -207,14 +207,14 @@ func handleSeedCategories(c *fiber.Ctx) error {
 				sess.WorkspaceID, catID, sub.Name, sub.Emoji, sub.Description,
 			)
 			if err != nil {
-				log.Printf("[ERROR] handleSeedCategories (insert sub): %v", err)
+				slog.Error("handleSeedCategories (insert sub)", "err", err)
 				return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 			}
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		log.Printf("[ERROR] handleSeedCategories (commit): %v", err)
+		slog.Error("handleSeedCategories (commit)", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"success": true})

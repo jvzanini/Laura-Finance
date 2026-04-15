@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -69,7 +69,7 @@ func handleReportsDRE(c *fiber.Ctx) error {
 		params...,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleReportsDRE (income): %v", err)
+		slog.Error("handleReportsDRE (income)", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer incomeRows.Close()
@@ -99,7 +99,7 @@ func handleReportsDRE(c *fiber.Ctx) error {
 		params...,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleReportsDRE (expense): %v", err)
+		slog.Error("handleReportsDRE (expense)", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer expenseRows.Close()

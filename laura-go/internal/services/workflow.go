@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 )
@@ -25,11 +25,11 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 		fmt.Printf("[Background Goroutine] Detected Audio Voice. Converting via %s Whisper...\n", planSlug)
 		transcribed, err := TranscribeAudioForPlan(audioBytes, "voice.ogg", planSlug)
 		if err != nil {
-			log.Printf("[Error] Transcribing audio: %v\n", err)
+			slog.Error("[Error] transcribing audio", "err", err)
 			finalText = "[Audio Incompreensível ou Falha]"
 		} else {
 			finalText = transcribed
-			log.Printf("[Success] Transcribed Audio: %s\n", finalText)
+			slog.Info("[Success] transcribed audio", "text", finalText)
 		}
 	}
 
@@ -42,7 +42,7 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 		(finalText == "Relatório" || finalText == "relatorio" || finalText == "gráfico" || finalText == "DRE")
 
 	if isReportReq {
-		log.Println("[Report Engine] User requested a consolidated report image.")
+		slog.Info("[Report Engine] User requested a consolidated report image.")
 		chartUrl := "https://quickchart.io/chart?c={type:'bar',data:{labels:['Jan','Fev','Mar'],datasets:[{label:'Despesas',data:[4000,3200,5000]}]}}"
 		replyFunc(fmt.Sprintf("📊 *Seu DRE Visual Gerado!* \n\nAqui está o seu gráfico consolidado (Gerado dinamicamente):\n%s", chartUrl))
 		return
@@ -53,7 +53,7 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 		(finalText == "Sim Laura, prorroga" || finalText == "sim laura prorroga" || finalText == "prorroga")
 
 	if isRolloverConfirm {
-		log.Println("[Crisis Engine] User confirmed Rollover! Looking up context and persisting.")
+		slog.Info("[Crisis Engine] User confirmed Rollover! Looking up context and persisting.")
 
 		ctxCrisis := GetCrisisContext(phoneNumber)
 		if ctxCrisis == nil {
@@ -63,12 +63,12 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 
 		sim, err := SimulateRollover(ctxCrisis.WorkspaceID, ctxCrisis.CardID, ctxCrisis.InvoiceValueCts, ctxCrisis.ProcessorSlug, ctxCrisis.Installments)
 		if err != nil {
-			log.Printf("[Rollover Error] simulate: %v\n", err)
+			slog.Error("[Rollover] simulate", "err", err)
 			replyFunc("❌ Tive um problema ao re-simular a rolagem. Tente novamente em instantes.")
 			return
 		}
 		if err := PersistRollover(context.Background(), sim); err != nil {
-			log.Printf("[Rollover Error] persist: %v\n", err)
+			slog.Error("[Rollover] persist", "err", err)
 			replyFunc("❌ Tive um problema ao gravar a rolagem no banco. Tente novamente em instantes.")
 			return
 		}
@@ -91,7 +91,7 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 		logStatus := "processed"
 		if err != nil {
 			logStatus = "error"
-			log.Printf("[NLP Parsing Error]: %v\n", err)
+			slog.Error("[NLP] parsing error", "err", err)
 		} else if parsedTx != nil && parsedTx.NeedsReview {
 			logStatus = "needs_review"
 		}
@@ -112,7 +112,7 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 
 			// Epic 5 (5.1 & 5.2): Crisis Handler & Rollover Simulation
 			if parsedTx.IsCrisis {
-				log.Println("[Crisis Engine] User evoked intent of crisis/debt rollover.")
+				slog.Info("[Crisis Engine] User evoked intent of crisis/debt rollover.")
 
 				// parsedTx.Amount vem em Reais; converte para centavos (INTEGER).
 				invoiceValueCts := int(parsedTx.Amount * 100)
@@ -128,7 +128,7 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 
 				sim, err := SimulateRollover(workspaceID, nil, invoiceValueCts, processorSlug, installmentsChoice)
 				if err != nil {
-					log.Printf("[Crisis Engine Error] simulate preview: %v\n", err)
+					slog.Error("[Crisis Engine] simulate preview", "err", err)
 					replyFunc("🤔 Percebi que você pode estar em aperto, mas tive um problema ao calcular a simulação. Tente me dizer o valor novamente!")
 					return
 				}
@@ -183,10 +183,10 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 			)
 
 			if insertErr != nil {
-				log.Printf("[Transaction Insertion Error]: %v\n", insertErr)
+				slog.Error("[Transaction] insertion error", "err", insertErr)
 				replyFunc(fmt.Sprintf("❌ Ops, tive um problema ao salvar seu gasto: %s", parsedTx.Description))
 			} else {
-				log.Printf("✅ Transaction saved successfully: %s - $%.2f\n", parsedTx.Description, parsedTx.Amount)
+				slog.Info("transaction saved", "description", parsedTx.Description, "amount", parsedTx.Amount)
 
 				if parsedTx.NeedsReview || parsedTx.Confidence < 0.60 {
 					// 4.1 Desambiguação Ativa NLP

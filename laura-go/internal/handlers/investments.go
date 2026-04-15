@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -82,7 +82,7 @@ func handleCreateInvestment(c *fiber.Ctx) error {
 		sess.WorkspaceID, req.Name, req.Broker, req.Type, req.InvestedCents, currentCents, req.MonthlyContributionCents, req.Emoji,
 	).Scan(&invID)
 	if err != nil {
-		log.Printf("[ERROR] handleCreateInvestment: %v", err)
+		slog.Error("handleCreateInvestment", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateInvestmentResponse{ID: invID, Success: true})
@@ -109,7 +109,7 @@ func handleListInvestments(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleListInvestments: %v", err)
+		slog.Error("handleListInvestments", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()

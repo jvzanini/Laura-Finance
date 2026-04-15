@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -46,7 +46,7 @@ func handleListDebtRollovers(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleListDebtRollovers: %v", err)
+		slog.Error("handleListDebtRollovers", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -106,7 +106,7 @@ func handleCreateDebtRollover(c *fiber.Ctx) error {
 		req.FeePercentage, req.OperationsJSON,
 	).Scan(&id)
 	if err != nil {
-		log.Printf("[ERROR] handleCreateDebtRollover: %v", err)
+		slog.Error("handleCreateDebtRollover", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": id, "success": true})

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/mail"
 	"time"
 
@@ -95,7 +95,7 @@ func handleUpdateProfile(c *fiber.Ctx) error {
 		req.Name, req.Email, req.PhoneNumber, sess.UserID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleUpdateProfile: %v", err)
+		slog.Error("handleUpdateProfile", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
@@ -124,7 +124,7 @@ func handleUpdateSettings(c *fiber.Ctx) error {
 		string(settingsJSON), sess.UserID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleUpdateSettings: %v", err)
+		slog.Error("handleUpdateSettings", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
@@ -157,7 +157,7 @@ func handleChangePassword(c *fiber.Ctx) error {
 	var storedHash string
 	err := db.Pool.QueryRow(ctx, "SELECT password_hash FROM users WHERE id = $1", sess.UserID).Scan(&storedHash)
 	if err != nil {
-		log.Printf("[ERROR] handleChangePassword: %v", err)
+		slog.Error("handleChangePassword", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 
@@ -172,7 +172,7 @@ func handleChangePassword(c *fiber.Ctx) error {
 
 	_, err = db.Pool.Exec(ctx, "UPDATE users SET password_hash = $1 WHERE id = $2", newHash, sess.UserID)
 	if err != nil {
-		log.Printf("[ERROR] handleChangePassword (update): %v", err)
+		slog.Error("handleChangePassword (update)", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})

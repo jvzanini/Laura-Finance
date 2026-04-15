@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -73,7 +73,7 @@ func handleCreateGoal(c *fiber.Ctx) error {
 		sess.WorkspaceID, req.Name, req.Description, req.Emoji, req.TargetCents, req.Deadline, req.Color,
 	).Scan(&goalID)
 	if err != nil {
-		log.Printf("[ERROR] handleCreateGoal: %v", err)
+		slog.Error("handleCreateGoal", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateGoalResponse{ID: goalID, Success: true})
@@ -99,7 +99,7 @@ func handleListGoals(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleListGoals: %v", err)
+		slog.Error("handleListGoals", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()

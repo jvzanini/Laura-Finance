@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -75,7 +75,7 @@ func handleCreateCard(c *fiber.Ctx) error {
 		sess.WorkspaceID, req.Name, req.Brand, req.Color, req.ClosingDay, req.DueDay, req.LastFour, req.CardType, req.BankBroker, req.Holder, req.CreditLimitCents,
 	).Scan(&cardID)
 	if err != nil {
-		log.Printf("[ERROR] handleCreateCard: %v", err)
+		slog.Error("handleCreateCard", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateCardResponse{ID: cardID, Success: true})
@@ -99,7 +99,7 @@ func handleDeleteCard(c *fiber.Ctx) error {
 		id, sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleDeleteCard: %v", err)
+		slog.Error("handleDeleteCard", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {
@@ -125,7 +125,7 @@ func handleListCards(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleListCards: %v", err)
+		slog.Error("handleListCards", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()

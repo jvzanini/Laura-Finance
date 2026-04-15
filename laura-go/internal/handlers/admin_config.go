@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -32,7 +32,7 @@ func handleAdminListConfig(c *fiber.Ctx) error {
 	defer cancel()
 	rows, err := db.Pool.Query(ctx, "SELECT key, value, description FROM system_config ORDER BY key")
 	if err != nil {
-		log.Printf("[ERROR] handleAdminListConfig: %v", err)
+		slog.Error("handleAdminListConfig", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -69,7 +69,7 @@ func handleAdminUpdateConfig(c *fiber.Ctx) error {
 		mustMarshalJSON(body.Value), sess.UserID, key,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminUpdateConfig: %v", err)
+		slog.Error("handleAdminUpdateConfig", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {
@@ -89,7 +89,7 @@ func handleAdminListOptions(table string) fiber.Handler {
 		defer cancel()
 		rows, err := db.Pool.Query(ctx, "SELECT row_to_json(t) FROM "+table+" t ORDER BY sort_order, name")
 		if err != nil {
-			log.Printf("[ERROR] handleAdminListOptions(%s): %v", table, err)
+			slog.Error("handleAdminListOptions", "table", table, "err", err)
 			return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 		}
 		defer rows.Close()
@@ -132,7 +132,7 @@ func handleAdminCreateOption(table string, requiredFields []string) fiber.Handle
 				body["name"], body["slug"], body["active"], body["sort_order"],
 			).Scan(&id)
 			if err != nil {
-				log.Printf("[ERROR] handleAdminCreateOption(bank_options): %v", err)
+				slog.Error("handleAdminCreateOption(bank_options)", "err", err)
 				return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 			}
 		case "card_brand_options":
@@ -141,7 +141,7 @@ func handleAdminCreateOption(table string, requiredFields []string) fiber.Handle
 				body["name"], body["slug"], body["active"], body["sort_order"],
 			).Scan(&id)
 			if err != nil {
-				log.Printf("[ERROR] handleAdminCreateOption(card_brand_options): %v", err)
+				slog.Error("handleAdminCreateOption(card_brand_options)", "err", err)
 				return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 			}
 		case "broker_options":
@@ -150,7 +150,7 @@ func handleAdminCreateOption(table string, requiredFields []string) fiber.Handle
 				body["name"], body["slug"], body["emoji"], body["category"], body["active"], body["sort_order"],
 			).Scan(&id)
 			if err != nil {
-				log.Printf("[ERROR] handleAdminCreateOption(broker_options): %v", err)
+				slog.Error("handleAdminCreateOption(broker_options)", "err", err)
 				return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 			}
 		case "investment_type_options":
@@ -159,7 +159,7 @@ func handleAdminCreateOption(table string, requiredFields []string) fiber.Handle
 				body["name"], body["slug"], body["active"], body["sort_order"],
 			).Scan(&id)
 			if err != nil {
-				log.Printf("[ERROR] handleAdminCreateOption(investment_type_options): %v", err)
+				slog.Error("handleAdminCreateOption(investment_type_options)", "err", err)
 				return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 			}
 		case "goal_templates":
@@ -168,7 +168,7 @@ func handleAdminCreateOption(table string, requiredFields []string) fiber.Handle
 				body["name"], body["emoji"], body["description"], body["default_target_cents"], body["color"], body["sort_order"], body["active"],
 			).Scan(&id)
 			if err != nil {
-				log.Printf("[ERROR] handleAdminCreateOption(goal_templates): %v", err)
+				slog.Error("handleAdminCreateOption(goal_templates)", "err", err)
 				return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 			}
 		default:
@@ -192,7 +192,7 @@ func handleAdminDeleteOption(table string) fiber.Handler {
 		defer cancel()
 		tag, err := db.Pool.Exec(ctx, "DELETE FROM "+table+" WHERE id = $1", id)
 		if err != nil {
-			log.Printf("[ERROR] handleAdminDeleteOption(%s): %v", table, err)
+			slog.Error("handleAdminDeleteOption", "table", table, "err", err)
 			return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 		}
 		if tag.RowsAffected() == 0 {
@@ -218,7 +218,7 @@ func handleAdminToggleOption(table string) fiber.Handler {
 		defer cancel()
 		_, err := db.Pool.Exec(ctx, "UPDATE "+table+" SET active = $1 WHERE id = $2", body.Active, id)
 		if err != nil {
-			log.Printf("[ERROR] handleAdminToggleOption(%s): %v", table, err)
+			slog.Error("handleAdminToggleOption", "table", table, "err", err)
 			return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 		}
 		return c.JSON(fiber.Map{"success": true})
@@ -232,7 +232,7 @@ func handleAdminListPlans(c *fiber.Ctx) error {
 	defer cancel()
 	rows, err := db.Pool.Query(ctx, "SELECT row_to_json(t) FROM subscription_plans t ORDER BY sort_order")
 	if err != nil {
-		log.Printf("[ERROR] handleAdminListPlans: %v", err)
+		slog.Error("handleAdminListPlans", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -277,7 +277,7 @@ func handleAdminUpdatePlan(c *fiber.Ctx) error {
 		body["active"], slug,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminUpdatePlan: %v", err)
+		slog.Error("handleAdminUpdatePlan", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
@@ -298,7 +298,7 @@ func handleAdminListProcessors(c *fiber.Ctx) error {
 	defer cancel()
 	rows, err := db.Pool.Query(ctx, "SELECT row_to_json(t) FROM payment_processors t ORDER BY name")
 	if err != nil {
-		log.Printf("[ERROR] handleAdminListProcessors: %v", err)
+		slog.Error("handleAdminListProcessors", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -341,7 +341,7 @@ func handleAdminCreateProcessor(c *fiber.Ctx) error {
 		body.Name, body.Slug, string(mustMarshalJSON(body.Fees)), active,
 	).Scan(&id)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminCreateProcessor: %v", err)
+		slog.Error("handleAdminCreateProcessor", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": id, "success": true})
@@ -369,7 +369,7 @@ func handleAdminUpdateProcessor(c *fiber.Ctx) error {
 		body.Name, nullableJSON(body.Fees), body.Active, id,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminUpdateProcessor: %v", err)
+		slog.Error("handleAdminUpdateProcessor", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
@@ -381,7 +381,7 @@ func handleAdminDeleteProcessor(c *fiber.Ctx) error {
 	defer cancel()
 	tag, err := db.Pool.Exec(ctx, "DELETE FROM payment_processors WHERE id = $1", id)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminDeleteProcessor: %v", err)
+		slog.Error("handleAdminDeleteProcessor", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {
@@ -397,7 +397,7 @@ func handleAdminListCategoryTemplates(c *fiber.Ctx) error {
 	defer cancel()
 	rows, err := db.Pool.Query(ctx, "SELECT row_to_json(t) FROM category_templates t ORDER BY sort_order")
 	if err != nil {
-		log.Printf("[ERROR] handleAdminListCategoryTemplates: %v", err)
+		slog.Error("handleAdminListCategoryTemplates", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -445,7 +445,7 @@ func handleAdminCreateCategoryTemplate(c *fiber.Ctx) error {
 		string(mustMarshalJSON(body.Subcategories)), body.SortOrder,
 	).Scan(&id)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminCreateCategoryTemplate: %v", err)
+		slog.Error("handleAdminCreateCategoryTemplate", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": id, "success": true})
@@ -474,7 +474,7 @@ func handleAdminUpdateCategoryTemplate(c *fiber.Ctx) error {
 		nullableJSON(body["subcategories"]), body["sort_order"], body["active"], id,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminUpdateCategoryTemplate: %v", err)
+		slog.Error("handleAdminUpdateCategoryTemplate", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
@@ -498,7 +498,7 @@ func handleAdminListWorkspaces(c *fiber.Ctx) error {
 		 JOIN users u ON u.workspace_id = w.id AND u.role = 'proprietário'
 		 ORDER BY w.created_at DESC`)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminListWorkspaces: %v", err)
+		slog.Error("handleAdminListWorkspaces", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -543,7 +543,7 @@ func handleAdminSuspendWorkspace(c *fiber.Ctx) error {
 		body.Reason, id,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminSuspendWorkspace: %v", err)
+		slog.Error("handleAdminSuspendWorkspace", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
@@ -557,7 +557,7 @@ func handleAdminReactivateWorkspace(c *fiber.Ctx) error {
 		"UPDATE workspaces SET suspended_at = NULL, suspended_reason = NULL WHERE id = $1", id,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminReactivateWorkspace: %v", err)
+		slog.Error("handleAdminReactivateWorkspace", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
@@ -576,7 +576,7 @@ func handleAdminListAuditLog(c *fiber.Ctx) error {
 		 ORDER BY a.created_at DESC
 		 LIMIT 100`)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminListAuditLog: %v", err)
+		slog.Error("handleAdminListAuditLog", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -616,7 +616,7 @@ func handlePublicOptions(table, orderCol string) fiber.Handler {
 		rows, err := db.Pool.Query(ctx,
 			"SELECT row_to_json(t) FROM "+table+" t WHERE active = true ORDER BY "+orderCol)
 		if err != nil {
-			log.Printf("[ERROR] handlePublicOptions(%s): %v", table, err)
+			slog.Error("handlePublicOptions", "table", table, "err", err)
 			return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 		}
 		defer rows.Close()

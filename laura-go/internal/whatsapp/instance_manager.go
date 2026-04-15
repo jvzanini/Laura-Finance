@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
@@ -142,7 +142,7 @@ func (m *InstanceManager) ConnectInstance(id string) error {
 					inst.qrCode = evt.Code
 					inst.Status = "qr_pending"
 					inst.mu.Unlock()
-					log.Printf("[WhatsApp:%s] QR Code gerado", inst.Name)
+					slog.Info("[WhatsApp] QR code gerado", "instance", inst.Name)
 				} else if evt.Event == "success" {
 					inst.mu.Lock()
 					inst.Status = "connected"
@@ -152,7 +152,7 @@ func (m *InstanceManager) ConnectInstance(id string) error {
 					}
 					inst.mu.Unlock()
 					updateInstanceStatus(id, "connected")
-					log.Printf("[WhatsApp:%s] Conectado com sucesso!", inst.Name)
+					slog.Info("[WhatsApp] conectado", "instance", inst.Name)
 				}
 			}
 		}()
@@ -266,13 +266,13 @@ func instanceEventHandler(inst *WhatsAppInstance, evt interface{}) {
 		}
 		inst.mu.Unlock()
 		updateInstanceStatus(inst.ID, "connected")
-		log.Printf("[WhatsApp:%s] Conectado", inst.Name)
+		slog.Info("[WhatsApp] conectado", "instance", inst.Name)
 	case *events.Disconnected:
 		inst.mu.Lock()
 		inst.Status = "disconnected"
 		inst.mu.Unlock()
 		updateInstanceStatus(inst.ID, "disconnected")
-		log.Printf("[WhatsApp:%s] Desconectado", inst.Name)
+		slog.Warn("[WhatsApp] desconectado", "instance", inst.Name)
 	case *events.LoggedOut:
 		inst.mu.Lock()
 		inst.Status = "disconnected"
@@ -281,7 +281,7 @@ func instanceEventHandler(inst *WhatsAppInstance, evt interface{}) {
 			inst.Client.Disconnect()
 		}
 		updateInstanceStatus(inst.ID, "disconnected")
-		log.Printf("[WhatsApp:%s] Logout detectado", inst.Name)
+		slog.Warn("[WhatsApp] logout detectado", "instance", inst.Name)
 	}
 }
 
@@ -309,7 +309,7 @@ func LoadInstancesFromDB() {
 	ctx := context.Background()
 	rows, err := db.Pool.Query(ctx, "SELECT id, name, phone_number, status FROM whatsapp_instances")
 	if err != nil {
-		log.Printf("[InstanceManager] Falha ao carregar instâncias: %v", err)
+		slog.Error("[InstanceManager] Falha ao carregar instâncias", "err", err)
 		return
 	}
 	defer rows.Close()
@@ -333,5 +333,5 @@ func LoadInstancesFromDB() {
 		Manager.mu.Unlock()
 	}
 
-	log.Printf("[InstanceManager] %d instâncias carregadas do banco", len(Manager.instances))
+	slog.Info("[InstanceManager] instâncias carregadas", "count", len(Manager.instances))
 }

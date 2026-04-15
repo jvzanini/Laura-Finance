@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -71,7 +71,7 @@ func handleListTransactions(c *fiber.Ctx) error {
 		sess.WorkspaceID, limit, offset,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleListTransactions: %v", err)
+		slog.Error("handleListTransactions", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -111,7 +111,7 @@ func handleDeleteTransaction(c *fiber.Ctx) error {
 		id, sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleDeleteTransaction: %v", err)
+		slog.Error("handleDeleteTransaction", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {
@@ -150,7 +150,7 @@ func handleUpdateTransactionCategory(c *fiber.Ctx) error {
 		req.CategoryID, id, sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleUpdateTransactionCategory: %v", err)
+		slog.Error("handleUpdateTransactionCategory", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {

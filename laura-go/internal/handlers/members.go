@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -39,7 +39,7 @@ func handleListMembers(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleListMembers: %v", err)
+		slog.Error("handleListMembers", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -100,7 +100,7 @@ func handleCreateMember(c *fiber.Ctx) error {
 		sess.WorkspaceID, req.Name, req.PhoneNumber, req.Role,
 	).Scan(&phoneID)
 	if err != nil {
-		log.Printf("[ERROR] handleCreateMember: %v", err)
+		slog.Error("handleCreateMember", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.Status(fiber.StatusCreated).JSON(CreateMemberResponse{ID: phoneID, Success: true})
@@ -124,7 +124,7 @@ func handleDeleteMember(c *fiber.Ctx) error {
 		id, sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleDeleteMember: %v", err)
+		slog.Error("handleDeleteMember", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	if tag.RowsAffected() == 0 {

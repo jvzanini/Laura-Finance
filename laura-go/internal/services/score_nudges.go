@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 )
@@ -99,7 +99,7 @@ func runDailyScoreBandCheck(sendMessageFunc func(to string, msg string)) {
 
 	rows, err := db.Pool.Query(ctx, query)
 	if err != nil {
-		log.Printf("[CRON Error] score band check query: %v\n", err)
+		slog.Error("[CRON] score band check query", "err", err)
 		return
 	}
 	defer rows.Close()
@@ -131,6 +131,6 @@ func runDailyScoreBandCheck(sendMessageFunc func(to string, msg string)) {
 	}
 
 	if nudgesSent > 0 {
-		log.Printf("[CRON] Score band check: %d nudge(s) sent\n", nudgesSent)
+		slog.Info("[CRON] score band check done", "nudges_sent", nudgesSent)
 	}
 }

@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"math"
 	"sync"
 
@@ -205,7 +205,7 @@ func runDailyScoreSnapshot() {
 
 	rows, err := db.Pool.Query(ctx, `SELECT id FROM workspaces`)
 	if err != nil {
-		log.Printf("[CRON Error] listing workspaces for score snapshot: %v\n", err)
+		slog.Error("[CRON] listing workspaces for score snapshot", "err", err)
 		return
 	}
 	defer rows.Close()
@@ -218,7 +218,7 @@ func runDailyScoreSnapshot() {
 		}
 	}
 
-	log.Printf("[CRON] Computing score snapshot for %d workspaces...\n", len(workspaceIDs))
+	slog.Info("[CRON] computing score snapshot", "workspaces", len(workspaceIDs))
 	for _, wsID := range workspaceIDs {
 		f := ComputeScoreFactors(ctx, wsID)
 		score := f.Score()
@@ -235,7 +235,7 @@ func runDailyScoreSnapshot() {
 				debt_level = EXCLUDED.debt_level`,
 			wsID, score, f.BillsOnTime, f.BudgetRespect, f.SavingsRate, f.DebtLevel)
 		if err != nil {
-			log.Printf("[CRON Error] persisting score snapshot for ws %s: %v\n", wsID, err)
+			slog.Error("[CRON] persisting score snapshot", "workspace_id", wsID, "err", err)
 		}
 	}
 }

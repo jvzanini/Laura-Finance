@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -68,7 +68,7 @@ func handleReportCategories(c *fiber.Ctx) error {
 		sess.WorkspaceID, targetDate,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleReportCategories: %v", err)
+		slog.Error("handleReportCategories", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -133,7 +133,7 @@ func handleReportSubcategories(c *fiber.Ctx) error {
 		sess.WorkspaceID, targetDate,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleReportSubcategories: %v", err)
+		slog.Error("handleReportSubcategories", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -197,7 +197,7 @@ func handleReportCards(c *fiber.Ctx) error {
 		sess.WorkspaceID, targetDate,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleReportCards: %v", err)
+		slog.Error("handleReportCards", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -257,7 +257,7 @@ func handleReportPaymentMethods(c *fiber.Ctx) error {
 		sess.WorkspaceID, targetDate,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleReportPaymentMethods: %v", err)
+		slog.Error("handleReportPaymentMethods", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -318,7 +318,7 @@ func handleReportTravel(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleReportTravel: %v", err)
+		slog.Error("handleReportTravel", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -386,7 +386,7 @@ func handleReportComparative(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	).Scan(&currInc, &currExp, &prevInc, &prevExp)
 	if err != nil {
-		log.Printf("[ERROR] handleReportComparative: %v", err)
+		slog.Error("handleReportComparative", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 
@@ -460,7 +460,7 @@ func handleReportTrend(c *fiber.Ctx) error {
 		sess.WorkspaceID,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleReportTrend: %v", err)
+		slog.Error("handleReportTrend", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -537,7 +537,7 @@ func handleReportMembers(c *fiber.Ctx) error {
 		sess.WorkspaceID, targetDate,
 	)
 	if err != nil {
-		log.Printf("[ERROR] handleReportMembers: %v", err)
+		slog.Error("handleReportMembers", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()

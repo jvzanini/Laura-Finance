@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -25,7 +25,7 @@ func handleAdminListWhatsAppInstances(c *fiber.Ctx) error {
 		`SELECT id, name, COALESCE(phone_number, ''), status, webhook_url
 		 FROM whatsapp_instances ORDER BY created_at`)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminListWhatsAppInstances: %v", err)
+		slog.Error("handleAdminListWhatsAppInstances", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	defer rows.Close()
@@ -68,7 +68,7 @@ func handleAdminCreateWhatsAppInstance(c *fiber.Ctx) error {
 		body.Name, nilIfEmpty(body.WebhookURL),
 	).Scan(&id)
 	if err != nil {
-		log.Printf("[ERROR] handleAdminCreateWhatsAppInstance: %v", err)
+		slog.Error("handleAdminCreateWhatsAppInstance", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 
@@ -80,7 +80,7 @@ func handleAdminCreateWhatsAppInstance(c *fiber.Ctx) error {
 func handleAdminConnectWhatsAppInstance(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if err := whatsapp.Manager.ConnectInstance(id); err != nil {
-		log.Printf("[ERROR] handleAdminConnectWhatsAppInstance: %v", err)
+		slog.Error("handleAdminConnectWhatsAppInstance", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})
@@ -89,7 +89,7 @@ func handleAdminConnectWhatsAppInstance(c *fiber.Ctx) error {
 func handleAdminDisconnectWhatsAppInstance(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if err := whatsapp.Manager.DisconnectInstance(id); err != nil {
-		log.Printf("[ERROR] handleAdminDisconnectWhatsAppInstance: %v", err)
+		slog.Error("handleAdminDisconnectWhatsAppInstance", "err", err)
 		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
 	}
 	return c.JSON(fiber.Map{"success": true})

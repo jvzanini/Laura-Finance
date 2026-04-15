@@ -134,8 +134,10 @@ func (r *RedisCache) Start(ctx context.Context) {
 }
 
 func (r *RedisCache) runSubscriber(ctx context.Context) {
-	backoff := time.Second
+	const initialBackoff = time.Second
 	const maxBackoff = 16 * time.Second
+
+	backoff := initialBackoff
 	consecutiveFailures := 0
 
 	for {
@@ -147,8 +149,6 @@ func (r *RedisCache) runSubscriber(ctx context.Context) {
 		sub := r.cli.Subscribe(ctx, pubsubChannel)
 		ch := sub.Channel()
 		slog.Info("cache_pubsub_subscribed", "instance_id", r.instanceID, "channel", pubsubChannel)
-		backoff = time.Second
-		consecutiveFailures = 0
 
 		for msg := range ch {
 			r.handleMessage(ctx, msg.Payload)
@@ -172,6 +172,11 @@ func (r *RedisCache) runSubscriber(ctx context.Context) {
 		}
 		if backoff < maxBackoff {
 			backoff *= 2
+		} else {
+			// após reset bem-sucedido, volta para baseline (ocorre se
+			// reconectar por N vezes e depois estabilizar).
+			consecutiveFailures = 0
+			backoff = initialBackoff
 		}
 	}
 }

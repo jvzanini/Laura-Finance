@@ -15,3 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Create ephemeral DB
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          EPH="laura-drill-${SHA}"
+          echo "EPH_NAME=$EPH" >> $GITHUB_ENV
+          flyctl postgres create --name "$EPH" --region gru --vm-size shared-cpu-1x --volume-size 10 --initial-cluster-size 1 --yes
+      - name: Restore latest backup
+        run: flyctl postgres backup restore --latest -a "$EPH_NAME"

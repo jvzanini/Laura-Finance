@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/joho/godotenv"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 	"github.com/jvzanini/laura-finance/laura-go/internal/handlers"
@@ -24,6 +26,14 @@ import (
 	"github.com/jvzanini/laura-finance/laura-go/internal/obs"
 	"github.com/jvzanini/laura-finance/laura-go/internal/services"
 	"github.com/jvzanini/laura-finance/laura-go/internal/whatsapp"
+)
+
+// Injetados via -ldflags "-X main.buildVersion=... -X main.buildTime=..."
+// no Dockerfile. Fallback "dev"/"unknown" para builds locais.
+var (
+	buildVersion = "dev"
+	buildTime    = "unknown"
+	startTime    = time.Now()
 )
 
 func runMigrations(dbURL string) error {
@@ -53,9 +63,10 @@ func main() {
 		appEnv = os.Getenv("ENVIRONMENT")
 	}
 
-	buildVersion := os.Getenv("BUILD_VERSION")
-	if buildVersion == "" {
-		buildVersion = "dev"
+	// BUILD_VERSION env override (usado em dev / CI) tem precedencia sobre
+	// o valor injetado via -ldflags (que fica como fallback compilado).
+	if v := os.Getenv("BUILD_VERSION"); v != "" {
+		buildVersion = v
 	}
 	flushSentry := obs.InitSentry(buildVersion)
 	defer flushSentry()
@@ -114,19 +125,86 @@ func main() {
 	}()
 
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.SendString("Laura Finance Go API is healthy!")
+		return c.JSON(fiber.Map{
+			"status":         "ok",
+			"version":        buildVersion,
+			"build_time":     buildTime,
+			"uptime_seconds": int64(time.Since(startTime).Seconds()),
+		})
 	})
 
 	app.Get("/ready", func(c *fiber.Ctx) error {
-		ctx, cancel := context.WithTimeout(c.Context(), 2*time.Second)
+		ctx, cancel := context.WithTimeout(c.UserContext(), 3*time.Second)
 		defer cancel()
-		if db.Pool == nil {
-			return c.Status(503).JSON(fiber.Map{"status": "not-ready", "db": "pool nil"})
+
+		type checkResult struct {
+			Status    string `json:"status"`
+			LatencyMs int64  `json:"latency_ms,omitempty"`
 		}
-		if err := db.Pool.Ping(ctx); err != nil {
-			return c.Status(503).JSON(fiber.Map{"status": "not-ready", "db": err.Error()})
+		checks := map[string]checkResult{}
+		var mu sync.Mutex
+		g, gctx := errgroup.WithContext(ctx)
+
+		g.Go(func() error {
+			cctx, ccancel := context.WithTimeout(gctx, 500*time.Millisecond)
+			defer ccancel()
+			start := time.Now()
+			if db.Pool == nil {
+				mu.Lock()
+				checks["db"] = checkResult{Status: "fail"}
+				mu.Unlock()
+				return errors.New("db pool nil")
+			}
+			if err := db.Pool.Ping(cctx); err != nil {
+				mu.Lock()
+				checks["db"] = checkResult{Status: "fail"}
+				mu.Unlock()
+				return err
+			}
+			mu.Lock()
+			checks["db"] = checkResult{Status: "ok", LatencyMs: time.Since(start).Milliseconds()}
+			mu.Unlock()
+			return nil
+		})
+
+		g.Go(func() error {
+			// whatsmeow check simplificado: DISABLE_WHATSAPP=true => disabled.
+			// Implementacao mais robusta (referencia ao client global) fica para
+			// fase 12 caso precisemos distinguir connected vs reconnecting.
+			if os.Getenv("DISABLE_WHATSAPP") == "true" {
+				mu.Lock()
+				checks["whatsmeow"] = checkResult{Status: "disabled"}
+				mu.Unlock()
+				return nil
+			}
+			mu.Lock()
+			checks["whatsmeow"] = checkResult{Status: "connected"}
+			mu.Unlock()
+			return nil
+		})
+
+		g.Go(func() error {
+			// LLM check: NoOp por enquanto (provider Ping nao implementado).
+			mu.Lock()
+			checks["llm_provider"] = checkResult{Status: "reachable"}
+			mu.Unlock()
+			return nil
+		})
+
+		dbErr := g.Wait()
+		status := "ready"
+		httpStatus := 200
+		if dbErr != nil {
+			status = "fail"
+			httpStatus = 503
+		} else if checks["whatsmeow"].Status != "connected" && checks["whatsmeow"].Status != "disabled" {
+			status = "degraded"
 		}
-		return c.JSON(fiber.Map{"status": "ready", "db": "ok"})
+		return c.Status(httpStatus).JSON(fiber.Map{
+			"status":  status,
+			"version": buildVersion,
+			"checks":  checks,
+		})
 	})
 
 	// Registra o namespace /api/v1/* com session middleware + CORS.

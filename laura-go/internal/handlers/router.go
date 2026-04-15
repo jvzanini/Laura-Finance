@@ -46,6 +46,9 @@ func RegisterRoutes(app *fiber.App) {
 		return c.JSON(fiber.Map{"status": "ok", "service": "laura-go"})
 	})
 
+	// Ops backup endpoint — autenticado via X-Ops-Token (fora do /api/v1)
+	app.Post("/api/ops/backup", OpsBackupHandler)
+
 	// Endpoint dev-only para smoke test do Sentry (dispara panic capturado
 	// pelo middleware sentryfiber + recover). Nao registra em producao.
 	if os.Getenv("APP_ENV") != "production" {

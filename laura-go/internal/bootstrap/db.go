@@ -29,6 +29,9 @@ type Config struct {
 	PgMaxConnLifetime   time.Duration
 	PgMaxConnIdleTime   time.Duration
 	PgHealthCheckPeriod time.Duration
+	// LLMLegacyNoContext força ChatCompletion a descartar ctx propagado
+	// (fallback rollback Fase 13 — remover após validação prod T+30d).
+	LLMLegacyNoContext bool
 }
 
 // LoadConfig reads env vars and returns Config with defaults applied.
@@ -55,6 +58,7 @@ func LoadConfig() Config {
 		PgMaxConnLifetime:   envDuration("PG_MAX_CONN_LIFETIME", 30*time.Minute),
 		PgMaxConnIdleTime:   envDuration("PG_MAX_CONN_IDLE_TIME", 5*time.Minute),
 		PgHealthCheckPeriod: envDuration("PG_HEALTH_CHECK_PERIOD", 1*time.Minute),
+		LLMLegacyNoContext:  os.Getenv("LLM_LEGACY_NOCONTEXT") == "true",
 	}
 }
 

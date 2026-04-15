@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/jvzanini/laura-finance/laura-go/internal/obs"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -60,13 +62,22 @@ func providerFromEndpoint(endpoint string) string {
 
 // openaiCompatibleChat funciona com qualquer API que segue o formato OpenAI (Groq, OpenAI, Gemini).
 func openaiCompatibleChat(endpoint, apiKey, model string, temperature float32, systemPrompt, userMessage string) (string, error) {
+	provider := providerFromEndpoint(endpoint)
+	start := time.Now()
 	_, span := otel.Tracer("laura/llm").Start(context.Background(), "llm.chat_completion",
 		trace.WithAttributes(
-			attribute.String("llm.provider", providerFromEndpoint(endpoint)),
+			attribute.String("llm.provider", provider),
 			attribute.String("llm.model", model),
 		),
 	)
-	defer span.End()
+	defer func() {
+		duration := time.Since(start)
+		if duration > 10*time.Second {
+			slog.Warn("llm_timeout_slow", "provider", provider, "duration_ms", duration.Milliseconds())
+			obs.ObserveLLMTimeout(provider)
+		}
+		span.End()
+	}()
 
 	reqBody := map[string]interface{}{
 		"model":       model,
@@ -115,13 +126,22 @@ func openaiCompatibleChat(endpoint, apiKey, model string, temperature float32, s
 
 // openaiCompatibleTranscribe funciona com Groq Whisper e OpenAI Whisper.
 func openaiCompatibleTranscribe(endpoint, apiKey, model string, data []byte, filename string) (string, error) {
+	provider := providerFromEndpoint(endpoint)
+	start := time.Now()
 	_, span := otel.Tracer("laura/llm").Start(context.Background(), "llm.transcribe",
 		trace.WithAttributes(
-			attribute.String("llm.provider", providerFromEndpoint(endpoint)),
+			attribute.String("llm.provider", provider),
 			attribute.String("llm.model", model),
 		),
 	)
-	defer span.End()
+	defer func() {
+		duration := time.Since(start)
+		if duration > 10*time.Second {
+			slog.Warn("llm_timeout_slow", "provider", provider, "duration_ms", duration.Milliseconds())
+			obs.ObserveLLMTimeout(provider)
+		}
+		span.End()
+	}()
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)

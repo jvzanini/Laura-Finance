@@ -6,10 +6,23 @@ import (
 	"log/slog"
 
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
-// ProcessMessageFlow processes raw text or audio coming from Whatsmeow into structured Transaction
-func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, audioBytes []byte, replyFunc func(string)) {
+// ProcessMessageFlow processes raw text or audio coming from Whatsmeow
+// into structured Transaction. Recebe ctx do chamador para permitir
+// deadline/cancelamento e propagação de span OTel.
+func ProcessMessageFlow(ctx context.Context, workspaceID string, phoneNumber string, text string, audioBytes []byte, replyFunc func(string)) error {
+	ctx, span := otel.Tracer("laura/workflow").Start(ctx, "process_message_flow",
+		trace.WithAttributes(
+			attribute.String("workspace_id", workspaceID),
+			attribute.String("phone_number", phoneNumber),
+			attribute.Bool("has_audio", len(audioBytes) > 0),
+		))
+	defer span.End()
+
 	// Resolver plano do workspace para usar o provider correto
 	planSlug := GetWorkspacePlanSlug(workspaceID)
 	caps := GetPlanCapabilities(planSlug)
@@ -20,21 +33,21 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 	if len(audioBytes) > 0 {
 		if !caps.Audio {
 			replyFunc("Seu plano atual nao suporta mensagens de audio. Envie por texto ou faca upgrade para o plano VIP.")
-			return
+			return nil
 		}
 		fmt.Printf("[Background Goroutine] Detected Audio Voice. Converting via %s Whisper...\n", planSlug)
 		transcribed, err := TranscribeAudioForPlan(audioBytes, "voice.ogg", planSlug)
 		if err != nil {
-			slog.Error("[Error] transcribing audio", "err", err)
+			slog.ErrorContext(ctx, "[Error] transcribing audio", "err", err)
 			finalText = "[Audio Incompreensível ou Falha]"
 		} else {
 			finalText = transcribed
-			slog.Info("[Success] transcribed audio", "text", finalText)
+			slog.InfoContext(ctx, "[Success] transcribed audio", "text", finalText)
 		}
 	}
 
 	if finalText == "" || finalText == "[Audio Incompreensível ou Falha]" {
-		return
+		return nil
 	}
 
 	// 6.1 Report Generation Intent (Simplex NLP Rule check)
@@ -42,10 +55,10 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 		(finalText == "Relatório" || finalText == "relatorio" || finalText == "gráfico" || finalText == "DRE")
 
 	if isReportReq {
-		slog.Info("[Report Engine] User requested a consolidated report image.")
+		slog.InfoContext(ctx, "[Report Engine] User requested a consolidated report image.")
 		chartUrl := "https://quickchart.io/chart?c={type:'bar',data:{labels:['Jan','Fev','Mar'],datasets:[{label:'Despesas',data:[4000,3200,5000]}]}}"
 		replyFunc(fmt.Sprintf("📊 *Seu DRE Visual Gerado!* \n\nAqui está o seu gráfico consolidado (Gerado dinamicamente):\n%s", chartUrl))
-		return
+		return nil
 	}
 
 	// 5.3 Rollover Confirmation (Simplex NLP Rule check)
@@ -53,24 +66,24 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 		(finalText == "Sim Laura, prorroga" || finalText == "sim laura prorroga" || finalText == "prorroga")
 
 	if isRolloverConfirm {
-		slog.Info("[Crisis Engine] User confirmed Rollover! Looking up context and persisting.")
+		slog.InfoContext(ctx, "[Crisis Engine] User confirmed Rollover! Looking up context and persisting.")
 
 		ctxCrisis := GetCrisisContext(phoneNumber)
 		if ctxCrisis == nil {
 			replyFunc("🤔 Não encontrei uma simulação de rolagem ativa pra você no momento. Me conte primeiro o valor que está em aperto que eu calculo as opções!")
-			return
+			return nil
 		}
 
 		sim, err := SimulateRollover(ctxCrisis.WorkspaceID, ctxCrisis.CardID, ctxCrisis.InvoiceValueCts, ctxCrisis.ProcessorSlug, ctxCrisis.Installments)
 		if err != nil {
-			slog.Error("[Rollover] simulate", "err", err)
+			slog.ErrorContext(ctx, "[Rollover] simulate", "err", err)
 			replyFunc("❌ Tive um problema ao re-simular a rolagem. Tente novamente em instantes.")
-			return
+			return err
 		}
-		if err := PersistRollover(context.Background(), sim); err != nil {
-			slog.Error("[Rollover] persist", "err", err)
+		if err := PersistRollover(ctx, sim); err != nil {
+			slog.ErrorContext(ctx, "[Rollover] persist", "err", err)
 			replyFunc("❌ Tive um problema ao gravar a rolagem no banco. Tente novamente em instantes.")
-			return
+			return err
 		}
 
 		replyFunc(fmt.Sprintf(
@@ -79,29 +92,29 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 			float64(sim.TotalFeesCts)/100,
 			float64(sim.InvoiceValueCts)/100,
 		))
-		return
+		return nil
 	}
 
 	fmt.Printf("[ProcessMessageFlow Started] Passing to Brain/LLM... [%s]\n", finalText)
 
 	// Extraction with LLM
-	rawJsonStr, parsedTx, err := ExtractTransactionFromText(context.Background(), finalText, planSlug)
+	rawJsonStr, parsedTx, err := ExtractTransactionFromText(ctx, finalText, planSlug)
 
 	if db.Pool != nil {
 		logStatus := "processed"
 		if err != nil {
 			logStatus = "error"
-			slog.Error("[NLP] parsing error", "err", err)
+			slog.ErrorContext(ctx, "[NLP] parsing error", "err", err)
 		} else if parsedTx != nil && parsedTx.NeedsReview {
 			logStatus = "needs_review"
 		}
 
-		if _, logErr := db.Pool.Exec(context.Background(),
+		if _, logErr := db.Pool.Exec(ctx,
 			`INSERT INTO message_logs (workspace_id, phone_number, raw_message, processed_json, status)
 			 VALUES ($1, $2, $3, $4, $5)`,
 			workspaceID, phoneNumber, finalText, rawJsonStr, logStatus,
 		); logErr != nil {
-			slog.Warn("workflow.message_logs insert falhou", "err", logErr, "workspace", workspaceID)
+			slog.WarnContext(ctx, "workflow.message_logs insert falhou", "err", logErr, "workspace", workspaceID)
 		}
 
 		if err == nil && parsedTx != nil {
@@ -114,7 +127,7 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 
 			// Epic 5 (5.1 & 5.2): Crisis Handler & Rollover Simulation
 			if parsedTx.IsCrisis {
-				slog.Info("[Crisis Engine] User evoked intent of crisis/debt rollover.")
+				slog.InfoContext(ctx, "[Crisis Engine] User evoked intent of crisis/debt rollover.")
 
 				// parsedTx.Amount vem em Reais; converte para centavos (INTEGER).
 				invoiceValueCts := int(parsedTx.Amount * 100)
@@ -130,9 +143,9 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 
 				sim, err := SimulateRollover(workspaceID, nil, invoiceValueCts, processorSlug, installmentsChoice)
 				if err != nil {
-					slog.Error("[Crisis Engine] simulate preview", "err", err)
+					slog.ErrorContext(ctx, "[Crisis Engine] simulate preview", "err", err)
 					replyFunc("🤔 Percebi que você pode estar em aperto, mas tive um problema ao calcular a simulação. Tente me dizer o valor novamente!")
-					return
+					return err
 				}
 
 				// Armazena o contexto para a confirmação subsequente
@@ -156,11 +169,11 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 				criseMsg += "Deseja que eu execute essa rolagem? (Responda: 'Sim Laura, prorroga')"
 
 				replyFunc(criseMsg)
-				return
+				return nil
 			}
 
 			// Very basic string search for category. A robust app would use pg_trgm or LLM direct matching by ID.
-			_ = db.Pool.QueryRow(context.Background(),
+			_ = db.Pool.QueryRow(ctx,
 				"SELECT id, monthly_limit_cents, name FROM categories WHERE workspace_id = $1 AND name ILIKE $2 LIMIT 1",
 				workspaceID, "%"+parsedTx.Description+"%").Scan(&categoryId, &budgetLimitCents, &catName)
 			budgetLimit = float64(budgetLimitCents) / 100.0
@@ -170,7 +183,7 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 			// author_phone_id fica NULL — permitido pela migration 000021.
 			var authorPhoneID *string
 			var resolvedPhoneID string
-			err = db.Pool.QueryRow(context.Background(),
+			err = db.Pool.QueryRow(ctx,
 				"SELECT id FROM phones WHERE workspace_id = $1 AND phone_number = $2 LIMIT 1",
 				workspaceID, phoneNumber,
 			).Scan(&resolvedPhoneID)
@@ -178,17 +191,17 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 				authorPhoneID = &resolvedPhoneID
 			}
 
-			_, insertErr := db.Pool.Exec(context.Background(),
+			_, insertErr := db.Pool.Exec(ctx,
 				`INSERT INTO transactions (workspace_id, amount, type, description, transaction_date, confidence_score, needs_review, tags, category_id, author_phone_id)
 				 VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6, $7, $8, $9)`,
 				workspaceID, int(parsedTx.Amount*100), parsedTx.Type, parsedTx.Description, parsedTx.Confidence, parsedTx.NeedsReview, parsedTx.Labels, categoryId, authorPhoneID,
 			)
 
 			if insertErr != nil {
-				slog.Error("[Transaction] insertion error", "err", insertErr)
+				slog.ErrorContext(ctx, "[Transaction] insertion error", "err", insertErr)
 				replyFunc(fmt.Sprintf("❌ Ops, tive um problema ao salvar seu gasto: %s", parsedTx.Description))
 			} else {
-				slog.Info("transaction saved", "description", parsedTx.Description, "amount", parsedTx.Amount)
+				slog.InfoContext(ctx, "transaction saved", "description", parsedTx.Description, "amount", parsedTx.Amount)
 
 				if parsedTx.NeedsReview || parsedTx.Confidence < 0.60 {
 					// 4.1 Desambiguação Ativa NLP
@@ -200,7 +213,7 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 					if categoryId != nil && budgetLimit > 0 {
 						// Calculate current month sum
 						var currentSumCents int
-						_ = db.Pool.QueryRow(context.Background(),
+						_ = db.Pool.QueryRow(ctx,
 							`SELECT COALESCE(SUM(amount), 0) FROM transactions 
 							 WHERE category_id = $1 AND type = 'expense'
 							 AND EXTRACT(MONTH FROM transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE)
@@ -226,4 +239,5 @@ func ProcessMessageFlow(workspaceID string, phoneNumber string, text string, aud
 			replyFunc("Desculpe, não consegui entender nenhum valor financeiro na sua mensagem.")
 		}
 	}
+	return nil
 }

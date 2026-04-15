@@ -235,8 +235,17 @@ func HandleIncomingMessage(msg *events.Message) {
 		}
 	}
 
-	// Fire async workflow process!
-	go services.ProcessMessageFlow(workspaceId, senderNumberStr, text, audioBytes, replyFunc)
+	// Fire async workflow process! Goroutine recebe ctx próprio com
+	// deadline de 30s — não propagamos o ctx do evento whatsmeow
+	// (WithoutCancel seria ideal, mas HandleIncomingMessage não tem ctx
+	// de entrada, então partimos de Background).
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := services.ProcessMessageFlow(ctx, workspaceId, senderNumberStr, text, audioBytes, replyFunc); err != nil {
+			slog.WarnContext(ctx, "process_message_flow_failed", "err", err, "workspace", workspaceId)
+		}
+	}()
 }
 
 // SendTextMessage is an exported utility to allow outside services (like Cron) to send messages

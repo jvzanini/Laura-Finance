@@ -116,3 +116,29 @@ Configurar Grafana Agent com `scrape_config` apontando para
 Dashboards: `docs/ops/grafana-dashboards/` (4 JSONs).
 
 STANDBY [GRAFANA-CLOUD] — importar manualmente após provisionar Grafana Cloud free tier.
+
+## Correlação operacional
+
+Workflow padrão de debug:
+
+1. Cliente reporta erro → tem `request_id` no JSON da resposta (`error.request_id`).
+2. Buscar logs em prod: `fly logs -a laura-finance-api | jq 'select(.request_id=="<id>")'`
+3. Sentry: filtro tag `request_id:<id>` retorna a issue.
+4. OTel trace: clicar no `trace_id` correlacionado em Sentry → ver span tree completo (HTTP → DB → LLM).
+5. Grafana: dashboard "HTTP & Workspaces" mostra contexto de tráfego no momento.
+
+## Códigos de erro canônicos
+
+| Code | Status HTTP | Quando |
+|------|-------------|--------|
+| `VALIDATION_FAILED` | 400 | Body inválido / campo faltando |
+| `AUTH_INVALID_CREDENTIALS` | 401 | Login falhou |
+| `AUTH_TOKEN_EXPIRED` | 401 | Sessão expirou |
+| `FORBIDDEN` | 403 | Sem permissão |
+| `NOT_FOUND` | 404 | Recurso ausente |
+| `CONFLICT` | 409 | Estado conflitante (duplicate, etc) |
+| `RATE_LIMITED` | 429 | Rate limit atingido |
+| `INTERNAL` | 500 | Erro genérico |
+| `DB_TIMEOUT` | 504 | Timeout DB |
+| `LLM_PROVIDER_DOWN` | 503 | Provider IA fora |
+| `DEPENDENCY_DOWN` | 502 | Dependência externa fora |

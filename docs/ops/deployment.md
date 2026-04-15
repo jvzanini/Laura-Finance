@@ -180,3 +180,15 @@ criptografia com `age`).
 - Logs estruturados: pino (frontend) + slog/zerolog (backend).
 - Metric endpoint `/metrics` (Prometheus) — pendente.
 - Tracing OTel — pendente.
+
+## Secrets observability (fly secrets set)
+
+```sh
+fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT="" -a laura-finance-api
+fly secrets set SENTRY_DSN_API="" -a laura-finance-api
+fly secrets set SENTRY_TRACES_SAMPLE_RATE="0.1" -a laura-finance-api
+fly secrets set OTEL_TRACES_SAMPLE_RATE="0.1" -a laura-finance-api
+fly secrets set BACKUP_OPS_TOKEN="$(openssl rand -hex 32)" -a laura-finance-api
+```
+
+STANDBYs ativam quando DSN/token forem reais.

@@ -39,6 +39,7 @@ Thumbs.db
 coverage/
 *.cover
 *.out
+laura-pwa/tests/.auth/
 
 # Docker volumes
 pgdata/

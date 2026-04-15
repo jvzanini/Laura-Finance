@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jvzanini/laura-finance/laura-go/internal/cache"
 	"github.com/jvzanini/laura-finance/laura-go/internal/db"
 )
 
@@ -34,25 +36,42 @@ func handleReportsDRE(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "sem sessão")
 	}
 
-	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
-	defer cancel()
-
 	// Resolve targetDate: YYYY-MM-01 ou primeiro dia do mês corrente.
 	month := c.Query("month")
-	targetDate := month + "-01"
 	useExplicit := false
 	if month != "" && len(month) == 7 && month[4] == '-' {
 		useExplicit = true
 	}
 
+	monthKey := month
+	if !useExplicit {
+		monthKey = time.Now().Format("2006-01")
+	}
+	key := fmt.Sprintf("ws:%s:reports:dre:%s", sess.WorkspaceID, monthKey)
+	resp, err := cache.GetOrCompute[DREResponse](c.Context(), Cache, key, 600*time.Second, func(parentCtx context.Context) (DREResponse, error) {
+		return computeDRE(parentCtx, sess.WorkspaceID, month, useExplicit)
+	})
+	if err != nil {
+		slog.Error("handleReportsDRE", "err", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+	}
+	return c.JSON(resp)
+}
+
+func computeDRE(parentCtx context.Context, workspaceID, month string, useExplicit bool) (DREResponse, error) {
+	ctx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
+	defer cancel()
+
+	targetDate := month + "-01"
+
 	var monthClause string
 	var params []interface{}
 	if useExplicit {
 		monthClause = "EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM $2::date) AND EXTRACT(YEAR FROM t.transaction_date) = EXTRACT(YEAR FROM $2::date)"
-		params = []interface{}{sess.WorkspaceID, targetDate}
+		params = []interface{}{workspaceID, targetDate}
 	} else {
 		monthClause = "EXTRACT(MONTH FROM t.transaction_date) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM t.transaction_date) = EXTRACT(YEAR FROM CURRENT_DATE)"
-		params = []interface{}{sess.WorkspaceID}
+		params = []interface{}{workspaceID}
 	}
 
 	// Receitas agrupadas por categoria
@@ -70,7 +89,7 @@ func handleReportsDRE(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		slog.Error("handleReportsDRE (income)", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return DREResponse{}, err
 	}
 	defer incomeRows.Close()
 
@@ -100,7 +119,7 @@ func handleReportsDRE(c *fiber.Ctx) error {
 	)
 	if err != nil {
 		slog.Error("handleReportsDRE (expense)", "err", err)
-		return fiber.NewError(fiber.StatusInternalServerError, "erro interno do servidor")
+		return DREResponse{}, err
 	}
 	defer expenseRows.Close()
 
@@ -120,7 +139,7 @@ func handleReportsDRE(c *fiber.Ctx) error {
 	_ = db.Pool.QueryRow(ctx,
 		`SELECT COALESCE(SUM(monthly_contribution_cents), 0)::int
 		 FROM investments WHERE workspace_id = $1`,
-		sess.WorkspaceID,
+		workspaceID,
 	).Scan(&totalInvestment)
 
 	netResult := totalIncome - totalExpense - totalInvestment
@@ -145,12 +164,12 @@ func handleReportsDRE(c *fiber.Ctx) error {
 		monthRef = month
 	}
 
-	return c.JSON(DREResponse{
+	return DREResponse{
 		Month:                monthRef,
 		Lines:                lines,
 		TotalIncomeCents:     totalIncome,
 		TotalExpenseCents:    totalExpense,
 		TotalInvestmentCents: totalInvestment,
 		NetResultCents:       netResult,
-	})
+	}, nil
 }

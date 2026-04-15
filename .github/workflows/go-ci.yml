@@ -61,10 +61,9 @@ jobs:
       - name: Install gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
       - name: Run gosec
-        # G706: log injection via taint (LOW, falso positivo no log de boot port).
-        # G101: hardcoded credentials (LOW, falso positivo em error_codes.go - codigos sao nomes, nao credenciais).
+        # Config canônica em laura-go/.gosec.yml (suprime G706+G101 LOW).
         # G104 zerada na Fase 12 Parte B.
-        run: gosec -exclude=G706,G101 ./...
+        run: gosec -conf .gosec.yml ./...
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - name: Run govulncheck

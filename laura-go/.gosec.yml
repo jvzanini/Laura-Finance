@@ -1,0 +1,12 @@
+---
+# Configuração canônica do gosec para laura-go.
+# Centraliza supressões de LOW falso-positivas.
+#
+# Histórico:
+# - G706: log injection via taint (falso positivo no log de boot port).
+# - G101: hardcoded credentials (falso positivo em error_codes.go —
+#         nomes de código são strings, não credenciais).
+
+exclude:
+  - G706
+  - G101

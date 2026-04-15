@@ -42,3 +42,6 @@ coverage/
 
 # Docker volumes
 pgdata/
+
+# Embedded migrations (fonte canonica em infrastructure/migrations/)
+laura-go/internal/migrations/*.sql

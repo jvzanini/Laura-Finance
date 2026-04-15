@@ -33,3 +33,20 @@ func NewLogger(env string) *slog.Logger {
 	}
 	return slog.New(NewContextHandler(inner))
 }
+
+// NewLoggerWithSentry monta chain: inner → ContextHandler → SentryHandler
+// quando SENTRY_DSN_API esta setado. Caso contrario, equivale ao NewLogger.
+func NewLoggerWithSentry(env string) *slog.Logger {
+	opts := &slog.HandlerOptions{Level: levelFromEnv(env)}
+	var inner slog.Handler
+	if env == "production" {
+		inner = slog.NewJSONHandler(os.Stdout, opts)
+	} else {
+		inner = slog.NewTextHandler(os.Stdout, opts)
+	}
+	ctxHandler := NewContextHandler(inner)
+	if os.Getenv("SENTRY_DSN_API") == "" {
+		return slog.New(ctxHandler)
+	}
+	return slog.New(NewSentryHandler(ctxHandler))
+}

@@ -7,16 +7,7 @@ COPY laura-go/go.mod laura-go/go.sum ./laura-go/
 WORKDIR /src/laura-go
 RUN go mod download
 COPY laura-go ./
-# Copia migrations canonicas e renomeia para formato golang-migrate
-# (NNN_name.sql -> NNN_name.up.sql + NNN_name.down.sql stub).
-COPY infrastructure/migrations /tmp/migrations
-RUN mkdir -p ./internal/migrations \
-    && for f in /tmp/migrations/*.sql; do \
-         base=$(basename "$f" .sql); \
-         cp "$f" "./internal/migrations/${base}.up.sql"; \
-         : > "./internal/migrations/${base}.down.sql"; \
-       done \
-    && rm -rf /tmp/migrations
+# Migrations canonicas vivem em ./internal/migrations (go:embed).
 ARG BUILD_SHA=dev
 ARG BUILD_TIME=unknown
 RUN CGO_ENABLED=0 GOOS=linux go build \

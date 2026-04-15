@@ -8,10 +8,17 @@
 
 ### 2026-04-15 — Fase 15 preparada (quality escalation)
 
-- **Coverage Go services**: 19.8% → **53.8%** (+34pp). Novos testes em
+- **Coverage Go handlers**: 2.8% → **57.1%** (+54pp). 23 testes novos
+  em auth/transactions/categories/dashboard/banking. Nova infra
+  `testutil.NewTestApp` (Fiber+pgxpool+cache InMem+cookie assinado).
+  Fix crítico: `api_e2e_test.go` apontava para migrations inexistentes,
+  destravando ~55pp sozinho.
+- **Coverage Go services**: 19.8% → **53.8%** (+34pp). Testes em
   score.go (paridade pesos 35/25/25/15, boundary), nlp.go (mock LLM
   injetável), rollover.go (month boundary), workflow.go (hooks
   injetáveis), llm_provider.go (httptest matrix). ~50 casos novos.
+- **Coverage total Go**: 16.6% → **47.5%** (com tag integration).
+  Sem tag: ~22% (short-mode).
 - **PWA typing**: 85 → **0** warnings `no-explicit-any`. Gate ESLint
   `no-explicit-any: error` em todo `src/` + `pwa-ci.yml` exige
   `--quiet` zero. Batches: admin (14 arquivos usando `JsonValue`) +
@@ -30,15 +37,16 @@
   LOCKED` + advisory lock por item + retry max 5 + dead-letter.
   Metrics received/processed/queue_depth. 4 testes worker +
   5 unit HMAC. Runbook `docs/ops/pluggy-webhooks.md`.
-- **CI gate Go**: 15% → **20%** (baseline 21.9% atual). Meta 30%
-  Fase 16 com cobertura de handlers.
+- **CI gate Go**: 15% → **20%** (baseline short-mode 21.9%). Meta
+  30% em Fase 16 após integração do job test-integration no gate.
 - **STANDBYs Fase 15**: `PLUGGY_WEBHOOK_SECRET` (placeholder), demais
   herdados das fases anteriores.
 - **Commits Fase 15**: 10+ (ver `git log --oneline`).
 - **Tag**: `phase-15-prepared`.
-- **Concerns Fase 16**: handlers coverage completo (baseline 2.8% se
-  Sprint A pendente), golangci-lint v2, mobile native foundation,
-  multi-region read replica, webhook signing rotation automation.
+- **Concerns Fase 16**: integrar test-integration no gate coverage,
+  golangci-lint v2, mobile native foundation, multi-region read
+  replica, webhook signing rotation automation, whatsapp package
+  coverage (1%).
 
 ### 2026-04-15 — Fase 14 preparada (quality maturation + Pluggy real + PWA typing)
 

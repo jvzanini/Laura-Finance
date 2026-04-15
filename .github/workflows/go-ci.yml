@@ -126,9 +126,10 @@ jobs:
           go tool cover -func=coverage.out | tail -5
           pct=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
           echo "coverage: $pct%"
-          # Gate progressivo: Fase 15 sobe para 20% (services 53.8%, cache
-          # 64%, pluggy 78%, banking worker). Meta 30% em Fase 16 com
-          # cobertura de handlers crescendo.
+          # Gate Fase 15: short-mode (sem integration) baseline ~21%.
+          # Com tag integration: 47.5% total (handlers 57.1%, services
+          # 53.8%, pluggy 81.8%). Gate de 20% cobre job "test" short-mode.
+          # Job test-integration em main valida full coverage.
           awk -v v="$pct" 'BEGIN{if (v+0 < 20.0) exit 1}'
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4

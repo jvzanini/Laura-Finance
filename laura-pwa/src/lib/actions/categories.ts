@@ -24,6 +24,28 @@ type GoCategoryItem = {
 
 type GoCategoriesResponse = { categories: GoCategoryItem[] | null };
 
+type CategorySeedSubcategory = {
+    name: string;
+    emoji?: string;
+    description?: string;
+};
+
+type CategorySeedItem = {
+    name: string;
+    emoji?: string;
+    color?: string;
+    description?: string;
+    subcategories: CategorySeedSubcategory[];
+};
+
+type CategoryTemplateRow = {
+    name: string;
+    emoji: string | null;
+    color: string | null;
+    description: string | null;
+    subcategories: string | CategorySeedSubcategory[] | null;
+};
+
 export async function addCategoryAction(formData: FormData) {
     try {
         const session = await getSession();
@@ -182,14 +204,16 @@ async function getCategoryTemplatesFromDB() {
             "SELECT name, emoji, color, description, subcategories FROM category_templates WHERE active = true ORDER BY sort_order"
         );
         if (result.rowCount === 0) return null;
-        return result.rows.map((r: any) => {
-            const subs = typeof r.subcategories === "string" ? JSON.parse(r.subcategories) : (r.subcategories || []);
+        return result.rows.map((r: CategoryTemplateRow) => {
+            const subs: CategorySeedSubcategory[] = typeof r.subcategories === "string"
+                ? JSON.parse(r.subcategories)
+                : (r.subcategories || []);
             return {
                 name: r.name,
                 emoji: r.emoji || "📂",
                 color: r.color || "#808080",
                 description: r.description || "",
-                subcategories: subs.map((s: any) => ({
+                subcategories: subs.map((s) => ({
                     name: s.name,
                     emoji: s.emoji || "📄",
                     description: s.description || "",
@@ -201,7 +225,7 @@ async function getCategoryTemplatesFromDB() {
     }
 }
 
-export async function seedCategoriesAction(categoriesData: any) {
+export async function seedCategoriesAction(categoriesData: CategorySeedItem[]) {
     try {
         const session = await getSession();
         if (!session || !session.userId) return { error: "Não autorizado." };

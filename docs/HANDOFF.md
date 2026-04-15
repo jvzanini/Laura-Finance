@@ -89,10 +89,24 @@
 - Migration 000035 validada local (já aplicada); procedimento prod em `docs/ops/migrations.md`.
 - STANDBYs ativos: GROQ-REVOKE, FORCE-PUSH, VERCEL-AUTH, VERCEL-ENV, FLY-AUTH, FLY-CARD, FLY-SECRETS, FLY-PG-CREATE, STRIPE-LIVE, RESEND-DOMAIN, DNS.
 
-## Estado atual — 2026-04-15
+## Estado atual — 2026-04-15 (final da sessão)
 
-**Modo:** desenvolvimento autônomo iniciado em 2026-04-15.
-**Fase atual:** Fase 10 — Security closeout + infraestrutura mínima de produção (em andamento, spec v1 em geração).
+**Modo:** desenvolvimento autônomo 2026-04-15.
+**Fases concluídas:** 10, 11, 12, 13, 14 (todas "preparadas", 5 tags).
+**Commits da sessão:** ~218.
+**CI:** 4/4 core verdes. Deploys ❌ (esperado por STANDBYs externos).
+
+**Próxima ação — 3 opções:**
+
+1. **Ativar deploy real** — usuário fornece credenciais Vercel + Fly + Groq (revogada) → agente executa LEI #1.2 sanitize + deploy + tags `*-deployed`.
+2. **Fase 15 — Quality Escalation** — sem credenciais, agente ataca: coverage 30% full, PWA cleanup restante, cache pub/sub, mobile foundation, multi-region, Pluggy webhooks.
+3. **Outro projeto** — usuário pode redirecionar foco.
+
+**Artefatos de retomada:**
+- `CLAUDE.md` (raiz) — 5 LEIS ABSOLUTAS.
+- Este `HANDOFF.md` — histórico completo.
+- Memory: `phase_{10,11,12,13,14}_complete.md` + `session_state_2026_04_15_final.md`.
+- Specs + plans v3 em `docs/superpowers/`.
 
 ## Pendências bloqueadas (STANDBY — aguardando input do usuário)
 

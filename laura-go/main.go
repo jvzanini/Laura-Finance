@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	sentryfiber "github.com/getsentry/sentry-go/fiber"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
@@ -51,7 +52,15 @@ func main() {
 	if appEnv == "" {
 		appEnv = os.Getenv("ENVIRONMENT")
 	}
-	logger := obs.NewLogger(appEnv)
+
+	buildVersion := os.Getenv("BUILD_VERSION")
+	if buildVersion == "" {
+		buildVersion = "dev"
+	}
+	flushSentry := obs.InitSentry(buildVersion)
+	defer flushSentry()
+
+	logger := obs.NewLoggerWithSentry(appEnv)
 	slog.SetDefault(logger)
 
 	// Initialize PostgreSQL Connection
@@ -73,6 +82,12 @@ func main() {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: false,
 	})
+
+	app.Use(sentryfiber.New(sentryfiber.Options{
+		Repanic:         true,
+		WaitForDelivery: false,
+		Timeout:         2 * time.Second,
+	}))
 
 	app.Use(requestid.New(requestid.Config{
 		Header:     "X-Request-Id",

@@ -9,6 +9,21 @@ import (
 	"github.com/gofiber/fiber/v2/utils"
 )
 
+func TestReadyHandler_200_Stub(t *testing.T) {
+	app := fiber.New()
+	app.Get("/ready", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{"status": "ready", "db": "ok"})
+	})
+	req := httptest.NewRequest("GET", "/ready", nil)
+	resp, err := app.Test(req, -1)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("esperava 200, veio %d", resp.StatusCode)
+	}
+}
+
 func TestRequestIDMiddleware_AddsHeader(t *testing.T) {
 	app := fiber.New()
 	app.Use(requestid.New(requestid.Config{

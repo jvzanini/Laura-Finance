@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -51,6 +53,18 @@ func main() {
 
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("Laura Finance Go API is healthy!")
+	})
+
+	app.Get("/ready", func(c *fiber.Ctx) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 2*time.Second)
+		defer cancel()
+		if db.Pool == nil {
+			return c.Status(503).JSON(fiber.Map{"status": "not-ready", "db": "pool nil"})
+		}
+		if err := db.Pool.Ping(ctx); err != nil {
+			return c.Status(503).JSON(fiber.Map{"status": "not-ready", "db": err.Error()})
+		}
+		return c.JSON(fiber.Map{"status": "ready", "db": "ok"})
 	})
 
 	// Registra o namespace /api/v1/* com session middleware + CORS.

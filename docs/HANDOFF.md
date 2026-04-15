@@ -6,6 +6,40 @@
 
 ## Histórico de atualizações
 
+### 2026-04-15 — Fase 15 preparada (quality escalation)
+
+- **Coverage Go services**: 19.8% → **53.8%** (+34pp). Novos testes em
+  score.go (paridade pesos 35/25/25/15, boundary), nlp.go (mock LLM
+  injetável), rollover.go (month boundary), workflow.go (hooks
+  injetáveis), llm_provider.go (httptest matrix). ~50 casos novos.
+- **PWA typing**: 85 → **0** warnings `no-explicit-any`. Gate ESLint
+  `no-explicit-any: error` em todo `src/` + `pwa-ci.yml` exige
+  `--quiet` zero. Batches: admin (14 arquivos usando `JsonValue`) +
+  dashboard features.
+- **Cache pub/sub cross-instance**: `RedisCache` ganha `instanceID`
+  UUID + canal `laura:cache:invalidate`. `Invalidate` publica payload,
+  subscriber goroutine aplica em outras instâncias (ignora self).
+  Retry backoff 1s→16s, kill-switch `CACHE_PUBSUB_DISABLED`. 3 testes
+  integration (cross/self/disabled). Metrics Prometheus
+  `cache_pubsub_publishes/receives_total`. ADR 002 aceito.
+- **Pluggy webhooks**: migration 000037 (`bank_webhook_events` dedupe
+  por item+event+hash, RLS, `bank_accounts.item_id`). Handler
+  `POST /api/banking/webhooks/pluggy` (pública, HMAC dual-secret,
+  feature flag `FEATURE_PLUGGY_WEBHOOKS`, rate limit, 64KB cap).
+  Worker `banking.WebhookWorker` polling 30s + `FOR UPDATE SKIP
+  LOCKED` + advisory lock por item + retry max 5 + dead-letter.
+  Metrics received/processed/queue_depth. 4 testes worker +
+  5 unit HMAC. Runbook `docs/ops/pluggy-webhooks.md`.
+- **CI gate Go**: 15% → **20%** (baseline 21.9% atual). Meta 30%
+  Fase 16 com cobertura de handlers.
+- **STANDBYs Fase 15**: `PLUGGY_WEBHOOK_SECRET` (placeholder), demais
+  herdados das fases anteriores.
+- **Commits Fase 15**: 10+ (ver `git log --oneline`).
+- **Tag**: `phase-15-prepared`.
+- **Concerns Fase 16**: handlers coverage completo (baseline 2.8% se
+  Sprint A pendente), golangci-lint v2, mobile native foundation,
+  multi-region read replica, webhook signing rotation automation.
+
 ### 2026-04-15 — Fase 14 preparada (quality maturation + Pluggy real + PWA typing)
 
 - **PWA typing sprint 1**: 71→42 warnings (−41%). 4 arquivos tipados (adminConfig/categories/userProfile/phones). `src/types/admin.ts` centraliza types compartilhados.

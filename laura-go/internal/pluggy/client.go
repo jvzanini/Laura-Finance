@@ -83,7 +83,7 @@ func (c *Client) getAuthToken(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrPluggyInternal, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	switch {
 	case resp.StatusCode == http.StatusUnauthorized, resp.StatusCode == http.StatusForbidden:
@@ -166,7 +166,7 @@ func (c *Client) CreateConnectToken(ctx context.Context) (string, error) {
 		if err != nil {
 			return ErrPluggyInternal
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		switch {
 		case resp.StatusCode == http.StatusTooManyRequests:
@@ -223,7 +223,7 @@ func (c *Client) FetchTransactions(ctx context.Context, itemID string) ([]Transa
 		if err != nil {
 			return ErrPluggyInternal
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		switch {
 		case resp.StatusCode == http.StatusNotFound:

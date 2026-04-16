@@ -18,7 +18,7 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 
-	waProto "go.mau.fi/whatsmeow/binary/proto"
+	waE2E "go.mau.fi/whatsmeow/proto/waE2E"
 	"google.golang.org/protobuf/proto"
 
 	_ "github.com/lib/pq"
@@ -226,7 +226,7 @@ func HandleIncomingMessage(msg *events.Message) {
 	replyFunc := func(replyText string) {
 		jid, parseErr := types.ParseJID(senderNumberStr + "@s.whatsapp.net")
 		if parseErr == nil && Client != nil {
-			msgProto := &waProto.Message{
+			msgProto := &waE2E.Message{
 				Conversation: proto.String(replyText),
 			}
 			if _, err := Client.SendMessage(context.Background(), jid, msgProto); err != nil {
@@ -261,7 +261,7 @@ func SendTextMessage(phoneNumber string, text string) {
 		slog.Warn("SendTextMessage: ParseJID falhou", "err", err, "phone", phoneNumber)
 		return
 	}
-	if _, sendErr := Client.SendMessage(ctx, jid, &waProto.Message{
+	if _, sendErr := Client.SendMessage(ctx, jid, &waE2E.Message{
 		Conversation: proto.String(text),
 	}); sendErr != nil {
 		slog.Warn("SendTextMessage: SendMessage falhou", "err", sendErr, "phone", phoneNumber)

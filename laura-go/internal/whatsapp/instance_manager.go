@@ -16,7 +16,7 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 
-	waProto "go.mau.fi/whatsmeow/binary/proto"
+	waE2E "go.mau.fi/whatsmeow/proto/waE2E"
 	"google.golang.org/protobuf/proto"
 
 	"bytes"
@@ -275,7 +275,7 @@ func (inst *WhatsAppInstance) SendMessage(phone, text string) error {
 	if err != nil {
 		return err
 	}
-	_, err = inst.Client.SendMessage(context.Background(), jid, &waProto.Message{
+	_, err = inst.Client.SendMessage(context.Background(), jid, &waE2E.Message{
 		Conversation: proto.String(text),
 	})
 	return err

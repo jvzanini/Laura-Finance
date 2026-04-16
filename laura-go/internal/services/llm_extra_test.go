@@ -97,7 +97,7 @@ func TestLookupEnv(t *testing.T) {
 	if !ok || v != "valor" {
 		t.Errorf("lookupEnv = (%q, %v), esperado (valor, true)", v, ok)
 	}
-	os.Unsetenv("LAURA_TEST_ENV_VAR_MISSING")
+	_ = os.Unsetenv("LAURA_TEST_ENV_VAR_MISSING")
 	v, ok = lookupEnv("LAURA_TEST_ENV_VAR_MISSING")
 	if ok || v != "" {
 		t.Errorf("lookupEnv missing = (%q, %v), esperado (\"\", false)", v, ok)
@@ -331,7 +331,7 @@ func TestEnvOrEmpty(t *testing.T) {
 // TestOpenAIProvider_ChatCompletion_NoAPIKey: quando não há key configurada,
 // retorna erro explicativo.
 func TestOpenAIProvider_ChatCompletion_NoAPIKey(t *testing.T) {
-	os.Unsetenv("OPENAI_API_KEY")
+	_ = os.Unsetenv("OPENAI_API_KEY")
 	p := &OpenAIProvider{config: PlanAIConfig{Provider: "openai", ChatModel: "gpt"}}
 	_, err := p.ChatCompletion(context.Background(), "s", "u")
 	if err == nil {
@@ -344,7 +344,7 @@ func TestOpenAIProvider_ChatCompletion_NoAPIKey(t *testing.T) {
 
 // TestGoogleProvider_ChatCompletion_NoAPIKey idem.
 func TestGoogleProvider_ChatCompletion_NoAPIKey(t *testing.T) {
-	os.Unsetenv("GOOGLE_AI_API_KEY")
+	_ = os.Unsetenv("GOOGLE_AI_API_KEY")
 	p := &GoogleProvider{config: PlanAIConfig{Provider: "google", ChatModel: "gemini"}}
 	_, err := p.ChatCompletion(context.Background(), "s", "u")
 	if err == nil {
@@ -354,7 +354,7 @@ func TestGoogleProvider_ChatCompletion_NoAPIKey(t *testing.T) {
 
 // TestGroqProvider_ChatCompletion_NoAPIKey idem.
 func TestGroqProvider_ChatCompletion_NoAPIKey(t *testing.T) {
-	os.Unsetenv("GROQ_API_KEY")
+	_ = os.Unsetenv("GROQ_API_KEY")
 	p := &GroqProvider{config: PlanAIConfig{Provider: "groq", ChatModel: "llama"}}
 	_, err := p.ChatCompletion(context.Background(), "s", "u")
 	if err == nil {
@@ -364,7 +364,7 @@ func TestGroqProvider_ChatCompletion_NoAPIKey(t *testing.T) {
 
 // TestGroqProvider_TranscribeAudio_NoAPIKey.
 func TestGroqProvider_TranscribeAudio_NoAPIKey(t *testing.T) {
-	os.Unsetenv("GROQ_API_KEY")
+	_ = os.Unsetenv("GROQ_API_KEY")
 	p := &GroqProvider{config: PlanAIConfig{Provider: "groq", WhisperModel: "whisper"}}
 	_, err := p.TranscribeAudio([]byte{0x1}, "f.ogg")
 	if err == nil {
@@ -374,7 +374,7 @@ func TestGroqProvider_TranscribeAudio_NoAPIKey(t *testing.T) {
 
 // TestOpenAIProvider_TranscribeAudio_NoAPIKey.
 func TestOpenAIProvider_TranscribeAudio_NoAPIKey(t *testing.T) {
-	os.Unsetenv("OPENAI_API_KEY")
+	_ = os.Unsetenv("OPENAI_API_KEY")
 	p := &OpenAIProvider{config: PlanAIConfig{Provider: "openai"}}
 	_, err := p.TranscribeAudio([]byte{0x1}, "f.ogg")
 	if err == nil {
@@ -385,7 +385,7 @@ func TestOpenAIProvider_TranscribeAudio_NoAPIKey(t *testing.T) {
 // TestGoogleProvider_TranscribeAudio_FallbackGroq: Google cai em Groq,
 // que também falha sem key → erro.
 func TestGoogleProvider_TranscribeAudio_FallbackGroq(t *testing.T) {
-	os.Unsetenv("GROQ_API_KEY")
+	_ = os.Unsetenv("GROQ_API_KEY")
 	p := &GoogleProvider{config: PlanAIConfig{Provider: "google"}}
 	_, err := p.TranscribeAudio([]byte{0x1}, "f.ogg")
 	if err == nil {
@@ -396,7 +396,7 @@ func TestGoogleProvider_TranscribeAudio_FallbackGroq(t *testing.T) {
 // TestTranscribeAudioForPlan_NilPool_DefaultProvider: sem pool, usa provider
 // default (Groq) que falha por falta de key.
 func TestTranscribeAudioForPlan_NilPool(t *testing.T) {
-	os.Unsetenv("GROQ_API_KEY")
+	_ = os.Unsetenv("GROQ_API_KEY")
 	InvalidateProviderCache()
 	_, err := TranscribeAudioForPlan([]byte{0x1}, "f.ogg", "")
 	if err == nil {

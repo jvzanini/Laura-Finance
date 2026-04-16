@@ -38,10 +38,7 @@ func handleReportsDRE(c *fiber.Ctx) error {
 
 	// Resolve targetDate: YYYY-MM-01 ou primeiro dia do mês corrente.
 	month := c.Query("month")
-	useExplicit := false
-	if month != "" && len(month) == 7 && month[4] == '-' {
-		useExplicit = true
-	}
+	useExplicit := month != "" && len(month) == 7 && month[4] == '-'
 
 	monthKey := month
 	if !useExplicit {

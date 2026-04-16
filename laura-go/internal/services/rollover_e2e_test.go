@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -344,5 +343,5 @@ func TestE2E_LoadFeeTable_ConsultaPostgresPaymentProcessors(t *testing.T) {
 // Smoke check: só para garantir que a infra de tests (imports, fmt) não
 // quebra mesmo quando SKIP_E2E=1.
 func TestE2E_SmokeImport(t *testing.T) {
-	_ = fmt.Sprintf("E2E smoke ok")
+	_ = "E2E smoke ok"
 }

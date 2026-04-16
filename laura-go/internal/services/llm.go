@@ -272,7 +272,7 @@ func getProviderKey(provider string) string {
 }
 
 func envOrEmpty(key string) string {
-	return fmt.Sprintf("%s", mustGetenv(key))
+	return mustGetenv(key)
 }
 
 func mustGetenv(key string) string {

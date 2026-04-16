@@ -136,7 +136,7 @@ func TestGetOrCompute_SingleflightDedup(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			GetOrCompute[string](context.Background(), c, "kdedup", time.Minute, func(ctx context.Context) (string, error) {
+			_, _ = GetOrCompute[string](context.Background(), c, "kdedup", time.Minute, func(ctx context.Context) (string, error) {
 				time.Sleep(10 * time.Millisecond)
 				called.Add(1)
 				return "done", nil

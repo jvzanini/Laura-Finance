@@ -15,7 +15,7 @@ func BenchmarkHitRatio(b *testing.B) {
 	// Warm-up: popula 100 keys
 	for i := 0; i < 100; i++ {
 		key := fmt.Sprintf("key%d", i)
-		GetOrCompute[string](ctx, c, key, time.Minute, func(ctx context.Context) (string, error) {
+		_, _ = GetOrCompute[string](ctx, c, key, time.Minute, func(ctx context.Context) (string, error) {
 			return "val", nil
 		})
 	}
@@ -34,7 +34,7 @@ func BenchmarkHitRatio(b *testing.B) {
 			key = fmt.Sprintf("key%d", i%100)
 			hits.Add(1)
 		}
-		GetOrCompute[string](ctx, c, key, time.Minute, func(ctx context.Context) (string, error) {
+		_, _ = GetOrCompute[string](ctx, c, key, time.Minute, func(ctx context.Context) (string, error) {
 			return "computed", nil
 		})
 	}

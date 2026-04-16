@@ -6,6 +6,32 @@
 
 ## Histórico de atualizações
 
+### 2026-04-16 — Fase 17A preparada (lint sweep final)
+
+- **errcheck 38 → 0** — 7 fixes prod (`pluggy/client.go`,
+  `services/llm_helpers.go`, `services/rollover.go`,
+  `handlers/categories.go`) + 31 fixes test (cache,
+  `services/llm_extra_test.go`, bootstrap, obs, whatsapp).
+- **staticcheck 16 → 0** — SA1019 migração whatsmeow
+  `binary/proto` → `proto/waE2E` (5 callsites em `client.go` +
+  `instance_manager.go`); 10 fixes 1-liner (ST1005 ×3, SA9003 ×2,
+  QF1003 ×2, SA1012, S1039, S1025, QF1007).
+- **revive habilitado** com perfil seletivo inline no
+  `.golangci.yml` (14 regras, dry-run inicial 1 warning fixado,
+  final **0 warnings**). ADR 005.
+- **`.golangci.yml` destravado** — supressões 14 → 6 (−57%);
+  permanecem apenas ST1000/ST1003/ST1020-1022 + QF1008 com motivo
+  inline.
+- **ADRs**: 001 encerrado (golangci-lint v2 wait resolvido), 004
+  aceito (whatsmeow proto migration), 005 aceito (revive profile).
+- **Smoke whatsmeow**: `TestSQLStoreNew_AutoCreatesWhatsmeowTables`
+  PASS com `TEST_DATABASE_URL` local; cobertura mantida 16.3%.
+- **Commits Fase 17A**: 16 (lint por arquivo + ADRs + docs).
+- **Tag**: `phase-17a-prepared`.
+- **Concerns Fase 17B+**: mobile native foundation, multi-region
+  read replica, PWA E2E expansão, ST1003 PT-BR acronyms reavaliar,
+  `exported`/`package-comments` doc comments se projeto virar SDK.
+
 ### 2026-04-15 — Fase 16 preparada (infra hardening)
 
 - **golangci-lint v2.11.4 habilitado** — Go 1.26 support. Config

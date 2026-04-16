@@ -7,9 +7,9 @@ import (
 )
 
 func TestLoadConfig_DefaultsWhenEmpty(t *testing.T) {
-	os.Unsetenv("PG_MAX_CONNS")
-	os.Unsetenv("PG_MIN_CONNS")
-	os.Unsetenv("PG_MAX_CONN_LIFETIME")
+	_ = os.Unsetenv("PG_MAX_CONNS")
+	_ = os.Unsetenv("PG_MIN_CONNS")
+	_ = os.Unsetenv("PG_MAX_CONN_LIFETIME")
 	cfg := LoadConfig()
 	if cfg.PgMaxConns != 10 {
 		t.Errorf("PgMaxConns = %d, want 10", cfg.PgMaxConns)

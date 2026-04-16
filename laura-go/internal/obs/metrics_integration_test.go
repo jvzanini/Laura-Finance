@@ -19,7 +19,7 @@ func TestMetricsApp_ServesMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	go func() { _ = app.Listener(ln) }()
 	defer func() { _ = app.Shutdown() }()
@@ -33,7 +33,7 @@ func TestMetricsApp_ServesMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
 		t.Fatalf("status %d, want 200", resp.StatusCode)

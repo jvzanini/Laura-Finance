@@ -35,7 +35,7 @@ func TestSQLStoreNew_AutoCreatesWhatsmeowTables(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sql.Open: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	var count int
 	if err := db.QueryRowContext(ctx,
 		`SELECT count(*) FROM information_schema.tables WHERE table_name LIKE 'whatsmeow_%'`,

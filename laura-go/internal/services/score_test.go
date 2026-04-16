@@ -1,6 +1,9 @@
 package services
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 // TestScore_AllWeights valida paridade dos pesos 35/25/25/15 contra o cálculo
 // manual em várias combinações, incluindo valores redondos, quebrados e mix.
@@ -153,7 +156,7 @@ func TestInvalidateScoreWeightsCache(t *testing.T) {
 // TestComputeScoreFactors_NilPool garante fallback quando db.Pool está nil.
 func TestComputeScoreFactors_NilPool(t *testing.T) {
 	// db.Pool é nil em testes unitários — ComputeScoreFactors deve retornar fallbackFactors.
-	f := ComputeScoreFactors(nil, "any-ws")
+	f := ComputeScoreFactors(context.TODO(), "any-ws")
 	if f != fallbackFactors {
 		t.Errorf("ComputeScoreFactors com pool nil = %+v, esperado fallbackFactors=%+v", f, fallbackFactors)
 	}

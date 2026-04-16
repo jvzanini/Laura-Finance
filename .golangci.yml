@@ -1,12 +1,7 @@
 version: "2"
 
-# Fase 16: habilitado v2.11.4 (Go 1.26 support). Scope mínimo:
-# govet + ineffassign + staticcheck com checks seletivos.
-# Pre-existente (ST1005 error capitalization, QF* suggestions,
-# S10xx stylistic) silenciado para evitar cleanup massivo aqui —
-# sweep gradual em Fase 17+.
-# errcheck / revive pendentes (>38 warnings precisam fix gradual).
-# SA1019 whatsmeow/proto deprecation é upstream pending.
+# Fase 17A — errcheck ativado. Revive ativa no Sprint D.
+# Staticcheck mantém supressões temporárias até Sprint E.
 
 run:
   timeout: 5m
@@ -15,10 +10,18 @@ run:
 linters:
   default: none
   enable:
+    - errcheck
     - govet
     - ineffassign
     - staticcheck
   settings:
+    errcheck:
+      check-type-assertions: false
+      check-blank: false
+      exclude-functions:
+        - (io.Closer).Close
+        - os.Setenv
+        - os.Unsetenv
     staticcheck:
       checks:
         - "all"

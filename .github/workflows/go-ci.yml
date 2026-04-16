@@ -157,7 +157,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 30
-          command: cd laura-go && go test -tags=integration -coverprofile=coverage.out ./...
+          command: cd laura-go && go test -tags=integration -covermode=atomic -coverprofile=coverage.out ./...
       - name: Upload integration coverage
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

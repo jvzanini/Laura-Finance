@@ -1,7 +1,9 @@
 import { test, expect } from "@playwright/test";
 
+const API = process.env.API_URL || "http://localhost:8080";
+
 test("login com credencial invalida retorna error shape canonico", async ({ request }) => {
-  const res = await request.post("/api/v1/auth/login", {
+  const res = await request.post(`${API}/api/v1/auth/login`, {
     data: { email: "x@x", password: "bad" },
   }).catch(() => null);
   if (res && res.status() === 401) {

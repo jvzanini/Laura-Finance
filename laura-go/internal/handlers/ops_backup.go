@@ -36,12 +36,11 @@ func OpsBackupHandler(c *fiber.Ctx) error {
 	dryRun := os.Getenv("BACKUP_DRY") == "1"
 	startedAt := time.Now()
 
+	// Em prod real, executar `flyctl postgres backup create`.
+	// Por enquanto, NoOp + atualizar métricas com timestamp atual.
 	var sizeBytes int64 = 0
 	if dryRun {
 		sizeBytes = 1024 * 1024 // 1MB simulado
-	} else {
-		// Em prod real, executar `flyctl postgres backup create`.
-		// Por enquanto, NoOp + atualizar métricas com timestamp atual.
 	}
 
 	obs.ObserveBackupSuccess(sizeBytes)

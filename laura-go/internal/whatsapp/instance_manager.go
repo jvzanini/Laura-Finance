@@ -232,9 +232,8 @@ func (m *InstanceManager) DisconnectInstance(id string) error {
 
 // RemoveInstance desconecta e remove uma instância.
 func (m *InstanceManager) RemoveInstance(id string) error {
-	if err := m.DisconnectInstance(id); err != nil {
-		// ignora erro de disconnect
-	}
+	// best-effort: ignora erro de disconnect (instância pode já estar offline)
+	_ = m.DisconnectInstance(id)
 
 	m.mu.Lock()
 	delete(m.instances, id)

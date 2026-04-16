@@ -25,7 +25,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: laura-go/go.sum
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.11.4
           working-directory: laura-go
@@ -175,6 +175,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: laura-go/go.sum
       - uses: actions/download-artifact@v4
         with:
           name: go-coverage-short
@@ -186,8 +187,9 @@ jobs:
       - name: Install gocovmerge
         run: go install github.com/wadey/gocovmerge@latest
       - name: Merge + gate 30%
+        working-directory: laura-go
         run: |
-          $(go env GOPATH)/bin/gocovmerge ./cov/short/coverage.out ./cov/int/coverage.out > merged.out
+          $(go env GOPATH)/bin/gocovmerge ../cov/short/coverage.out ../cov/int/coverage.out > merged.out
           go tool cover -func=merged.out | tail -10
           pct=$(go tool cover -func=merged.out | grep total | awk '{print $3}' | tr -d '%')
           echo "merged coverage: $pct%"

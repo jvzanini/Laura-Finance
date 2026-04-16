@@ -1,7 +1,7 @@
 version: "2"
 
-# Fase 17A — errcheck + revive ativados. Staticcheck supressões
-# serão reduzidas em Sprint E.
+# Fase 17A — config destravada (supressões 14 -> 6).
+# ADR 001 encerrado, ADR 004 (whatsmeow proto), ADR 005 (revive profile).
 
 run:
   timeout: 5m
@@ -44,20 +44,14 @@ linters:
     staticcheck:
       checks:
         - "all"
-        - "-ST1000"
-        - "-ST1003"
-        - "-ST1005"
-        - "-ST1020"
-        - "-ST1021"
-        - "-ST1022"
-        - "-SA1012"
-        - "-SA1019"
-        - "-SA9003"
-        - "-QF1003"
-        - "-QF1007"
-        - "-QF1008"
-        - "-S1025"
-        - "-S1039"
+        # ADR 005 — godoc/naming não exigidos:
+        - "-ST1000"  # package godoc
+        - "-ST1003"  # naming (PT-BR acronyms) - reavaliar 17B
+        - "-ST1020"  # godoc exported
+        - "-ST1021"  # godoc type
+        - "-ST1022"  # godoc var
+        # Estilística caso-a-caso:
+        - "-QF1008"  # embedded fields - legibilidade subjetiva
 
 issues:
   max-issues-per-linter: 0

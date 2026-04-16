@@ -220,7 +220,7 @@ func (g *GoogleProvider) SupportsImage() bool  { return true }
 func (g *GoogleProvider) ChatCompletion(ctx context.Context, systemPrompt, userMessage string) (string, error) {
 	apiKey := getProviderKey("google")
 	if apiKey == "" {
-		return "", fmt.Errorf("Google AI API key não configurada")
+		return "", fmt.Errorf("google AI API key não configurada")
 	}
 	// Google Gemini usa endpoint OpenAI-compatible
 	return openaiCompatibleChat(

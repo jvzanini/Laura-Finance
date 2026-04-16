@@ -171,13 +171,13 @@ func openaiCompatibleTranscribe(endpoint, apiKey, model string, data []byte, fil
 
 	resp, err := llmHTTPClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("Whisper API unreachable: %v", err)
+		return "", fmt.Errorf("whisper API unreachable: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("Whisper API error (status %d): %s", resp.StatusCode, respBody)
+		return "", fmt.Errorf("whisper API error (status %d): %s", resp.StatusCode, respBody)
 	}
 
 	var result struct {

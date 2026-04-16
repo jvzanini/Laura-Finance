@@ -1,7 +1,7 @@
 version: "2"
 
-# Fase 17A — errcheck ativado. Revive ativa no Sprint D.
-# Staticcheck mantém supressões temporárias até Sprint E.
+# Fase 17A — errcheck + revive ativados. Staticcheck supressões
+# serão reduzidas em Sprint E.
 
 run:
   timeout: 5m
@@ -13,6 +13,7 @@ linters:
     - errcheck
     - govet
     - ineffassign
+    - revive
     - staticcheck
   settings:
     errcheck:
@@ -22,6 +23,24 @@ linters:
         - (io.Closer).Close
         - os.Setenv
         - os.Unsetenv
+    revive:
+      severity: error
+      confidence: 0.8
+      rules:
+        - name: error-strings
+        - name: error-naming
+        - name: error-return
+        - name: errorf
+        - name: if-return
+        - name: var-declaration
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: increment-decrement
+        - name: range
+        - name: superfluous-else
+        - name: unreachable-code
     staticcheck:
       checks:
         - "all"

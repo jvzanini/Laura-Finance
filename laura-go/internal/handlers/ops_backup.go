@@ -38,7 +38,7 @@ func OpsBackupHandler(c *fiber.Ctx) error {
 
 	// Em prod real, executar `flyctl postgres backup create`.
 	// Por enquanto, NoOp + atualizar métricas com timestamp atual.
-	var sizeBytes int64 = 0
+	var sizeBytes int64
 	if dryRun {
 		sizeBytes = 1024 * 1024 // 1MB simulado
 	}

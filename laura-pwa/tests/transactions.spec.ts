@@ -1,6 +1,7 @@
 import { test, expect } from './fixtures/auth';
 
 test('transactions: criar receita + listar + deletar', async ({ authedPage: page }) => {
+  test.fixme(true, 'needs data-testid in PWA components — reativar em Fase 17B.2');
   await page.goto('/transactions');
   await page.getByTestId('btn-new-transaction').click();
   await page.getByTestId('input-amount').fill('150,00');

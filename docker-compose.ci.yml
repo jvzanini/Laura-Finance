@@ -54,7 +54,8 @@ services:
       dockerfile: Dockerfile
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: http://api-go:8080
+      LAURA_GO_API_URL: http://api-go:8080
+      SESSION_SECRET: ci-secret-not-real-32bytes-padding-x
       NEXT_PUBLIC_BUILD_SHA: ci
     depends_on:
       api-go:
@@ -66,3 +67,14 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  # one-shot: rodar via `docker compose --profile seed run --rm seed-e2e`
+  # após stack principal healthy. Não sobe em `docker compose up`.
+  seed-e2e:
+    profiles: ["seed"]
+    image: postgres:16-alpine
+    environment:
+      PGPASSWORD: laura_test
+    volumes:
+      - ./scripts/e2e-seed.sql:/seed.sql:ro
+    entrypoint: ["psql", "-h", "postgres", "-U", "laura", "-d", "laura_finance_test", "-v", "ON_ERROR_STOP=1", "-f", "/seed.sql"]

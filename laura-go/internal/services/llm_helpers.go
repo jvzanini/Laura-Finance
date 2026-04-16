@@ -104,7 +104,7 @@ func openaiCompatibleChat(ctx context.Context, endpoint, apiKey, model string, t
 	if err != nil {
 		return "", fmt.Errorf("LLM API unreachable: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -173,7 +173,7 @@ func openaiCompatibleTranscribe(endpoint, apiKey, model string, data []byte, fil
 	if err != nil {
 		return "", fmt.Errorf("whisper API unreachable: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)

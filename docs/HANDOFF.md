@@ -6,6 +6,47 @@
 
 ## Histórico de atualizações
 
+### 2026-04-16 — Fase 17B preparada (Playwright E2E real + smoke)
+
+- **Playwright CI real** — `playwright.yml` reescrito para rodar
+  `docker-compose.ci.yml` full stack (postgres + redis + api-go + pwa)
+  + seed one-shot (`docker compose --profile seed run --rm seed-e2e`)
+  + `npx playwright test`. Fim da ilusão de `--list`.
+- **Seed E2E determinístico** — `scripts/e2e-seed.sql` + serviço
+  `seed-e2e` (profile "seed", one-shot). 2 users (`e2e@laura.test`,
+  `admin@laura.test` super_admin=TRUE) + 1 workspace. Bcrypt hashes
+  gerados via helper `laura-go/cmd/e2e-seed-hash/`.
+- **Bugs herdados corrigidos:** (i) `docker-compose.ci.yml` env PWA
+  trocado de `NEXT_PUBLIC_API_URL` (não lido) para `LAURA_GO_API_URL`
+  + adicionado `SESSION_SECRET`; (ii) `error-shape.spec.ts` e
+  `observability.spec.ts` usavam `request.post('/api/v1/...')` via
+  `baseURL=http://localhost:3000` (PWA, 404). Fix: URL absoluta
+  `${API_URL}/api/v1/...`.
+- **Playwright config flakeless** — `retries: 2` CI, `workers: 1`,
+  `trace/video: 'retain-on-failure'`, reporter JUnit + HTML (ADR 006).
+- **8 specs com `test.fixme`** — auth, cards-invoices, goals,
+  investments, reports, score, super-admin, transactions. Todos
+  dependem de data-testids inexistentes no PWA — reativar em
+  Fase 17B.2.
+- **5 testes passam real** — `mvp-flows` (3) + `error-shape` (1) +
+  `observability` (1). Validação local pulada por corrupção do
+  Docker Desktop (blobs containerd I/O error) — CI GitHub valida.
+- **Workflow consolidado** — `playwright-full.yml` deletado.
+- **Commits Fase 17B**: ~9.
+- **Tag**: `phase-17b-prepared`.
+- **Concerns Fase 17B.2+**:
+  - 17B.2: adicionar ~40 data-testids em ~15 componentes PWA
+    + remover `test.fixme`.
+  - 17B.3: novos specs (cards-invoices lifecycle, banking API-only,
+    rollover quando UI existir).
+  - 17C: mobile native foundation.
+  - 17D: multi-region read replica (aguarda deploy ativo).
+- **Alerta ambiente local:** Docker Desktop do usuário precisa
+  factory reset para resolver corrupção containerd
+  (`/var/lib/desktop-containerd/.../blobs/sha256/...`
+  input/output error). Validação local de E2E ficou bloqueada;
+  CI GitHub Actions opera em ambiente limpo.
+
 ### 2026-04-16 — Fase 17A preparada (lint sweep final)
 
 - **errcheck 38 → 0** — 7 fixes prod (`pluggy/client.go`,

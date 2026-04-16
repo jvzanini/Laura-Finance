@@ -250,7 +250,7 @@ func PersistRollover(ctx context.Context, sim *RolloverSimulation) error {
 	if err != nil {
 		return fmt.Errorf("iniciando transação: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	_, err = tx.Exec(ctx,
 		`INSERT INTO debt_rollovers (

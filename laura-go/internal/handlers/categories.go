@@ -202,7 +202,7 @@ func handleSeedCategories(c *fiber.Ctx) error {
 		slog.Error("handleSeedCategories (begin)", "err", err)
 		return obs.RespondError(c, obs.CodeInternal, fiber.StatusInternalServerError, errors.New("erro interno do servidor"))
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	for _, cat := range req.Categories {
 		var catID string

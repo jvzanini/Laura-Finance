@@ -166,13 +166,14 @@ func (m *InstanceManager) ConnectInstance(id string) error {
 
 		go func() {
 			for evt := range qrChan {
-				if evt.Event == "code" {
+				switch evt.Event {
+				case "code":
 					inst.mu.Lock()
 					inst.qrCode = evt.Code
 					inst.Status = "qr_pending"
 					inst.mu.Unlock()
 					slog.Info("[WhatsApp] QR code gerado", "instance", inst.Name)
-				} else if evt.Event == "success" {
+				case "success":
 					inst.mu.Lock()
 					inst.Status = "connected"
 					inst.qrCode = ""
@@ -322,11 +323,12 @@ func updateInstanceStatus(id, status string) {
 	}
 	ctx := context.Background()
 	var err error
-	if status == "connected" {
+	switch status {
+	case "connected":
 		_, err = db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = $1, last_connected_at = CURRENT_TIMESTAMP WHERE id = $2", status, id)
-	} else if status == "disconnected" {
+	case "disconnected":
 		_, err = db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = $1, disconnected_at = CURRENT_TIMESTAMP WHERE id = $2", status, id)
-	} else {
+	default:
 		_, err = db.Pool.Exec(ctx, "UPDATE whatsapp_instances SET status = $1 WHERE id = $2", status, id)
 	}
 	if err != nil {

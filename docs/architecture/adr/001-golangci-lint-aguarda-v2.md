@@ -30,3 +30,14 @@ checks seletivos). Pre-existing issues (ST1005, QF* stylistic,
 SA1019 upstream whatsmeow) silenciados — cleanup gradual em fases
 futuras. `errcheck` e `revive` ficam para Fase 17+ (>38 warnings).
 
+## Encerramento — 2026-04-16 (Fase 17A)
+
+**Status:** RESOLVIDO (final).
+
+- Cleanup completo dos 199 warnings pré-existentes (errcheck 38,
+  staticcheck 16, revive 145) entregue na Fase 17A.
+- `.golangci.yml` destravado: supressões 14 → 6, todas documentadas
+  inline com motivo.
+- `errcheck` + `revive` ativos no CI.
+- ADR supersedido por ADR 004 (whatsmeow proto migration) + ADR 005
+  (revive profile).

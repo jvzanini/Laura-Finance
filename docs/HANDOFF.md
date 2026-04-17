@@ -6,69 +6,62 @@
 
 ## Histórico de atualizações
 
-### 2026-04-16 — Fase 17B parcialmente preparada (Playwright E2E — CI ainda vermelho)
+### 2026-04-16 — Fase 17B preparada (Playwright E2E real + smoke) ✓
 
-**Estado: infra entregue, CI ainda falha em healthcheck api-go.
-Tag `phase-17b-prepared` NÃO aplicada.**
-
-Entregue (commitado em master):
-- **Playwright CI real** — `playwright.yml` reescrito para rodar
-  `docker-compose.ci.yml` full stack + seed one-shot + `npx
-  playwright test`. Fim da ilusão de `--list`. Step de debug
-  logs containers on failure adicionado.
+- **Playwright CI real** — `playwright.yml` reescrito: sobe
+  `docker-compose.ci.yml` full stack (postgres + redis + api-go + pwa)
+  com `up -d --build`, aguarda ready via `curl` poll manual no runner
+  (`:8080/health` + `:3000`), roda seed one-shot
+  (`docker compose --profile seed run --rm seed-e2e`), executa
+  `npx playwright test`. Fim da ilusão de `--list`.
+- **Resultado CI**: **16 passed + 8 skipped** em 8.5s. mvp-flows
+  expandiu para 14 testes (rotas públicas + protegidas redirects) +
+  error-shape + observability. 8 specs com `test.fixme` mantidos.
 - **Seed E2E determinístico** — `scripts/e2e-seed.sql` + serviço
-  `seed-e2e` (profile "seed", one-shot). 2 users + 1 workspace.
-  Helper `laura-go/cmd/e2e-seed-hash/`.
-- **Bugs herdados corrigidos:** (i) `docker-compose.ci.yml` env PWA
-  `NEXT_PUBLIC_API_URL` → `LAURA_GO_API_URL` + `SESSION_SECRET`;
-  (ii) `error-shape` e `observability` com URL absoluta via
-  `API_URL`; (iii) `DISABLE_WHATSAPP=true` em api-go (senão bloqueia
-  em QR scan); (iv) `lib/stripe.ts` + `lib/db.ts` com lazy init via
-  Proxy (throw top-level quebrava `next build` no Dockerfile);
-  (v) `laura-go/Dockerfile` alpine+wget (distroless não tinha wget
-  para healthcheck).
+  `seed-e2e` (profile "seed", one-shot). 2 users (`e2e@laura.test`,
+  `admin@laura.test` super_admin=TRUE) + 1 workspace. Bcrypt hashes
+  gerados via helper `laura-go/cmd/e2e-seed-hash/`.
+- **6 bugs herdados corrigidos durante execução:**
+  (i) `docker-compose.ci.yml` env PWA `NEXT_PUBLIC_API_URL` →
+    `LAURA_GO_API_URL` + `SESSION_SECRET` (PWA não lia a env errada).
+  (ii) `error-shape` + `observability` com URL absoluta via
+    `${API_URL}` (antes batiam em `baseURL=localhost:3000` → PWA 404
+    → skip gracioso ilusório).
+  (iii) `DISABLE_WHATSAPP=true` em api-go CI (QR scan bloqueava).
+  (iv) `lib/stripe.ts` + `lib/db.ts` com lazy init via Proxy (throws
+    top-level quebravam `next build` no Dockerfile production).
+  (v) `laura-go/Dockerfile` trocado de distroless para alpine+wget
+    (distroless não tinha wget — healthcheck nunca poderia funcionar).
+  (vi) `global-setup.ts` simplificado — `POST /api/v1/auth/login`
+    nunca existiu no api-go (login é server action no PWA); global
+    setup agora só `waitHealthy` + storageState placeholder.
+- **Workflow `docker compose up --wait`** substituído por poll manual
+  via `curl` do runner (independe de healthcheck interno; mais
+  debugável). Healthchecks dos containers api-go/pwa removidos.
 - **Playwright config flakeless** — `retries: 2` CI, `workers: 1`,
-  `trace/video: retain-on-failure`, reporter JUnit + HTML (ADR 006).
+  `trace/video: 'retain-on-failure'`, reporter JUnit + HTML (ADR 006).
 - **8 specs com `test.fixme`** — auth, cards-invoices, goals,
-  investments, reports, score, super-admin, transactions. Todos
-  dependem de data-testids inexistentes no PWA (Fase 17B.2).
+  investments, reports, score, super-admin, transactions. Dependem
+  de data-testids inexistentes no PWA (Fase 17B.2).
 - **Workflow consolidado** — `playwright-full.yml` deletado.
 - **ADR 006** Playwright flakeless aceito.
-- **Commits Fase 17B**: 15.
+- **Commits Fase 17B**: 18.
+- **Tag**: `phase-17b-prepared` aplicada e pushada.
 
-Pendente (bloqueio CI):
-- **api-go healthcheck ainda timeout** após alpine+wget. Server
-  Fiber sobe OK, migrations aplicadas, mas `wget http://localhost:8080/health`
-  não está respondendo dentro do container em 100s (20×5s).
-  Hipóteses não confirmadas:
-  (a) `/health` respondendo mas retornando status != 200.
-  (b) Middleware rate-limit / request-id ativo que bloqueia chamadas
-      do próprio container.
-  (c) Startup de algum componente (cron, cache pub/sub, webhook worker)
-      está bloqueando o main thread antes do listener aceitar
-      conexões.
-  (d) `wget` do alpine sem flag `-T 3` timing out em GET.
-
-Próximos diagnósticos sugeridos na retomada:
-  1. `curl -v` dentro do container no step debug para ver
-     resposta/status real de `/health`.
-  2. Adicionar `-T 3 -t 1` ao healthcheck wget.
-  3. Verificar se `/health` path está correto (conferir
-     `internal/health/liveness.go` e registro em bootstrap).
-  4. Se `webhook_secret_seed_failed` (JSON sintax error) for
-     bloqueante para request handling, investigar.
-
-- **Concerns Fase 17B.2+** (quando CI verde):
-  - 17B.2: adicionar ~40 data-testids em ~15 componentes PWA
+- **Concerns Fase 17B.2+**:
+  - 17B.2: adicionar ~40 data-testids em ~15 componentes PWA +
+    fazer login real (via form submit na page `/login` com testids)
     + remover `test.fixme`.
-  - 17B.3: novos specs.
+  - 17B.3: novos specs (cards-invoices lifecycle, banking API-only,
+    rollover quando UI existir).
   - 17C: mobile native foundation.
-  - 17D: multi-region read replica.
+  - 17D: multi-region read replica (aguarda deploy ativo).
 
 - **Alerta ambiente local:** Docker Desktop do usuário precisa
-  **factory reset** — corrupção containerd (`/var/lib/desktop-containerd/.../blobs/sha256/...`
-  input/output error) impediu validação local da stack. Afeta
-  outros projetos com containers Docker no mesmo Desktop.
+  **factory reset** — corrupção containerd
+  (`/var/lib/desktop-containerd/.../blobs/sha256/...` I/O error)
+  impediu validação local durante a fase (CI GitHub validou tudo
+  em ambiente limpo). Afeta outros projetos Docker do usuário.
 
 ### 2026-04-16 — Fase 17A preparada (lint sweep final)
 

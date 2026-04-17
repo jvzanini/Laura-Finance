@@ -44,10 +44,11 @@ services:
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "wget -O /dev/null -q --tries=1 --timeout=3 http://localhost:8080/health || exit 1"]
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
   pwa:
     build:
@@ -64,10 +65,11 @@ services:
     ports:
       - "3000:3000"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
+      test: ["CMD-SHELL", "wget -O /dev/null -q --tries=1 --timeout=3 http://localhost:3000 || exit 1"]
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
   # one-shot: rodar via `docker compose --profile seed run --rm seed-e2e`
   # após stack principal healthy. Não sobe em `docker compose up`.

@@ -1,15 +1,14 @@
 import { test, expect } from './fixtures/auth';
 
-test('transactions: criar receita + listar + deletar', async ({ authedPage: page }) => {
-  test.fixme(true, 'needs data-testid in PWA components — reativar em Fase 17B.2');
+// Nota: a UI atual de transações é read-only (filtros + listagem).
+// Criação/edição de transação acontece via WhatsApp NLP. Este spec
+// valida smoke da página. Fluxos de create/edit via UI ficam para
+// quando essa feature for construída (roadmap Fase 18+).
+
+test('transactions: página carrega com filtros', async ({ authedPage: page }) => {
   await page.goto('/transactions');
-  await page.getByTestId('btn-new-transaction').click();
-  await page.getByTestId('input-amount').fill('150,00');
-  await page.getByTestId('input-description').fill('Receita E2E');
-  await page.getByTestId('select-type-income').click();
-  await page.getByTestId('btn-save-transaction').click();
-  await expect(page.getByText('Receita E2E')).toBeVisible();
-  await page.getByTestId('btn-delete-transaction').first().click();
-  await page.getByTestId('btn-confirm-delete').click();
-  await expect(page.getByText('Receita E2E')).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: /transa[çc][õo]es/i })).toBeVisible();
+  // Filtros: mês + categoria + tipo
+  await expect(page.locator('input[type="month"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: /exportar/i })).toBeVisible();
 });

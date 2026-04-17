@@ -240,7 +240,7 @@ export default function WorkspacesView({
             </div>
 
             {/* Table */}
-            <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+            <div className="rounded-xl border border-border/50 bg-card overflow-hidden" data-testid="list-workspaces">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>

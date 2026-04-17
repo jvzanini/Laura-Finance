@@ -14,6 +14,9 @@ type Plan = {
     name: string;
     price_cents: number;
     price_cents_yearly: number | null;
+    price_cents_yearly_discount: number | null;
+    monthly_enabled: boolean;
+    yearly_enabled: boolean;
     stripe_price_id: string | null;
     stripe_price_id_yearly: string | null;
     capabilities: Record<string, boolean>;
@@ -60,12 +63,18 @@ function parseFeatures(v: unknown): string[] {
 function parsePlan(raw: unknown): Plan {
     const activeField = getField(raw, "active");
     const priceYearly = getField(raw, "price_cents_yearly");
+    const priceYearlyDiscount = getField(raw, "price_cents_yearly_discount");
+    const monthlyEnabled = getField(raw, "monthly_enabled");
+    const yearlyEnabled = getField(raw, "yearly_enabled");
     return {
         id: getString(raw, "id"),
         slug: getString(raw, "slug"),
         name: getString(raw, "name"),
         price_cents: getNumber(raw, "price_cents"),
         price_cents_yearly: isNumber(priceYearly) ? priceYearly : null,
+        price_cents_yearly_discount: isNumber(priceYearlyDiscount) ? priceYearlyDiscount : null,
+        monthly_enabled: isBoolean(monthlyEnabled) ? monthlyEnabled : true,
+        yearly_enabled: isBoolean(yearlyEnabled) ? yearlyEnabled : false,
         stripe_price_id: getStringOrNull(raw, "stripe_price_id") ?? "",
         stripe_price_id_yearly: getStringOrNull(raw, "stripe_price_id_yearly") ?? "",
         capabilities: parseBoolRecord(getField(raw, "capabilities")),
@@ -86,6 +95,9 @@ function PlanCard({ plan: rawPlan }: { plan: unknown }) {
     const [name, setName] = useState(initial.name);
     const [priceCents, setPriceCents] = useState(initial.price_cents);
     const [priceCentsYearly, setPriceCentsYearly] = useState<number | null>(initial.price_cents_yearly);
+    const [priceCentsYearlyDiscount, setPriceCentsYearlyDiscount] = useState<number | null>(initial.price_cents_yearly_discount);
+    const [monthlyEnabled, setMonthlyEnabled] = useState(initial.monthly_enabled);
+    const [yearlyEnabled, setYearlyEnabled] = useState(initial.yearly_enabled);
     const [stripePriceId, setStripePriceId] = useState(initial.stripe_price_id ?? "");
     const [stripePriceIdYearly, setStripePriceIdYearly] = useState(initial.stripe_price_id_yearly ?? "");
     const [capabilities, setCapabilities] = useState<Record<string, boolean>>(initial.capabilities);
@@ -108,6 +120,9 @@ function PlanCard({ plan: rawPlan }: { plan: unknown }) {
                 name,
                 price_cents: priceCents,
                 price_cents_yearly: priceCentsYearly,
+                price_cents_yearly_discount: priceCentsYearlyDiscount,
+                monthly_enabled: monthlyEnabled,
+                yearly_enabled: yearlyEnabled,
                 stripe_price_id: stripePriceId || undefined,
                 stripe_price_id_yearly: stripePriceIdYearly || undefined,
                 capabilities,
@@ -130,6 +145,10 @@ function PlanCard({ plan: rawPlan }: { plan: unknown }) {
     const priceYearlyDisplay =
         priceCentsYearly !== null && priceCentsYearly !== undefined
             ? (priceCentsYearly / 100).toFixed(2).replace(".", ",")
+            : "";
+    const priceYearlyDiscountDisplay =
+        priceCentsYearlyDiscount !== null && priceCentsYearlyDiscount !== undefined
+            ? (priceCentsYearlyDiscount / 100).toFixed(2).replace(".", ",")
             : "";
 
     const toggleCap = (cap: string) => {
@@ -208,13 +227,13 @@ function PlanCard({ plan: rawPlan }: { plan: unknown }) {
             {/* Preço anual (opcional) */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                    <label className={labelClass}>Preço anual (R$)</label>
+                    <label className={labelClass}>Preço anual (R$) — 12× parcelas</label>
                     <div className="relative">
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
                         <input
                             type="text"
                             value={priceYearlyDisplay}
-                            placeholder="opcional"
+                            placeholder="ex: 358,80"
                             onChange={(e) => {
                                 const raw = e.target.value.replace(/[^\d,]/g, "").replace(",", ".");
                                 if (raw === "") {
@@ -229,14 +248,48 @@ function PlanCard({ plan: rawPlan }: { plan: unknown }) {
                     </div>
                 </div>
                 <div className="space-y-1.5">
-                    <label className={labelClass}>Stripe Price ID (anual)</label>
-                    <input
-                        value={stripePriceIdYearly}
-                        onChange={(e) => setStripePriceIdYearly(e.target.value)}
-                        placeholder="price_... (opcional)"
-                        className={inputClass}
-                    />
+                    <label className={labelClass}>Anual à vista / Pix (R$)</label>
+                    <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                        <input
+                            type="text"
+                            value={priceYearlyDiscountDisplay}
+                            placeholder="ex: 299,00"
+                            onChange={(e) => {
+                                const raw = e.target.value.replace(/[^\d,]/g, "").replace(",", ".");
+                                if (raw === "") {
+                                    setPriceCentsYearlyDiscount(null);
+                                    return;
+                                }
+                                const parsed = Math.round(parseFloat(raw) * 100);
+                                if (!isNaN(parsed)) setPriceCentsYearlyDiscount(parsed);
+                            }}
+                            className={`${inputClass} pl-8`}
+                        />
+                    </div>
                 </div>
+            </div>
+
+            <div className="space-y-1.5">
+                <label className={labelClass}>Stripe Price ID (anual)</label>
+                <input
+                    value={stripePriceIdYearly}
+                    onChange={(e) => setStripePriceIdYearly(e.target.value)}
+                    placeholder="price_... (opcional)"
+                    className={inputClass}
+                />
+            </div>
+
+            {/* Cobranças habilitadas */}
+            <div className="grid grid-cols-2 gap-4">
+                <label className="flex items-center justify-between gap-2 rounded-lg border border-border/30 bg-background/50 p-3">
+                    <span className="text-sm">Vende mensal</span>
+                    <Switch checked={monthlyEnabled} onCheckedChange={setMonthlyEnabled} size="sm" />
+                </label>
+                <label className="flex items-center justify-between gap-2 rounded-lg border border-border/30 bg-background/50 p-3">
+                    <span className="text-sm">Vende anual</span>
+                    <Switch checked={yearlyEnabled} onCheckedChange={setYearlyEnabled} size="sm" />
+                </label>
             </div>
 
             {/* Capabilities */}

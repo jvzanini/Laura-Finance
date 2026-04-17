@@ -272,13 +272,17 @@ func handleAdminUpdatePlan(c *fiber.Ctx) error {
 			active = COALESCE($7, active),
 			price_cents_yearly = COALESCE($8, price_cents_yearly),
 			stripe_price_id_yearly = COALESCE($9, stripe_price_id_yearly),
-			stripe_price_id = COALESCE($10, stripe_price_id)
-		 WHERE slug = $11`,
+			stripe_price_id = COALESCE($10, stripe_price_id),
+			monthly_enabled = COALESCE($11, monthly_enabled),
+			yearly_enabled = COALESCE($12, yearly_enabled),
+			price_cents_yearly_discount = COALESCE($13, price_cents_yearly_discount)
+		 WHERE slug = $14`,
 		body["name"], body["price_cents"],
 		nullableJSON(body["capabilities"]), nullableJSON(body["ai_model_config"]),
 		nullableJSON(body["limits"]), nullableJSON(body["features_description"]),
 		body["active"],
 		body["price_cents_yearly"], body["stripe_price_id_yearly"], body["stripe_price_id"],
+		body["monthly_enabled"], body["yearly_enabled"], body["price_cents_yearly_discount"],
 		slug,
 	)
 	if err != nil {

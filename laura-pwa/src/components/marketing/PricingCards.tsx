@@ -8,6 +8,9 @@ type RawPlan = {
     name: string;
     price_cents: number;
     price_cents_yearly?: number | null;
+    price_cents_yearly_discount?: number | null;
+    monthly_enabled?: boolean;
+    yearly_enabled?: boolean;
     features_description: string[] | string | null;
     sort_order: number;
     is_most_popular?: boolean;
@@ -60,6 +63,12 @@ async function fetchPlans(): Promise<PublicPlan[] | null> {
                     typeof p.price_cents_yearly === "number"
                         ? p.price_cents_yearly
                         : null,
+                priceCentsYearlyDiscount:
+                    typeof p.price_cents_yearly_discount === "number"
+                        ? p.price_cents_yearly_discount
+                        : null,
+                monthlyEnabled: p.monthly_enabled !== false,
+                yearlyEnabled: p.yearly_enabled === true,
                 features: normalizeFeatures(p.features_description),
                 sortOrder: p.sort_order,
                 isMostPopular: Boolean(p.is_most_popular),

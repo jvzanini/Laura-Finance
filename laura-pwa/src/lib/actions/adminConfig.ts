@@ -301,6 +301,9 @@ export async function updatePlanFullAction(slug: string, data: {
     name: string;
     price_cents: number;
     price_cents_yearly?: number | null;
+    price_cents_yearly_discount?: number | null;
+    monthly_enabled?: boolean;
+    yearly_enabled?: boolean;
     stripe_price_id?: string;
     stripe_price_id_yearly?: string;
     capabilities: Record<string, boolean>;
@@ -312,9 +315,6 @@ export async function updatePlanFullAction(slug: string, data: {
     const gate = await assertSuperAdmin();
     if (!gate.ok) return { error: "Sem permissão" };
 
-    // Tenta Go primeiro — mantém audit log centralizado. Se o Go
-    // falhar com 4xx, repassa erro; em 5xx/offline cai no fallback
-    // local para evitar que o painel admin fique inutilizável.
     try {
         const res = await callLauraGo<{ success: boolean }>(
             `/api/v1/admin/plans/${slug}`,
@@ -324,6 +324,9 @@ export async function updatePlanFullAction(slug: string, data: {
                     name: data.name,
                     price_cents: data.price_cents,
                     price_cents_yearly: data.price_cents_yearly ?? null,
+                    price_cents_yearly_discount: data.price_cents_yearly_discount ?? null,
+                    monthly_enabled: data.monthly_enabled ?? true,
+                    yearly_enabled: data.yearly_enabled ?? false,
                     stripe_price_id: data.stripe_price_id || null,
                     stripe_price_id_yearly: data.stripe_price_id_yearly || null,
                     capabilities: data.capabilities,
@@ -342,14 +345,15 @@ export async function updatePlanFullAction(slug: string, data: {
                 return { error: err.message || "Erro de validação" };
             }
         }
-        // 5xx/rede: cai para fallback local abaixo.
     }
 
     await pool.query(
         `UPDATE subscription_plans SET name=$1, price_cents=$2, price_cents_yearly=$3,
          stripe_price_id=$4, stripe_price_id_yearly=$5,
          capabilities=$6::jsonb, ai_model_config=$7::jsonb, limits=$8::jsonb,
-         features_description=$9::jsonb, active=$10 WHERE slug=$11`,
+         features_description=$9::jsonb, active=$10,
+         price_cents_yearly_discount=$11, monthly_enabled=$12, yearly_enabled=$13
+         WHERE slug=$14`,
         [
             data.name,
             data.price_cents,
@@ -361,6 +365,9 @@ export async function updatePlanFullAction(slug: string, data: {
             JSON.stringify(data.limits),
             JSON.stringify(data.features_description),
             data.active,
+            data.price_cents_yearly_discount ?? null,
+            data.monthly_enabled ?? true,
+            data.yearly_enabled ?? false,
             slug,
         ],
     );

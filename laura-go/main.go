@@ -126,6 +126,7 @@ func main() {
 	}
 
 	services.StartBudgetAlertCron(whatsapp.SendTextMessage)
+	services.StartTrialLifecycleCron()
 
 	logger.Info("iniciando Laura Go server", "port", cfg.Port, "version", buildVersion)
 	go func() {

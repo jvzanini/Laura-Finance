@@ -69,6 +69,25 @@ func RegisterRoutes(app *fiber.App) {
 	// FEATURE_PLUGGY_WEBHOOKS=true para habilitar.
 	app.Post("/api/banking/webhooks/pluggy", handlePluggyWebhook)
 
+	// ─── Rotas públicas (sem sessão) ───
+	// Grupo com rate limit próprio mais agressivo (10/min por IP) para
+	// proteger contra abuse de signup.
+	publicLimiter := limiter.New(limiter.Config{
+		Max:        10,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP()
+		},
+	})
+	publicGroup := app.Group("/api/v1/public")
+	publicGroup.Get("/plans", handlePublicListPlans)
+	publicGroup.Post("/signup/start", publicLimiter, handlePublicSignupStart)
+	publicGroup.Post("/signup/verify-email", publicLimiter, handlePublicSignupVerifyEmail)
+	publicGroup.Post("/signup/verify-whatsapp", publicLimiter, handlePublicSignupVerifyWhatsapp)
+	publicGroup.Post("/signup/finalize", publicLimiter, handlePublicSignupFinalize)
+	publicGroup.Post("/signup/resend-email", publicLimiter, handlePublicSignupResendEmail)
+	publicGroup.Post("/signup/resend-whatsapp", publicLimiter, handlePublicSignupResendWhatsapp)
+
 	// Endpoint dev-only para smoke test do Sentry (dispara panic capturado
 	// pelo middleware sentryfiber + recover). Nao registra em producao.
 	if os.Getenv("APP_ENV") != "production" {
@@ -77,49 +96,55 @@ func RegisterRoutes(app *fiber.App) {
 		})
 	}
 
-	// Rotas autenticadas
+	// Rotas autenticadas — sem gating de assinatura (usuário sempre pode
+	// ver /me, gerenciar perfil, consultar estado da assinatura etc).
 	api := app.Group("/api/v1")
 	api.Use(RequireSession())
 	api.Get("/me", handleMe)
-	api.Get("/reports/dre", handleReportsDRE)
-	api.Get("/goals", handleListGoals)
-	api.Post("/goals", handleCreateGoal)
-	api.Get("/investments", handleListInvestments)
-	api.Post("/investments", handleCreateInvestment)
-	api.Get("/transactions", handleListTransactions)
-	api.Get("/cards", handleListCards)
-	api.Post("/cards", handleCreateCard)
-	api.Delete("/cards/:id", handleDeleteCard)
-	api.Delete("/transactions/:id", handleDeleteTransaction)
-	api.Put("/transactions/:id/category", handleUpdateTransactionCategory)
+	api.Get("/me/subscription", handleMeSubscription)
 	api.Put("/me/profile", handleUpdateProfile)
 	api.Put("/me/settings", handleUpdateSettings)
 	api.Put("/me/password", handleChangePassword)
-	api.Get("/categories", handleListCategories)
-	api.Post("/categories", handleCreateCategory)
-	api.Post("/categories/seed", handleSeedCategories)
-	api.Get("/invoices", handleListInvoices)
-	api.Post("/invoices", handleCreateInvoice)
-	api.Post("/invoices/:id/pay", handleMarkInvoicePaid)
-	api.Get("/debt-rollovers", handleListDebtRollovers)
-	api.Post("/debt-rollovers", handleCreateDebtRollover)
-	api.Get("/members", handleListMembers)
-	api.Post("/members", handleCreateMember)
-	api.Delete("/members/:id", handleDeleteMember)
-	api.Get("/payment-processors", handleListPaymentProcessors)
-	api.Get("/score/current", handleCurrentScore)
-	api.Get("/score/history", handleScoreHistory)
-	api.Get("/reports/categories", handleReportCategories)
-	api.Get("/reports/subcategories", handleReportSubcategories)
-	api.Get("/reports/cards", handleReportCards)
-	api.Get("/reports/payment-methods", handleReportPaymentMethods)
-	api.Get("/reports/travel", handleReportTravel)
-	api.Get("/reports/comparative", handleReportComparative)
-	api.Get("/reports/trend", handleReportTrend)
-	api.Get("/reports/members", handleReportMembers)
-	api.Get("/dashboard/cashflow", handleCashFlow)
-	api.Get("/dashboard/upcoming-bills", handleUpcomingBills)
-	api.Get("/dashboard/category-budgets", handleCategoryBudgets)
+
+	// Features gated pelo paywall — se subscription_status estiver
+	// bloqueado, retorna 402 e orienta redirect para /subscription.
+	feature := api.Group("", RequireActiveSubscription())
+	feature.Get("/reports/dre", handleReportsDRE)
+	feature.Get("/goals", handleListGoals)
+	feature.Post("/goals", handleCreateGoal)
+	feature.Get("/investments", handleListInvestments)
+	feature.Post("/investments", handleCreateInvestment)
+	feature.Get("/transactions", handleListTransactions)
+	feature.Get("/cards", handleListCards)
+	feature.Post("/cards", handleCreateCard)
+	feature.Delete("/cards/:id", handleDeleteCard)
+	feature.Delete("/transactions/:id", handleDeleteTransaction)
+	feature.Put("/transactions/:id/category", handleUpdateTransactionCategory)
+	feature.Get("/categories", handleListCategories)
+	feature.Post("/categories", handleCreateCategory)
+	feature.Post("/categories/seed", handleSeedCategories)
+	feature.Get("/invoices", handleListInvoices)
+	feature.Post("/invoices", handleCreateInvoice)
+	feature.Post("/invoices/:id/pay", handleMarkInvoicePaid)
+	feature.Get("/debt-rollovers", handleListDebtRollovers)
+	feature.Post("/debt-rollovers", handleCreateDebtRollover)
+	feature.Get("/members", handleListMembers)
+	feature.Post("/members", handleCreateMember)
+	feature.Delete("/members/:id", handleDeleteMember)
+	feature.Get("/payment-processors", handleListPaymentProcessors)
+	feature.Get("/score/current", handleCurrentScore)
+	feature.Get("/score/history", handleScoreHistory)
+	feature.Get("/reports/categories", handleReportCategories)
+	feature.Get("/reports/subcategories", handleReportSubcategories)
+	feature.Get("/reports/cards", handleReportCards)
+	feature.Get("/reports/payment-methods", handleReportPaymentMethods)
+	feature.Get("/reports/travel", handleReportTravel)
+	feature.Get("/reports/comparative", handleReportComparative)
+	feature.Get("/reports/trend", handleReportTrend)
+	feature.Get("/reports/members", handleReportMembers)
+	feature.Get("/dashboard/cashflow", handleCashFlow)
+	feature.Get("/dashboard/upcoming-bills", handleUpcomingBills)
+	feature.Get("/dashboard/category-budgets", handleCategoryBudgets)
 
 	// Banking endpoints (Open Finance Foundation - Fase 13)
 	// Stub: retorna lista vazia até integração Pluggy concluir (Fase 14).

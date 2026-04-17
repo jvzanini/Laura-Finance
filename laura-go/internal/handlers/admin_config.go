@@ -269,12 +269,17 @@ func handleAdminUpdatePlan(c *fiber.Ctx) error {
 			ai_model_config = COALESCE($4::jsonb, ai_model_config),
 			limits = COALESCE($5::jsonb, limits),
 			features_description = COALESCE($6::jsonb, features_description),
-			active = COALESCE($7, active)
-		 WHERE slug = $8`,
+			active = COALESCE($7, active),
+			price_cents_yearly = COALESCE($8, price_cents_yearly),
+			stripe_price_id_yearly = COALESCE($9, stripe_price_id_yearly),
+			stripe_price_id = COALESCE($10, stripe_price_id)
+		 WHERE slug = $11`,
 		body["name"], body["price_cents"],
 		nullableJSON(body["capabilities"]), nullableJSON(body["ai_model_config"]),
 		nullableJSON(body["limits"]), nullableJSON(body["features_description"]),
-		body["active"], slug,
+		body["active"],
+		body["price_cents_yearly"], body["stripe_price_id_yearly"], body["stripe_price_id"],
+		slug,
 	)
 	if err != nil {
 		slog.Error("handleAdminUpdatePlan", "err", err)

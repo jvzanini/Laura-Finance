@@ -20,6 +20,12 @@
 
 BEGIN;
 
+-- Hotfix: migration 000035 criou trigger updated_at em subscription_plans
+-- mas a tabela (000026) só tem created_at. Adiciona a coluna se faltar
+-- para o trigger não quebrar em UPDATE.
+ALTER TABLE subscription_plans
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+
 UPDATE subscription_plans
 SET name = 'Básico',
     price_cents = 990,

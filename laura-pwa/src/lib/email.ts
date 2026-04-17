@@ -136,6 +136,49 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string, userN
     }
 }
 
+export async function sendPaymentFailedEmail(to: string, nome: string, plano: string, valor: string, dataLimite: string) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3100";
+    try {
+        const tpl = await getActiveTemplate("pagamento_falhou");
+        const vars: TemplateVars = { nome, plano, valor, data_limite: dataLimite, app_url: appUrl };
+        const subject = tpl ? applyVars(tpl.subject, vars) : "Pagamento não autorizado — Laura Finance";
+        const html = tpl ? applyVars(tpl.html_body, vars) : `
+        <div><p>Olá, ${escapeHtml(nome)}! Não conseguimos processar seu pagamento do plano ${escapeHtml(plano)}. Atualize até ${escapeHtml(dataLimite)}.</p></div>`;
+        return await resend.emails.send({ from: await getSenderFrom(), to: [to], subject, html });
+    } catch (err) {
+        console.error("sendPaymentFailedEmail", err);
+        return null;
+    }
+}
+
+export async function sendPaymentResumedEmail(to: string, nome: string) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3100";
+    try {
+        const tpl = await getActiveTemplate("pagamento_retomado");
+        const vars: TemplateVars = { nome, app_url: appUrl };
+        const subject = tpl ? applyVars(tpl.subject, vars) : "Pagamento confirmado — Laura Finance";
+        const html = tpl ? applyVars(tpl.html_body, vars) : `<div><p>Olá, ${escapeHtml(nome)}! Pagamento confirmado.</p></div>`;
+        return await resend.emails.send({ from: await getSenderFrom(), to: [to], subject, html });
+    } catch (err) {
+        console.error("sendPaymentResumedEmail", err);
+        return null;
+    }
+}
+
+export async function sendCanceledEmail(to: string, nome: string, dataLimite: string) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3100";
+    try {
+        const tpl = await getActiveTemplate("assinatura_cancelada");
+        const vars: TemplateVars = { nome, data_limite: dataLimite, app_url: appUrl };
+        const subject = tpl ? applyVars(tpl.subject, vars) : "Assinatura cancelada — Laura Finance";
+        const html = tpl ? applyVars(tpl.html_body, vars) : `<div><p>Olá, ${escapeHtml(nome)}! Acesso ativo até ${escapeHtml(dataLimite)}.</p></div>`;
+        return await resend.emails.send({ from: await getSenderFrom(), to: [to], subject, html });
+    } catch (err) {
+        console.error("sendCanceledEmail", err);
+        return null;
+    }
+}
+
 export async function sendWelcomeEmail(to: string, tempPassword: string, role: string) {
     try {
         const tpl = await getActiveTemplate("convite_membro");

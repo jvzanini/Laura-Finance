@@ -180,3 +180,46 @@
 .glow-destructive {
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.15), 0 0 60px rgba(239, 68, 68, 0.05);
 }
+
+/* ─── Fase 18: animações landing page + OTP ─────────────────────── */
+
+@keyframes laura-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+  20%, 40%, 60%, 80% { transform: translateX(6px); }
+}
+
+@keyframes laura-orb-float {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.55; }
+  50% { transform: translate3d(10px, -16px, 0) scale(1.08); opacity: 0.7; }
+}
+
+@keyframes laura-chat-bubble {
+  0% { opacity: 0; transform: translateY(10px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-shake {
+  animation: laura-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.animate-orb-float {
+  animation: laura-orb-float 12s ease-in-out infinite;
+}
+
+.animate-orb-float-delayed {
+  animation: laura-orb-float 16s ease-in-out infinite 1.5s;
+}
+
+.animate-chat-bubble {
+  animation: laura-chat-bubble 0.45s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shake,
+  .animate-orb-float,
+  .animate-orb-float-delayed,
+  .animate-chat-bubble {
+    animation: none !important;
+  }
+}

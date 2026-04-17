@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -20,9 +21,16 @@ import (
 // Convenção: toda rota sob /api/v1/* passa por RequireSession();
 // rotas de admin adicionam RequireSuperAdmin() depois.
 func RegisterRoutes(app *fiber.App) {
-	// Rate limiting — antes de tudo
+	// Rate limiting — antes de tudo. Max ajustável via env (útil em CI E2E
+	// onde PWA dispara rajadas de server actions em paralelo).
+	rateMax := 60
+	if v := os.Getenv("RATE_LIMIT_MAX"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			rateMax = n
+		}
+	}
 	app.Use(limiter.New(limiter.Config{
-		Max:        60,
+		Max:        rateMax,
 		Expiration: 1 * time.Minute,
 	}))
 

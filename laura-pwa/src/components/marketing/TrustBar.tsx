@@ -1,10 +1,10 @@
-import { CreditCard, Lock, ShieldCheck, Sparkles } from "lucide-react";
+import { Brain, CreditCard, Lock, ShieldCheck } from "lucide-react";
 
 const items = [
     { icon: ShieldCheck, text: "Sem cartão no trial" },
     { icon: CreditCard, text: "Cancele quando quiser" },
     { icon: Lock, text: "Criptografia de ponta a ponta" },
-    { icon: Sparkles, text: "IA treinada para o PT-BR" },
+    { icon: Brain, text: "IA que te entende" },
 ];
 
 export function TrustBar() {

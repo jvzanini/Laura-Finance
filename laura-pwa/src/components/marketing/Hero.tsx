@@ -2,68 +2,31 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import {
-    ArrowRight,
-    MessageCircle,
-    Plane,
-    ShieldCheck,
-    Users,
-    Wallet,
-} from "lucide-react";
+import { ArrowRight, MessageCircle, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 import { DashboardMockup } from "./DashboardMockup";
 
-const pilares = [
-    {
-        href: "#pilar-assistente",
-        label: "Assistente financeiro",
-        icon: Wallet,
-        className:
-            "border-violet-400/30 bg-violet-500/10 text-violet-100 hover:border-violet-400/60 hover:bg-violet-500/20",
-        iconClassName: "text-violet-300",
-    },
-    {
-        href: "#pilar-familia",
-        label: "Gestão familiar",
-        icon: Users,
-        className:
-            "border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-100 hover:border-fuchsia-400/60 hover:bg-fuchsia-500/20",
-        iconClassName: "text-fuchsia-300",
-    },
-    {
-        href: "#pilar-viagens",
-        label: "Planejador de viagens",
-        icon: Plane,
-        className:
-            "border-rose-400/30 bg-rose-500/10 text-rose-100 hover:border-rose-400/60 hover:bg-rose-500/20",
-        iconClassName: "text-rose-300",
-    },
-] as const;
-
 export function Hero() {
     return (
-        <section className="relative isolate overflow-hidden pt-14 pb-20 sm:pt-20 sm:pb-28 lg:pt-24 lg:pb-32">
+        <section
+            className="relative isolate overflow-hidden pt-14 pb-20 [contain:paint] sm:pt-20 sm:pb-28 lg:pt-24 lg:pb-32"
+        >
             {/* Textura grid sutil */}
             <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]"
             />
 
-            {/* Orbs decorativos — violet / fuchsia / rose */}
+            {/* Orbs decorativos — 2 apenas, sem scale/opacity animada */}
             <div
                 aria-hidden
-                className="animate-orb-float pointer-events-none absolute -top-32 -left-40 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(closest-side,_rgba(124,58,237,0.55),_transparent_70%)] opacity-80 blur-3xl"
+                className="animate-orb-float pointer-events-none absolute -top-32 -left-40 h-[22rem] w-[22rem] rounded-full bg-[radial-gradient(closest-side,_rgba(124,58,237,0.55),_transparent_70%)] opacity-50 blur-3xl"
             />
             <div
                 aria-hidden
-                className="animate-orb-float-delayed pointer-events-none absolute -right-40 -bottom-32 h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(closest-side,_rgba(217,70,239,0.45),_transparent_70%)] opacity-70 blur-3xl"
-            />
-            <div
-                aria-hidden
-                className="animate-orb-float pointer-events-none absolute top-1/3 right-1/4 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,_rgba(232,121,249,0.35),_transparent_70%)] opacity-60 blur-3xl"
-                style={{ animationDelay: "3s" }}
+                className="animate-orb-float-delayed pointer-events-none absolute -right-40 -bottom-32 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(closest-side,_rgba(217,70,239,0.45),_transparent_70%)] opacity-40 blur-3xl"
             />
 
             <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-14 px-4 sm:px-6 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 lg:px-8">
@@ -101,42 +64,19 @@ export function Hero() {
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.55, delay: 0.15 }}
-                        className="mt-6 max-w-xl text-base leading-relaxed text-zinc-300 sm:text-lg"
+                        className="mt-6 max-w-2xl text-lg text-white/70 sm:text-xl"
                     >
-                        Chega de planilha + 3 apps + bot no WhatsApp. Laura
-                        Finance é a plataforma completa — assistente financeiro,
-                        gestão familiar e planejador de viagens em um só lugar.
+                        Chega de planilhas, apps dispersos e bots soltos. Laura
+                        Finance é a plataforma completa.
+                        <br className="hidden sm:block" />
+                        <span className="mt-3 block">
+                            <span className="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-rose-300 bg-clip-text font-semibold text-transparent">
+                                Assistente financeiro, gestão familiar e
+                                planejador de viagens
+                            </span>{" "}
+                            em um só lugar.
+                        </span>
                     </motion.p>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.55, delay: 0.2 }}
-                        className="mt-7 flex flex-wrap items-center justify-center gap-2 lg:justify-start"
-                        aria-label="Três pilares da Laura Finance"
-                    >
-                        {pilares.map(
-                            ({
-                                href,
-                                label,
-                                icon: Icon,
-                                className,
-                                iconClassName,
-                            }) => (
-                                <a
-                                    key={href}
-                                    href={href}
-                                    className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-sm transition-all sm:text-sm ${className}`}
-                                >
-                                    <Icon
-                                        className={`size-3.5 ${iconClassName}`}
-                                        aria-hidden
-                                    />
-                                    <span>{label}</span>
-                                </a>
-                            )
-                        )}
-                    </motion.div>
 
                     <motion.div
                         initial={{ opacity: 0, y: 12 }}

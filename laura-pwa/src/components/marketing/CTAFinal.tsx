@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Shield, Sparkles, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -50,18 +50,25 @@ export function CTAFinal() {
                             </span>
                         </h2>
                         <p className="mx-auto mt-5 max-w-xl text-base text-zinc-300 sm:text-lg">
-                            Ative seu trial de 7 dias e descubra como é ter
-                            clareza total sobre o seu dinheiro — sem planilhas.
+                            Ative seu trial de 7 dias e descubra clareza total
+                            sobre seu dinheiro.
                         </p>
-                        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                        <div className="mx-auto mt-10 flex justify-center">
                             <Link href="/register">
                                 <Button className="h-14 gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-8 text-base font-semibold text-white shadow-2xl shadow-violet-600/50 transition-all hover:from-violet-500 hover:to-fuchsia-400 hover:shadow-violet-500/60 sm:text-lg">
                                     Começar 7 dias grátis
                                     <ArrowRight className="size-5" aria-hidden />
                                 </Button>
                             </Link>
-                            <span className="text-xs text-zinc-500">
-                                Sem cartão · Cancele quando quiser
+                        </div>
+                        <div className="mt-5 flex items-center justify-center gap-4 text-[11px] text-white/40">
+                            <span className="inline-flex items-center gap-1.5">
+                                <Shield className="size-3" aria-hidden />
+                                Sem cartão
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                                <XCircle className="size-3" aria-hidden />
+                                Cancele quando quiser
                             </span>
                         </div>
                     </div>

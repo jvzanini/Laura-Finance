@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "motion/react";
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
     Car,
     Film,
@@ -121,7 +122,26 @@ function Boneco({ cor, corSecundaria }: { cor: string; corSecundaria: string }) 
     );
 }
 
+type FiltroMembro = "todos" | Membro["id"];
+
 export function PilarFamilia() {
+    const [filtro, setFiltro] = useState<FiltroMembro>("todos");
+
+    const totalGeral = useMemo(
+        () => membros.reduce((sum, m) => sum + m.valor, 0),
+        []
+    );
+
+    const transacoesFiltradas = useMemo(() => {
+        if (filtro === "todos") return membros;
+        return membros.filter((m) => m.id === filtro);
+    }, [filtro]);
+
+    const totalFiltrado = useMemo(
+        () => transacoesFiltradas.reduce((sum, m) => sum + m.valor, 0),
+        [transacoesFiltradas]
+    );
+
     return (
         <section
             id="pilar-familia"
@@ -144,7 +164,7 @@ export function PilarFamilia() {
             />
 
             <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-                <div className="mx-auto max-w-2xl text-center">
+                <div className="mx-auto max-w-3xl text-center">
                     <div className="inline-flex items-center gap-2 rounded-full border border-fuchsia-400/30 bg-fuchsia-500/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-fuchsia-200 backdrop-blur-sm">
                         <Users className="size-3.5" aria-hidden />
                         Pilar 02 — Gestão familiar
@@ -158,7 +178,7 @@ export function PilarFamilia() {
                             Gestão familiar de verdade.
                         </span>
                     </h2>
-                    <p className="mt-4 text-base text-zinc-300 sm:text-lg">
+                    <p className="mx-auto mt-4 max-w-2xl text-base text-zinc-300 sm:text-lg">
                         Cada membro lança seu gasto pelo WhatsApp ou app. Você
                         acompanha a família toda em um só painel.
                     </p>
@@ -259,84 +279,121 @@ export function PilarFamilia() {
                                     <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
                                         Hoje
                                     </span>
-                                    <span className="text-sm font-bold text-white">
-                                        {brl(
-                                            membros.reduce(
-                                                (sum, m) => sum + m.valor,
-                                                0
-                                            )
-                                        )}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Membros ativos (avatars chip) */}
-                            <div className="mt-4 flex items-center gap-2">
-                                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                                    4 membros ativos
-                                </span>
-                                <div className="flex -space-x-2">
-                                    {membros.map((m) => (
-                                        <span
-                                            key={m.id}
-                                            className="flex size-7 items-center justify-center rounded-full text-[10px] font-bold text-white ring-2 ring-[#140B1C]"
-                                            style={{
-                                                background: `linear-gradient(135deg, ${m.cor}, ${m.corSecundaria})`,
-                                            }}
-                                            aria-label={m.nome}
-                                        >
-                                            {m.nome.charAt(0)}
+                                    <motion.span
+                                        key={filtro}
+                                        initial={{ opacity: 0, y: -4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.25 }}
+                                        className="text-sm font-bold text-white"
+                                    >
+                                        {brl(totalFiltrado)}
+                                    </motion.span>
+                                    {filtro !== "todos" && (
+                                        <span className="text-[10px] text-zinc-500">
+                                            de {brl(totalGeral)} total
                                         </span>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Lista transações */}
-                            <ul className="mt-5 space-y-2.5">
-                                {membros.map((m, i) => {
-                                    const Icon = m.icone;
+                            {/* Filtros por membro */}
+                            <div
+                                role="tablist"
+                                aria-label="Filtrar transações por membro"
+                                className="mt-4 flex flex-wrap items-center gap-2"
+                            >
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={filtro === "todos"}
+                                    onClick={() => setFiltro("todos")}
+                                    className={
+                                        filtro === "todos"
+                                            ? "inline-flex min-h-11 items-center rounded-full bg-gradient-to-r from-fuchsia-600 to-rose-500 px-3 text-xs font-semibold text-white shadow-lg shadow-fuchsia-600/30 transition-all"
+                                            : "inline-flex min-h-11 items-center rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-semibold text-zinc-300 transition-all hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+                                    }
+                                >
+                                    Todos
+                                </button>
+                                {membros.map((m) => {
+                                    const isActive = filtro === m.id;
                                     return (
-                                        <motion.li
+                                        <button
                                             key={m.id}
-                                            initial={{ opacity: 0, y: -8 }}
-                                            whileInView={{ opacity: 1, y: 0 }}
-                                            viewport={{
-                                                once: true,
-                                                amount: 0.3,
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={isActive}
+                                            onClick={() => setFiltro(m.id)}
+                                            aria-label={`Filtrar por ${m.nome}`}
+                                            className={
+                                                isActive
+                                                    ? "inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-white shadow-lg transition-all ring-2 ring-white/30"
+                                                    : "inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-zinc-300 transition-all hover:text-white ring-1 ring-inset ring-white/10 hover:ring-white/20"
+                                            }
+                                            style={{
+                                                background: isActive
+                                                    ? `linear-gradient(135deg, ${m.cor}, ${m.corSecundaria})`
+                                                    : undefined,
                                             }}
-                                            transition={{
-                                                duration: 0.45,
-                                                delay: i * 0.18 + 0.6,
-                                            }}
-                                            className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3"
                                         >
                                             <span
-                                                className="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ring-1 ring-inset ring-white/20"
+                                                aria-hidden
+                                                className="flex size-6 items-center justify-center rounded-full text-[10px] font-bold text-white ring-1 ring-inset ring-white/20"
                                                 style={{
                                                     background: `linear-gradient(135deg, ${m.cor}, ${m.corSecundaria})`,
                                                 }}
-                                                aria-hidden
                                             >
                                                 {m.nome.charAt(0)}
                                             </span>
-                                            <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                                                <span className="truncate text-xs font-semibold text-white sm:text-sm">
-                                                    {m.nome} · {m.categoria}
-                                                </span>
-                                                <span className="flex items-center gap-1.5 text-[10px] text-zinc-400">
-                                                    <Icon
-                                                        className="size-3 text-fuchsia-300"
-                                                        aria-hidden
-                                                    />
-                                                    via WhatsApp · agora
-                                                </span>
-                                            </div>
-                                            <span className="text-sm font-bold text-white">
-                                                − {brl(m.valor)}
-                                            </span>
-                                        </motion.li>
+                                            {m.nome}
+                                        </button>
                                     );
                                 })}
+                            </div>
+
+                            {/* Lista transações filtrada */}
+                            <ul className="mt-5 space-y-2.5">
+                                <AnimatePresence mode="popLayout" initial={false}>
+                                    {transacoesFiltradas.map((m) => {
+                                        const Icon = m.icone;
+                                        return (
+                                            <motion.li
+                                                key={m.id}
+                                                layout
+                                                initial={{ opacity: 0, y: -6 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -6 }}
+                                                transition={{ duration: 0.25 }}
+                                                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+                                            >
+                                                <span
+                                                    className="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ring-1 ring-inset ring-white/20"
+                                                    style={{
+                                                        background: `linear-gradient(135deg, ${m.cor}, ${m.corSecundaria})`,
+                                                    }}
+                                                    aria-hidden
+                                                >
+                                                    {m.nome.charAt(0)}
+                                                </span>
+                                                <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                                                    <span className="truncate text-xs font-semibold text-white sm:text-sm">
+                                                        {m.nome} · {m.categoria}
+                                                    </span>
+                                                    <span className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                                                        <Icon
+                                                            className="size-3 text-fuchsia-300"
+                                                            aria-hidden
+                                                        />
+                                                        via WhatsApp · agora
+                                                    </span>
+                                                </div>
+                                                <span className="text-sm font-bold text-white">
+                                                    − {brl(m.valor)}
+                                                </span>
+                                            </motion.li>
+                                        );
+                                    })}
+                                </AnimatePresence>
                             </ul>
 
                             <div className="mt-4 flex items-center justify-between rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/[0.08] p-3">

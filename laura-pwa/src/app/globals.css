@@ -190,8 +190,8 @@
 }
 
 @keyframes laura-orb-float {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.55; }
-  50% { transform: translate3d(10px, -16px, 0) scale(1.08); opacity: 0.7; }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(14px, -22px, 0); }
 }
 
 @keyframes laura-chat-bubble {
@@ -204,11 +204,13 @@
 }
 
 .animate-orb-float {
-  animation: laura-orb-float 12s ease-in-out infinite;
+  animation: laura-orb-float 18s ease-in-out infinite;
+  will-change: transform;
 }
 
 .animate-orb-float-delayed {
-  animation: laura-orb-float 16s ease-in-out infinite 1.5s;
+  animation: laura-orb-float 22s ease-in-out infinite -6s;
+  will-change: transform;
 }
 
 .animate-chat-bubble {

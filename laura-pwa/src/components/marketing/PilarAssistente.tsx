@@ -95,13 +95,32 @@ export function PilarAssistente() {
         }, []);
     }, [total]);
 
-    // Top 3 categorias por valor
-    const top3 = useMemo(
-        () => [...categorias].sort((a, b) => b.valor - a.valor).slice(0, 3),
-        []
-    );
+    // Lista das categorias visíveis no painel "Top categorias".
+    // Quando uma tab específica está ativa, colocamos a categoria no topo e
+    // reordenamos as demais por valor descendente.
+    const topCategorias = useMemo(() => {
+        const ordenadasPorValor = [...categorias].sort(
+            (a, b) => b.valor - a.valor
+        );
+        if (activeTab === "todas") return ordenadasPorValor.slice(0, 3);
+        const destaqueCat = ordenadasPorValor.find((c) => c.id === activeTab);
+        if (!destaqueCat) return ordenadasPorValor.slice(0, 3);
+        const resto = ordenadasPorValor.filter((c) => c.id !== activeTab);
+        return [destaqueCat, ...resto].slice(0, 3);
+    }, [activeTab]);
 
     const destaque = activeTab === "todas" ? null : activeTab;
+
+    const categoriaDestaque = useMemo(
+        () => categorias.find((c) => c.id === destaque) ?? null,
+        [destaque]
+    );
+
+    // Valor "destaque" do topo do card — total consolidado ou valor da categoria.
+    const valorDestaque = categoriaDestaque?.valor ?? total;
+    const labelDestaque = categoriaDestaque
+        ? `em ${categoriaDestaque.label} este mês`
+        : "total este mês";
 
     return (
         <section
@@ -141,7 +160,10 @@ export function PilarAssistente() {
                     </h2>
                     <p className="mt-4 text-base text-zinc-300 sm:text-lg">
                         Seu dashboard real, com gráficos interativos e filtros
-                        em 1 clique. Experimente os filtros.
+                        em 1 clique.
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-violet-200 sm:text-base">
+                        Experimente os filtros.
                     </p>
                 </div>
 
@@ -274,10 +296,21 @@ export function PilarAssistente() {
                                 </div>
                                 <div className="flex flex-col items-end leading-tight">
                                     <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                                        Total
+                                        {categoriaDestaque
+                                            ? categoriaDestaque.label
+                                            : "Total"}
                                     </span>
-                                    <span className="text-sm font-bold text-white sm:text-base">
-                                        {brl(total)}
+                                    <motion.span
+                                        key={categoriaDestaque?.id ?? "todas"}
+                                        initial={{ opacity: 0, y: -4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.25 }}
+                                        className="text-sm font-bold text-white sm:text-base"
+                                    >
+                                        {brl(valorDestaque)}
+                                    </motion.span>
+                                    <span className="text-[10px] text-zinc-500">
+                                        {labelDestaque}
                                     </span>
                                 </div>
                             </div>
@@ -435,7 +468,7 @@ export function PilarAssistente() {
                                 </div>
                             </div>
 
-                            {/* Top 3 categorias com barras */}
+                            {/* Top categorias com barras (reordenam ao filtrar) */}
                             <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
@@ -446,16 +479,27 @@ export function PilarAssistente() {
                                     </span>
                                 </div>
                                 <ul className="mt-3 space-y-3">
-                                    {top3.map((c) => {
+                                    {topCategorias.map((c) => {
                                         const pct = (c.valor / total) * 100;
+                                        const isHighlighted =
+                                            destaque === c.id;
                                         const isDim =
-                                            destaque !== null &&
-                                            destaque !== c.id;
+                                            destaque !== null && !isHighlighted;
                                         return (
-                                            <li
+                                            <motion.li
                                                 key={c.id}
+                                                layout
+                                                transition={{
+                                                    layout: {
+                                                        type: "spring",
+                                                        stiffness: 260,
+                                                        damping: 26,
+                                                    },
+                                                }}
                                                 className={`transition-opacity ${
-                                                    isDim ? "opacity-40" : "opacity-100"
+                                                    isDim
+                                                        ? "opacity-40"
+                                                        : "opacity-100"
                                                 }`}
                                             >
                                                 <div className="flex items-center justify-between text-[11px]">
@@ -480,21 +524,18 @@ export function PilarAssistente() {
                                                         style={{
                                                             background: `linear-gradient(90deg, ${c.cor}, #F472B6)`,
                                                         }}
-                                                        initial={{ width: 0 }}
-                                                        whileInView={{
-                                                            width: `${pct}%`,
-                                                        }}
-                                                        viewport={{
-                                                            once: true,
-                                                            amount: 0.5,
+                                                        animate={{
+                                                            width: isHighlighted
+                                                                ? "100%"
+                                                                : `${pct}%`,
                                                         }}
                                                         transition={{
-                                                            duration: 0.8,
+                                                            duration: 0.6,
                                                             ease: "easeOut",
                                                         }}
                                                     />
                                                 </div>
-                                            </li>
+                                            </motion.li>
                                         );
                                     })}
                                 </ul>

@@ -331,7 +331,7 @@ export function SignupWizard() {
         !!channelsWarning && /whatsapp.*indispon/i.test(channelsWarning);
 
     return (
-        <div className="w-full">
+        <div className="mx-auto w-full max-w-md">
             {/* Progress */}
             <ProgressBar current={step} total={3} />
 
@@ -339,7 +339,7 @@ export function SignupWizard() {
                 className={cn(
                     "relative overflow-hidden rounded-3xl",
                     "bg-white/5 backdrop-blur-sm border border-white/10",
-                    "shadow-2xl p-6 sm:p-8"
+                    "shadow-2xl p-5 sm:p-8"
                 )}
                 data-testid="signup-wizard-card"
             >
@@ -493,9 +493,9 @@ function Step1Form({ form, onSubmit, serverError, submitting }: Step1FormProps) 
     const { errors } = formState;
 
     return (
-        <form onSubmit={onSubmit} noValidate className="space-y-5" data-testid="signup-step1">
+        <form onSubmit={onSubmit} noValidate className="space-y-4 sm:space-y-5" data-testid="signup-step1">
             <header className="space-y-1 text-center">
-                <h1 className="text-2xl font-semibold text-white">Crie sua conta Laura Finance</h1>
+                <h1 className="text-xl font-semibold text-white sm:text-2xl">Crie sua conta Laura Finance</h1>
                 <p className="text-sm text-white/60">
                     Comece a organizar suas finanças pelo WhatsApp. Primeiros 7 dias por nossa conta.
                 </p>

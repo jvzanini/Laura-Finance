@@ -28,9 +28,9 @@ function LauraLogo({ className }: { className?: string }) {
         <span className={cn("inline-flex items-center gap-2", className)}>
             <span
                 aria-hidden
-                className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 via-fuchsia-500 to-rose-400 text-sm font-bold text-white shadow-lg shadow-violet-600/40 ring-1 ring-inset ring-white/20"
+                className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 via-fuchsia-500 to-rose-400 text-[10px] font-bold text-white shadow-lg shadow-violet-600/40 ring-1 ring-inset ring-white/20"
             >
-                L
+                LF
             </span>
             <span className="text-xl font-bold tracking-tight text-white">
                 Laura{" "}

@@ -153,8 +153,11 @@ export function PricingClient({ plans }: { plans: PublicPlan[] }) {
 
                 <div
                     className={cn(
-                        "mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2",
-                        visiblePlans.length >= 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+                        "mt-14 grid gap-6",
+                        visiblePlans.length === 1
+                            ? "mx-auto max-w-md grid-cols-1 justify-items-center"
+                            : "grid-cols-1 sm:grid-cols-2",
+                        visiblePlans.length >= 3 ? "lg:grid-cols-3" : ""
                     )}
                 >
                     {visiblePlans.map((plan) => {

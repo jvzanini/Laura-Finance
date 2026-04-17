@@ -16,13 +16,13 @@ export default function LoginPage() {
     );
 
     return (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
-            <header className="mb-6 space-y-1 text-center">
-                <h1 className="text-2xl font-semibold text-white">Bem-vindo de volta</h1>
+        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-sm sm:p-8">
+            <header className="mb-5 space-y-1 text-center sm:mb-6">
+                <h1 className="text-xl font-semibold text-white sm:text-2xl">Bem-vindo de volta</h1>
                 <p className="text-sm text-white/60">Entre com suas credenciais da Laura Finance.</p>
             </header>
 
-            <form action={formAction} className="space-y-5">
+            <form action={formAction} className="space-y-4 sm:space-y-5">
                 {state?.error && (
                     <div
                         role="alert"

@@ -67,6 +67,7 @@ function GoalCard({ goal }: { goal: Goal }) {
                     <span
                         className="text-xs font-bold px-2 py-1 rounded-lg"
                         style={{ color: goal.color, backgroundColor: `${goal.color}15` }}
+                        data-testid="goal-progress-bar"
                     >
                         {pct.toFixed(0)}%
                     </span>
@@ -194,7 +195,7 @@ export default function GoalsPage() {
                         Defina metas e acompanhe seu progresso rumo à conquista.
                     </p>
                 </div>
-                <Button onClick={() => setShowForm(!showForm)} size="sm" className="gap-2">
+                <Button onClick={() => setShowForm(!showForm)} size="sm" className="gap-2" data-testid="btn-new-goal">
                     {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                     {showForm ? "Cancelar" : "Novo Objetivo"}
                 </Button>
@@ -239,6 +240,7 @@ export default function GoalsPage() {
                                     onChange={(e) => setGoalName(e.target.value)}
                                     placeholder="Ex: Viagem para Gramado"
                                     className="h-9 bg-background"
+                                    data-testid="input-goal-name"
                                 />
                             </div>
                             <div className="space-y-1">
@@ -249,6 +251,7 @@ export default function GoalsPage() {
                                     onChange={(e) => setGoalTarget(e.target.value)}
                                     placeholder="15000.00"
                                     className="h-9 bg-background"
+                                    data-testid="input-goal-target"
                                 />
                             </div>
                             <div className="space-y-1">
@@ -258,6 +261,7 @@ export default function GoalsPage() {
                                     value={goalDeadline}
                                     onChange={(e) => setGoalDeadline(e.target.value)}
                                     className="h-9 bg-background"
+                                    data-testid="input-goal-deadline"
                                 />
                             </div>
                             <div className="space-y-1">
@@ -275,7 +279,7 @@ export default function GoalsPage() {
                             <Button variant="ghost" size="sm" onClick={() => setShowForm(false)} disabled={submitting}>
                                 Cancelar
                             </Button>
-                            <Button size="sm" onClick={handleSubmit} disabled={submitting}>
+                            <Button size="sm" onClick={handleSubmit} disabled={submitting} data-testid="btn-save-goal">
                                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Criar Objetivo
                             </Button>

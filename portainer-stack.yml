@@ -1,0 +1,161 @@
+version: "3.8"
+
+# Stack Portainer — Laura Finance produção.
+# Modelo: mesmo padrão do nexus-ai-platform (Traefik + GHCR + rede_nexusAI).
+# Deploy.yml substitui placeholders __VAR__ por GitHub Secrets.
+
+services:
+
+  laura-api:
+    image: ghcr.io/jvzanini/laura-finance-api:latest
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    networks:
+      - rede_nexusAI
+    depends_on:
+      - laura-postgres
+      - laura-redis
+    environment:
+      APP_ENV: production
+      PORT: "8080"
+      METRICS_PORT: "9090"
+      DATABASE_URL: postgres://laura:__DB_PASSWORD__@laura-postgres:5432/laura_finance?sslmode=disable
+      REDIS_URL: redis://laura-redis:6379/0
+      SESSION_SECRET: __SESSION_SECRET__
+      GROQ_API_KEY: __GROQ_API_KEY__
+      RESEND_API_KEY: __RESEND_API_KEY__
+      MIGRATE_ON_BOOT: "true"
+      DISABLE_WHATSAPP: "true"
+      RATE_LIMIT_MAX: "600"
+      LLM_PING_DISABLED: "true"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.laura-api.rule=Host(`__DOMAIN__`) && PathPrefix(`/api/`)
+        - traefik.http.routers.laura-api.entrypoints=websecure
+        - traefik.http.routers.laura-api.tls=true
+        - traefik.http.routers.laura-api.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.laura-api.service=laura-api
+        - traefik.http.routers.laura-api.priority=10
+        - traefik.http.services.laura-api.loadbalancer.server.port=8080
+        - traefik.http.services.laura-api.loadbalancer.passHostHeader=true
+        - traefik.docker.network=rede_nexusAI
+
+  laura-pwa:
+    image: ghcr.io/jvzanini/laura-finance-pwa:latest
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    networks:
+      - rede_nexusAI
+    depends_on:
+      - laura-api
+    environment:
+      NODE_ENV: production
+      LAURA_GO_API_URL: http://laura-api:8080
+      SESSION_SECRET: __SESSION_SECRET__
+      POSTGRES_USER: laura
+      POSTGRES_PASSWORD: __DB_PASSWORD__
+      POSTGRES_HOST: laura-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: laura_finance
+      PG_POOL_MAX: "50"
+      RESEND_API_KEY: __RESEND_API_KEY__
+      STRIPE_SECRET_KEY: sk_test_placeholder_replace_when_stripe_configured
+      NEXT_PUBLIC_BUILD_SHA: __BUILD_SHA__
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+      update_config:
+        parallelism: 1
+        delay: 15s
+        order: start-first
+        failure_action: rollback
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.laura-pwa.rule=Host(`__DOMAIN__`)
+        - traefik.http.routers.laura-pwa.entrypoints=websecure
+        - traefik.http.routers.laura-pwa.tls=true
+        - traefik.http.routers.laura-pwa.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.laura-pwa.service=laura-pwa
+        - traefik.http.routers.laura-pwa.priority=1
+        - traefik.http.services.laura-pwa.loadbalancer.server.port=3000
+        - traefik.docker.network=rede_nexusAI
+
+  laura-postgres:
+    image: pgvector/pgvector:pg16
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    networks:
+      - rede_nexusAI
+    environment:
+      POSTGRES_DB: laura_finance
+      POSTGRES_USER: laura
+      POSTGRES_PASSWORD: __DB_PASSWORD__
+    volumes:
+      - laura_postgres_data:/var/lib/postgresql/data
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1024M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      labels:
+        - traefik.enable=false
+
+  laura-redis:
+    image: redis:7-alpine
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    networks:
+      - rede_nexusAI
+    volumes:
+      - laura_redis_data:/data
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 192M
+      labels:
+        - traefik.enable=false
+
+volumes:
+  laura_postgres_data:
+    driver: local
+  laura_redis_data:
+    driver: local
+
+networks:
+  rede_nexusAI:
+    external: true
+    name: rede_nexusAI

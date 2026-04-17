@@ -1,0 +1,178 @@
+name: Deploy Prod
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'laura-go/**'
+      - 'laura-pwa/**'
+      - 'portainer-stack.yml'
+      - '.github/workflows/deploy-prod.yml'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE: ${{ github.repository_owner }}/laura-finance-api
+  PWA_IMAGE: ${{ github.repository_owner }}/laura-finance-pwa
+
+jobs:
+  build-api:
+    name: Build & Push API Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.API_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/setup-buildx-action@v3
+      - name: Build & push API
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: laura-go/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+  build-pwa:
+    name: Build & Push PWA Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.PWA_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/setup-buildx-action@v3
+      - name: Build & push PWA
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./laura-pwa
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=pwa
+          cache-to: type=gha,mode=max,scope=pwa
+
+  deploy:
+    name: Deploy via Portainer
+    runs-on: ubuntu-latest
+    needs: [build-api, build-pwa]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure GHCR registry in Portainer
+        run: |
+          curl -s -X PUT "${{ secrets.PORTAINER_URL }}/api/registries/1" \
+            -H "X-API-Key: ${{ secrets.PORTAINER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"Name\":\"GitHub Container Registry\",\"Type\":6,\"URL\":\"ghcr.io\",\"Authentication\":true,\"Username\":\"${{ github.actor }}\",\"Password\":\"${{ secrets.GITHUB_TOKEN }}\"}" \
+            -o /dev/null -w "%{http_code}\n" || true
+      - name: Update Portainer stack
+        run: |
+          API_IMG="${{ env.REGISTRY }}/${{ env.API_IMAGE }}@${{ needs.build-api.outputs.image-digest }}"
+          PWA_IMG="${{ env.REGISTRY }}/${{ env.PWA_IMAGE }}@${{ needs.build-pwa.outputs.image-digest }}"
+          echo "API image: $API_IMG"
+          echo "PWA image: $PWA_IMG"
+
+          STACK_CONTENT=$(sed \
+            -e "s|ghcr.io/jvzanini/laura-finance-api:latest|$API_IMG|g" \
+            -e "s|ghcr.io/jvzanini/laura-finance-pwa:latest|$PWA_IMG|g" \
+            -e "s|__DOMAIN__|${{ secrets.DOMAIN }}|g" \
+            -e "s|__DB_PASSWORD__|${{ secrets.DB_PASSWORD }}|g" \
+            -e "s|__SESSION_SECRET__|${{ secrets.SESSION_SECRET }}|g" \
+            -e "s|__GROQ_API_KEY__|${{ secrets.GROQ_API_KEY }}|g" \
+            -e "s|__RESEND_API_KEY__|${{ secrets.RESEND_API_KEY }}|g" \
+            -e "s|__BUILD_SHA__|${{ github.sha }}|g" \
+            portainer-stack.yml)
+
+          STACK_ID=$(curl -s "${{ secrets.PORTAINER_URL }}/api/stacks" \
+            -H "X-API-Key: ${{ secrets.PORTAINER_API_KEY }}" \
+            | python3 -c "import sys,json; stacks=json.load(sys.stdin); match=[s['Id'] for s in stacks if s['Name']=='laura-finance']; print(match[0] if match else '')")
+
+          if [ -z "$STACK_ID" ]; then
+            echo "Stack nao existe — criando laura-finance (swarm)"
+            RESPONSE=$(curl -s -o /tmp/portainer_response.txt -w "%{http_code}" \
+              -X POST "${{ secrets.PORTAINER_URL }}/api/stacks/create/swarm/string?endpointId=${{ secrets.PORTAINER_ENDPOINT_ID }}" \
+              -H "X-API-Key: ${{ secrets.PORTAINER_API_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"Name\":\"laura-finance\",\"SwarmID\":\"${{ secrets.SWARM_ID }}\",\"StackFileContent\":$(echo "$STACK_CONTENT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),\"registries\":[1]}" \
+              --max-time 300)
+          else
+            echo "Stack existe (ID=$STACK_ID) — atualizando"
+            RESPONSE=$(curl -s -o /tmp/portainer_response.txt -w "%{http_code}" \
+              -X PUT "${{ secrets.PORTAINER_URL }}/api/stacks/$STACK_ID?endpointId=${{ secrets.PORTAINER_ENDPOINT_ID }}" \
+              -H "X-API-Key: ${{ secrets.PORTAINER_API_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"StackFileContent\":$(echo "$STACK_CONTENT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),\"Prune\":false,\"registries\":[1]}" \
+              --max-time 180)
+          fi
+
+          echo "Portainer HTTP $RESPONSE"
+          cat /tmp/portainer_response.txt
+          echo ""
+          if [ "$RESPONSE" -ge 200 ] && [ "$RESPONSE" -lt 300 ]; then
+            echo "Deploy aceito"
+          else
+            echo "Deploy FALHOU (HTTP $RESPONSE)"
+            exit 1
+          fi
+
+      - name: Wait for rollout
+        run: sleep 60
+
+      - name: Health check laura.nexusai360.com
+        run: |
+          MAX=15
+          N=0
+          while [ $N -lt $MAX ]; do
+            N=$((N + 1))
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ secrets.DOMAIN }}/api/v1/health" --max-time 10 || echo "000")
+            echo "attempt $N/$MAX → HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "API healthy em https://${{ secrets.DOMAIN }}/api/v1/health"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "health check falhou em $MAX tentativas"
+          exit 1

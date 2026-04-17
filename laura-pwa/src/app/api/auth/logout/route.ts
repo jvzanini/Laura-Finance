@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { deleteSession } from "@/lib/session";
 
-export async function GET() {
+export async function GET(request: Request) {
     await deleteSession();
-    return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3100"));
+    // Usar request.url como base — funciona em dev/CI/prod sem env var.
+    return NextResponse.redirect(new URL("/login", request.url));
 }

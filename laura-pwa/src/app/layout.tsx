@@ -12,8 +12,15 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Laura Finance — Sua Gestora Financeira Inteligente",
-  description: "Controle financeiro inteligente via WhatsApp com dashboard PWA premium.",
+  title: "Laura — Sua família no controle das finanças",
+  description:
+    "Gestão financeira familiar via WhatsApp. Score, metas e relatórios com IA. 7 dias grátis, sem cartão.",
+  openGraph: {
+    title: "Laura — Sua família no controle das finanças",
+    description: "Gestão financeira familiar via WhatsApp. 7 dias grátis, sem cartão.",
+    type: "website",
+    locale: "pt_BR",
+  },
   manifest: "/manifest.json",
   applicationName: "Laura Finance",
   appleWebApp: {

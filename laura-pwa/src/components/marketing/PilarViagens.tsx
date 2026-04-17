@@ -271,7 +271,7 @@ export function PilarViagens() {
                 <AviaoRoute className="h-full w-auto" />
             </div>
 
-            <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+            <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-2xl text-center">
                     <div className="inline-flex items-center gap-2 rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-rose-200 backdrop-blur-sm">
                         <Plane className="size-3.5" aria-hidden />
@@ -303,7 +303,7 @@ export function PilarViagens() {
                             delay: 0.1,
                             ease: "easeOut",
                         }}
-                        className="relative w-full max-w-4xl"
+                        className="relative w-full max-w-5xl"
                     >
                         <div
                             aria-hidden
@@ -349,7 +349,7 @@ export function PilarViagens() {
                             </div>
 
                             {/* Layout: sidebar + conteúdo */}
-                            <div className="grid grid-cols-1 md:grid-cols-[13rem_1fr]">
+                            <div className="grid grid-cols-1 md:grid-cols-[15rem_1fr]">
                                 {/* Sidebar desktop / abas mobile */}
                                 <nav
                                     role="tablist"
@@ -389,7 +389,7 @@ export function PilarViagens() {
 
                                 {/* Conteúdo do relatório selecionado — altura FIXA pra evitar
                                     layout shift ao trocar entre relatórios. */}
-                                <div className="relative h-[28rem] overflow-hidden p-5 sm:p-6">
+                                <div className="relative h-[32rem] overflow-hidden p-5 sm:p-7">
                                     <AnimatePresence mode="wait" initial={false}>
                                         {relatorio === "orcamento" && (
                                             <motion.div

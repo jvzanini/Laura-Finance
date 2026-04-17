@@ -43,39 +43,43 @@ const planilhaLinhas = [
 ];
 
 // Transações detalhadas por categoria ativa — mostradas ao clicar em tab.
+// Valores em centavos. Soma de cada categoria == valor na pizza (matemática bate).
 type TransacaoCategoria = { name: string; amount: number };
 const TRANSACOES_POR_CATEGORIA: Record<TabId, TransacaoCategoria[]> = {
+    // "Todas" mostra as 3 maiores categorias como barras (top categorias).
     todas: [
-        { name: "Moradia", amount: 1800 },
-        { name: "Alimentação", amount: 1240 },
-        { name: "Transporte", amount: 700 },
-        { name: "Lazer", amount: 524 },
-        { name: "Outros", amount: 380 },
+        { name: "Moradia", amount: 215000 },
+        { name: "Alimentação", amount: 128450 },
+        { name: "Transporte", amount: 62780 },
     ],
+    // Soma = 128450 (Alimentação)
     alimentacao: [
-        { name: "Mercado", amount: 380 },
-        { name: "iFood", amount: 220 },
-        { name: "Restaurantes", amount: 310 },
-        { name: "Padaria", amount: 85 },
-        { name: "Delivery", amount: 245 },
+        { name: "Mercado", amount: 48000 },
+        { name: "iFood", amount: 22000 },
+        { name: "Restaurantes", amount: 31000 },
+        { name: "Padaria", amount: 12450 },
+        { name: "Delivery", amount: 15000 },
     ],
+    // Soma = 62780 (Transporte)
     transporte: [
-        { name: "Combustível", amount: 420 },
-        { name: "Uber/99", amount: 180 },
-        { name: "Estacionamento", amount: 60 },
-        { name: "Pedágio", amount: 40 },
+        { name: "Combustível", amount: 42000 },
+        { name: "Uber/99", amount: 11000 },
+        { name: "Estacionamento", amount: 6000 },
+        { name: "Pedágio", amount: 3780 },
     ],
+    // Soma = 48200 (Lazer)
     lazer: [
-        { name: "Bares", amount: 220 },
-        { name: "Esportes", amount: 160 },
-        { name: "Cinema", amount: 90 },
-        { name: "Streaming", amount: 54 },
+        { name: "Bares", amount: 22000 },
+        { name: "Esportes", amount: 16000 },
+        { name: "Cinema", amount: 7000 },
+        { name: "Streaming", amount: 3200 },
     ],
+    // Soma = 215000 (Moradia)
     moradia: [
-        { name: "Aluguel", amount: 1800 },
-        { name: "Condomínio", amount: 480 },
-        { name: "Energia", amount: 210 },
-        { name: "Internet", amount: 99 },
+        { name: "Aluguel", amount: 150000 },
+        { name: "Condomínio", amount: 38000 },
+        { name: "Energia", amount: 19000 },
+        { name: "Internet", amount: 8000 },
     ],
 };
 
@@ -131,20 +135,6 @@ export function PilarAssistente() {
             return acc;
         }, []);
     }, [total]);
-
-    // Lista das categorias visíveis no painel "Top categorias".
-    // Quando uma tab específica está ativa, colocamos a categoria no topo e
-    // reordenamos as demais por valor descendente.
-    const topCategorias = useMemo(() => {
-        const ordenadasPorValor = [...categorias].sort(
-            (a, b) => b.valor - a.valor
-        );
-        if (activeTab === "todas") return ordenadasPorValor.slice(0, 3);
-        const destaqueCat = ordenadasPorValor.find((c) => c.id === activeTab);
-        if (!destaqueCat) return ordenadasPorValor.slice(0, 3);
-        const resto = ordenadasPorValor.filter((c) => c.id !== activeTab);
-        return [destaqueCat, ...resto].slice(0, 3);
-    }, [activeTab]);
 
     const destaque = activeTab === "todas" ? null : activeTab;
 
@@ -411,9 +401,9 @@ export function PilarAssistente() {
                             <div className="mt-6 flex items-center justify-center">
                                 <div className="relative">
                                     <svg
-                                        width="220"
-                                        height="220"
-                                        viewBox="0 0 220 220"
+                                        width="260"
+                                        height="260"
+                                        viewBox="0 0 260 260"
                                         role="img"
                                         aria-label="Distribuição de gastos por categoria"
                                     >
@@ -452,9 +442,9 @@ export function PilarAssistente() {
                                                 <motion.path
                                                     key={f.id}
                                                     d={arcPath(
-                                                        110,
-                                                        110,
-                                                        88,
+                                                        130,
+                                                        130,
+                                                        108,
                                                         f.startAngle,
                                                         f.endAngle
                                                     )}
@@ -478,7 +468,7 @@ export function PilarAssistente() {
                                                     }}
                                                     style={{
                                                         transformOrigin:
-                                                            "110px 110px",
+                                                            "130px 130px",
                                                         filter: isHighlighted
                                                             ? "url(#pizza-shadow)"
                                                             : undefined,
@@ -486,38 +476,38 @@ export function PilarAssistente() {
                                                 />
                                             );
                                         })}
-                                        {/* Centro (donut hole) */}
+                                        {/* Centro (donut hole generoso) */}
                                         <circle
-                                            cx="110"
-                                            cy="110"
-                                            r="44"
+                                            cx="130"
+                                            cy="130"
+                                            r="72"
                                             fill="#0F0D1A"
                                             stroke="rgba(255,255,255,0.08)"
                                             strokeWidth="1"
                                         />
                                         <text
-                                            x="110"
-                                            y="102"
+                                            x="130"
+                                            y="118"
                                             textAnchor="middle"
                                             className="fill-zinc-400"
                                             style={{
-                                                fontSize: 8,
+                                                fontSize: 10,
                                                 textTransform: "uppercase",
-                                                letterSpacing: 1,
+                                                letterSpacing: 1.2,
                                                 fontWeight: 500,
                                             }}
                                         >
                                             Total mês
                                         </text>
                                         <text
-                                            x="110"
-                                            y="120"
+                                            x="130"
+                                            y="142"
                                             textAnchor="middle"
                                             dominantBaseline="middle"
                                             className="fill-white"
                                             style={{
-                                                fontSize: 13,
-                                                fontWeight: 600,
+                                                fontSize: 16,
+                                                fontWeight: 700,
                                             }}
                                         >
                                             {brl(
@@ -533,123 +523,99 @@ export function PilarAssistente() {
                                 </div>
                             </div>
 
-                            {/* Top categorias com barras (reordenam ao filtrar) */}
+                            {/* Container dinâmico: "Todas" → top 3 categorias; categoria específica → transações daquela categoria. */}
                             <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                                        Top categorias
+                                        {activeTab === "todas"
+                                            ? "Top categorias"
+                                            : `Detalhes · ${tabs.find((t) => t.id === activeTab)?.label ?? ""}`}
                                     </span>
                                     <span className="text-[10px] font-medium text-violet-300">
-                                        {categorias.length} no total
-                                    </span>
-                                </div>
-                                <ul className="mt-3 space-y-3">
-                                    {topCategorias.map((c) => {
-                                        const pct = (c.valor / total) * 100;
-                                        const isHighlighted =
-                                            destaque === c.id;
-                                        const isDim =
-                                            destaque !== null && !isHighlighted;
-                                        return (
-                                            <motion.li
-                                                key={c.id}
-                                                layout
-                                                transition={{
-                                                    layout: {
-                                                        type: "spring",
-                                                        stiffness: 260,
-                                                        damping: 26,
-                                                    },
-                                                }}
-                                                className={`transition-opacity ${
-                                                    isDim
-                                                        ? "opacity-40"
-                                                        : "opacity-100"
-                                                }`}
-                                            >
-                                                <div className="flex items-center justify-between text-[11px]">
-                                                    <span className="flex items-center gap-2 text-zinc-200">
-                                                        <span
-                                                            aria-hidden
-                                                            className="block size-2.5 rounded-full"
-                                                            style={{
-                                                                background:
-                                                                    c.cor,
-                                                            }}
-                                                        />
-                                                        {c.label}
-                                                    </span>
-                                                    <span className="font-semibold text-white">
-                                                        {brl(c.valor)}
-                                                    </span>
-                                                </div>
-                                                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/5">
-                                                    <motion.div
-                                                        className="h-full rounded-full"
-                                                        style={{
-                                                            background: `linear-gradient(90deg, ${c.cor}, #F472B6)`,
-                                                        }}
-                                                        animate={{
-                                                            width: isHighlighted
-                                                                ? "100%"
-                                                                : `${pct}%`,
-                                                        }}
-                                                        transition={{
-                                                            duration: 0.6,
-                                                            ease: "easeOut",
-                                                        }}
-                                                    />
-                                                </div>
-                                            </motion.li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-
-                            {/* Lista de transações descritivas da categoria ativa */}
-                            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
                                         {activeTab === "todas"
-                                            ? "Top gastos do mês"
-                                            : `Transações · ${
-                                                  tabs.find(
-                                                      (t) => t.id === activeTab
-                                                  )?.label ?? ""
-                                              }`}
+                                            ? brl(total)
+                                            : brl(
+                                                  TRANSACOES_POR_CATEGORIA[
+                                                      activeTab
+                                                  ].reduce(
+                                                      (s, tx) => s + tx.amount,
+                                                      0
+                                                  )
+                                              )}
                                     </span>
                                 </div>
                                 <AnimatePresence mode="wait" initial={false}>
                                     <motion.ul
                                         key={activeTab}
-                                        initial={{ opacity: 0, y: 8 }}
+                                        initial={{ opacity: 0, y: 6 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -4 }}
-                                        transition={{ duration: 0.25 }}
-                                        className="mt-3 space-y-2"
+                                        transition={{
+                                            duration: 0.28,
+                                            ease: [0.2, 0.8, 0.2, 1],
+                                        }}
+                                        className="mt-3 space-y-3"
                                     >
-                                        {TRANSACOES_POR_CATEGORIA[activeTab].map(
-                                            (tx) => (
-                                                <li
-                                                    key={tx.name}
-                                                    className="flex items-center justify-between text-xs sm:text-sm"
-                                                >
-                                                    <span className="text-zinc-300">
-                                                        {tx.name}
-                                                    </span>
-                                                    <span className="font-medium text-white tabular-nums">
-                                                        R${" "}
-                                                        {tx.amount.toLocaleString(
-                                                            "pt-BR",
-                                                            {
-                                                                minimumFractionDigits: 2,
-                                                                maximumFractionDigits: 2,
-                                                            }
-                                                        )}
-                                                    </span>
-                                                </li>
-                                            )
-                                        )}
+                                        {(() => {
+                                            const items =
+                                                TRANSACOES_POR_CATEGORIA[activeTab];
+                                            const maxVal = Math.max(
+                                                ...items.map((i) => i.amount)
+                                            );
+                                            const categoriaCor =
+                                                categorias.find(
+                                                    (c) => c.id === activeTab
+                                                )?.cor ?? "#7C3AED";
+                                            return items.map((tx) => {
+                                                const pct = Math.max(
+                                                    6,
+                                                    Math.round(
+                                                        (tx.amount / maxVal) *
+                                                            100
+                                                    )
+                                                );
+                                                return (
+                                                    <motion.li
+                                                        key={tx.name}
+                                                        layout
+                                                        transition={{
+                                                            layout: {
+                                                                type: "spring",
+                                                                stiffness: 260,
+                                                                damping: 26,
+                                                            },
+                                                        }}
+                                                    >
+                                                        <div className="flex items-center justify-between text-[11px] sm:text-xs">
+                                                            <span className="text-zinc-200">
+                                                                {tx.name}
+                                                            </span>
+                                                            <span className="font-semibold text-white tabular-nums">
+                                                                {brl(tx.amount)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/5">
+                                                            <motion.div
+                                                                className="h-full rounded-full"
+                                                                style={{
+                                                                    background: `linear-gradient(90deg, ${categoriaCor}, #F472B6)`,
+                                                                }}
+                                                                initial={{
+                                                                    width: 0,
+                                                                }}
+                                                                animate={{
+                                                                    width: `${pct}%`,
+                                                                }}
+                                                                transition={{
+                                                                    duration: 0.5,
+                                                                    ease: "easeOut",
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </motion.li>
+                                                );
+                                            });
+                                        })()}
                                     </motion.ul>
                                 </AnimatePresence>
                             </div>

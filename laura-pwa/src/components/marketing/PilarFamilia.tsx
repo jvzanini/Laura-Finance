@@ -123,39 +123,73 @@ function Boneco({ cor, corSecundaria }: { cor: string; corSecundaria: string }) 
     );
 }
 
-type FiltroMembro = "todos" | Membro["id"];
+type FiltroMembro = "hoje" | Membro["id"];
 
 // Orçamento detalhado por membro — mostrado ao clicar em avatar/chip.
 // Categorias DIFERENTES por pessoa para mostrar dinamismo real da plataforma.
+// Cada membro tem cota mensal (maior que os gastos) para barra de utilização.
 type OrcamentoItem = { category: string; amount: number };
-const MEMBER_BUDGETS: Record<Membro["id"], OrcamentoItem[]> = {
-    joao: [
-        { category: "Mercado", amount: 480 },
-        { category: "Combustível", amount: 320 },
-        { category: "Restaurantes", amount: 180 },
-        { category: "Academia", amount: 120 },
-        { category: "Farmácia", amount: 85 },
-    ],
-    maria: [
-        { category: "Viagem", amount: 1200 },
-        { category: "Presentes", amount: 340 },
-        { category: "Salão", amount: 220 },
-        { category: "Streaming", amount: 95 },
-        { category: "Cafés", amount: 60 },
-    ],
-    lucas: [
-        { category: "Lanches", amount: 140 },
-        { category: "Games", amount: 210 },
-        { category: "Uber", amount: 75 },
-        { category: "Material escolar", amount: 95 },
-    ],
-    clara: [
-        { category: "Cinema", amount: 70 },
-        { category: "Livros", amount: 160 },
-        { category: "Roupas", amount: 240 },
-        { category: "Pet", amount: 180 },
-    ],
+type OrcamentoMembro = {
+    items: OrcamentoItem[];
+    cotaReais: number;
 };
+const MEMBER_BUDGETS: Record<Membro["id"], OrcamentoMembro> = {
+    joao: {
+        cotaReais: 1800,
+        items: [
+            { category: "Mercado", amount: 480 },
+            { category: "Combustível", amount: 320 },
+            { category: "Restaurantes", amount: 180 },
+            { category: "Academia", amount: 120 },
+            { category: "Farmácia", amount: 85 },
+        ],
+    },
+    maria: {
+        cotaReais: 2500,
+        items: [
+            { category: "Viagem", amount: 1200 },
+            { category: "Presentes", amount: 340 },
+            { category: "Salão", amount: 220 },
+            { category: "Streaming", amount: 95 },
+            { category: "Cafés", amount: 60 },
+        ],
+    },
+    lucas: {
+        cotaReais: 800,
+        items: [
+            { category: "Lanches", amount: 140 },
+            { category: "Games", amount: 210 },
+            { category: "Uber", amount: 75 },
+            { category: "Material escolar", amount: 95 },
+        ],
+    },
+    clara: {
+        cotaReais: 900,
+        items: [
+            { category: "Cinema", amount: 70 },
+            { category: "Livros", amount: 160 },
+            { category: "Roupas", amount: 240 },
+            { category: "Pet", amount: 180 },
+        ],
+    },
+};
+
+const MESES_PT = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+];
+
+const mesAtual = MESES_PT[new Date().getMonth()];
 
 function brlFromReais(reais: number): string {
     return reais.toLocaleString("pt-BR", {
@@ -166,16 +200,17 @@ function brlFromReais(reais: number): string {
 }
 
 export function PilarFamilia() {
-    const [filtro, setFiltro] = useState<FiltroMembro>("todos");
+    const [filtro, setFiltro] = useState<FiltroMembro>("hoje");
 
-    const totalGeral = useMemo(
+    // Total de "Hoje": soma dos gastos hoje de cada membro (valores em centavos).
+    const totalHoje = useMemo(
         () => membros.reduce((sum, m) => sum + m.valor, 0),
         []
     );
 
     const membroSelecionado = useMemo(
         () =>
-            filtro !== "todos"
+            filtro !== "hoje"
                 ? membros.find((m) => m.id === filtro) ?? null
                 : null,
         [filtro]
@@ -183,17 +218,27 @@ export function PilarFamilia() {
 
     const orcamentoMembro = useMemo(() => {
         if (!membroSelecionado) return null;
-        const items = MEMBER_BUDGETS[membroSelecionado.id];
-        const totalReais = items.reduce((s, it) => s + it.amount, 0);
-        const maxAmount = Math.max(...items.map((it) => it.amount));
-        return { items, totalReais, maxAmount };
+        const budget = MEMBER_BUDGETS[membroSelecionado.id];
+        const totalReais = budget.items.reduce((s, it) => s + it.amount, 0);
+        const maxAmount = Math.max(...budget.items.map((it) => it.amount));
+        const pctCota = Math.min(
+            100,
+            Math.round((totalReais / budget.cotaReais) * 100)
+        );
+        return {
+            items: budget.items,
+            totalReais,
+            maxAmount,
+            cotaReais: budget.cotaReais,
+            pctCota,
+        };
     }, [membroSelecionado]);
 
+    // Valor exibido no header (Hoje → totalHoje; Membro → gastos mensais).
     const totalFiltrado = useMemo(() => {
-        if (!membroSelecionado || !orcamentoMembro) return totalGeral;
-        // Valor em reais → centavos para passar no brl()
+        if (!membroSelecionado || !orcamentoMembro) return totalHoje;
         return orcamentoMembro.totalReais * 100;
-    }, [membroSelecionado, orcamentoMembro, totalGeral]);
+    }, [membroSelecionado, orcamentoMembro, totalHoje]);
 
     return (
         <section
@@ -327,20 +372,20 @@ export function PilarFamilia() {
                                 </div>
                                 <div className="flex flex-col items-end leading-tight">
                                     <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                                        Hoje
+                                        {filtro === "hoje" ? "Hoje" : mesAtual}
                                     </span>
                                     <motion.span
                                         key={filtro}
                                         initial={{ opacity: 0, y: -4 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.25 }}
-                                        className="text-sm font-bold text-white"
+                                        className="text-base font-bold text-white sm:text-lg"
                                     >
                                         {brl(totalFiltrado)}
                                     </motion.span>
-                                    {filtro !== "todos" && (
-                                        <span className="text-[10px] text-zinc-500">
-                                            de {brl(totalGeral)} total
+                                    {membroSelecionado && orcamentoMembro && (
+                                        <span className="mt-0.5 text-[10px] text-zinc-500">
+                                            de {brlFromReais(orcamentoMembro.cotaReais)} (cota)
                                         </span>
                                     )}
                                 </div>
@@ -355,15 +400,15 @@ export function PilarFamilia() {
                                 <button
                                     type="button"
                                     role="tab"
-                                    aria-selected={filtro === "todos"}
-                                    onClick={() => setFiltro("todos")}
+                                    aria-selected={filtro === "hoje"}
+                                    onClick={() => setFiltro("hoje")}
                                     className={
-                                        filtro === "todos"
-                                            ? "inline-flex min-h-11 items-center rounded-full bg-gradient-to-r from-fuchsia-600 to-rose-500 px-3 text-xs font-semibold text-white shadow-lg shadow-fuchsia-600/30 transition-all"
+                                        filtro === "hoje"
+                                            ? "inline-flex min-h-11 items-center rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 px-3 text-xs font-semibold text-white shadow-lg shadow-violet-600/40 transition-all"
                                             : "inline-flex min-h-11 items-center rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-semibold text-zinc-300 transition-all hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
                                     }
                                 >
-                                    Todos
+                                    Hoje
                                 </button>
                                 {membros.map((m) => {
                                     const isActive = filtro === m.id;
@@ -404,9 +449,9 @@ export function PilarFamilia() {
                             {/* Conteúdo: lista consolidada (todos) ou barras por categoria (membro) */}
                             <div className="mt-5 min-h-[24rem]">
                                 <AnimatePresence mode="wait" initial={false}>
-                                    {filtro === "todos" ? (
+                                    {filtro === "hoje" ? (
                                         <motion.ul
-                                            key="todos"
+                                            key="hoje"
                                             initial={{ opacity: 0, y: 8 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: -4 }}
@@ -468,7 +513,7 @@ export function PilarFamilia() {
                                             {/* Header membro */}
                                             <div className="flex items-center gap-3">
                                                 <span
-                                                    className="flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ring-1 ring-inset ring-white/20"
+                                                    className="flex size-11 shrink-0 items-center justify-center rounded-full text-base font-bold text-white ring-1 ring-inset ring-white/20"
                                                     style={{
                                                         background: `linear-gradient(135deg, ${membroSelecionado.cor}, ${membroSelecionado.corSecundaria})`,
                                                     }}
@@ -479,21 +524,21 @@ export function PilarFamilia() {
                                                     )}
                                                 </span>
                                                 <div className="flex flex-col leading-tight">
-                                                    <span className="text-sm font-semibold text-white">
+                                                    <span className="text-base font-semibold text-white">
                                                         {membroSelecionado.nome}
                                                     </span>
-                                                    <span className="text-[10px] text-zinc-400">
-                                                        Orçamento por categoria
+                                                    <span className="text-[11px] text-zinc-400">
+                                                        Gastos em {mesAtual}
                                                     </span>
                                                 </div>
                                             </div>
 
-                                            {/* Barras verticais */}
-                                            <div className="flex h-44 items-end justify-between gap-2 pt-2">
+                                            {/* Barras verticais — altura absoluta para funcionar sem h-full quebrado */}
+                                            <div className="flex h-52 items-end justify-between gap-2 pt-2">
                                                 {orcamentoMembro.items.map(
                                                     (item, i) => {
                                                         const pct = Math.max(
-                                                            8,
+                                                            12,
                                                             Math.round(
                                                                 (item.amount /
                                                                     orcamentoMembro.maxAmount) *
@@ -505,42 +550,41 @@ export function PilarFamilia() {
                                                                 key={item.category}
                                                                 initial={{
                                                                     opacity: 0,
-                                                                    y: 8,
                                                                 }}
                                                                 animate={{
                                                                     opacity: 1,
-                                                                    y: 0,
                                                                 }}
                                                                 transition={{
-                                                                    duration: 0.35,
-                                                                    delay: i * 0.06,
+                                                                    duration: 0.3,
+                                                                    delay: i * 0.05,
                                                                 }}
-                                                                className="flex flex-1 flex-col items-center gap-1.5"
+                                                                className="flex flex-1 flex-col items-center justify-end gap-1.5"
                                                             >
                                                                 <span className="text-[10px] font-semibold text-white tabular-nums">
                                                                     {brlFromReais(
                                                                         item.amount
                                                                     )}
                                                                 </span>
-                                                                <div className="relative flex h-full w-full items-end">
-                                                                    <motion.div
-                                                                        className="w-full rounded-t-md bg-gradient-to-t from-violet-600 to-fuchsia-400"
-                                                                        initial={{
-                                                                            height: 0,
-                                                                        }}
-                                                                        animate={{
-                                                                            height: `${pct}%`,
-                                                                        }}
-                                                                        transition={{
-                                                                            duration: 0.55,
-                                                                            delay:
-                                                                                i *
-                                                                                0.06,
-                                                                            ease: "easeOut",
-                                                                        }}
-                                                                    />
-                                                                </div>
-                                                                <span className="truncate text-center text-[10px] text-zinc-400">
+                                                                <motion.div
+                                                                    className="w-full rounded-t-md bg-gradient-to-t from-violet-600 to-fuchsia-400"
+                                                                    initial={{
+                                                                        height: "0%",
+                                                                    }}
+                                                                    animate={{
+                                                                        height: `${pct}%`,
+                                                                    }}
+                                                                    transition={{
+                                                                        duration: 0.55,
+                                                                        delay:
+                                                                            i *
+                                                                            0.05,
+                                                                        ease: "easeOut",
+                                                                    }}
+                                                                    style={{
+                                                                        minHeight: 8,
+                                                                    }}
+                                                                />
+                                                                <span className="w-full truncate text-center text-[10px] text-zinc-400">
                                                                     {item.category}
                                                                 </span>
                                                             </motion.div>
@@ -549,16 +593,43 @@ export function PilarFamilia() {
                                                 )}
                                             </div>
 
-                                            {/* Total */}
-                                            <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm">
-                                                <span className="text-zinc-300">
-                                                    Total
-                                                </span>
-                                                <span className="font-bold text-white tabular-nums">
-                                                    {brlFromReais(
-                                                        orcamentoMembro.totalReais
-                                                    )}
-                                                </span>
+                                            {/* Total + barra de utilização da cota */}
+                                            <div className="space-y-2 border-t border-white/10 pt-4">
+                                                <div className="flex items-center justify-between text-sm">
+                                                    <span className="text-zinc-300">
+                                                        Total gasto
+                                                    </span>
+                                                    <span className="font-bold text-white tabular-nums">
+                                                        {brlFromReais(
+                                                            orcamentoMembro.totalReais
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="h-2 overflow-hidden rounded-full bg-white/5">
+                                                    <motion.div
+                                                        className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-400"
+                                                        initial={{ width: 0 }}
+                                                        animate={{
+                                                            width: `${orcamentoMembro.pctCota}%`,
+                                                        }}
+                                                        transition={{
+                                                            duration: 0.7,
+                                                            ease: "easeOut",
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                                                    <span>
+                                                        {orcamentoMembro.pctCota}
+                                                        % da cota mensal
+                                                    </span>
+                                                    <span>
+                                                        Cota{" "}
+                                                        {brlFromReais(
+                                                            orcamentoMembro.cotaReais
+                                                        )}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </motion.div>
                                     ) : null}

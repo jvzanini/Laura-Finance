@@ -6,6 +6,19 @@
 
 ## Histórico de atualizações
 
+### 2026-04-17 — Fase 18.5: polish final LP (matemática, top cats dinâmico, família Hoje/Mês, cota, pilar3 maior)
+
+Commits iterativos pós-deploy para ajustar feedback detalhado do usuário:
+- 18.1 básico→trial, VIP 12×/19,90/199,90
+- 18.2 preços v2 + redesign
+- 18.3 fix flicker + layouts
+- 18.4 spec v2/plan v2 + 25 pontos + polish 3 pilares
+- 18.5 top categorias DINÂMICAS (substitui ao clicar cada tab com matemática exata), pizza donut hole generoso (r=72 dentro de 260px viewBox), PilarFamilia "Hoje" em vez de Todos com mês corrente no filtro membro + barra de cota + fix barras verticais não renderizando, PilarViagens max-w-5xl + sidebar 15rem + altura 32rem.
+
+Super admin ativo: `nexusai360@gmail.com` / `nexus.AI@360`. Preços prod: Trial grátis 7d, VIP R$ 29,90 mensal ou 12× R$ 19,90 (R$ 199,90 no Pix).
+
+Tags: `phase-18-deployed`, `phase-18-1-deployed`, `phase-18-2-deployed`, `phase-18-3-deployed`, `phase-18-4-deployed`.
+
 ### 2026-04-17 — Fase 18: LP pública + Assinatura + Auth redesign + OTP
 
 **Backend (Go)**

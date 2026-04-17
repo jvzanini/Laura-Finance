@@ -36,6 +36,14 @@ jobs:
           BASE_URL: http://localhost:3000
           API_URL: http://localhost:8080
         run: npx playwright test
+      - name: Debug — logs dos containers (on failure)
+        if: failure()
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "=== PS ===" && docker compose -f docker-compose.ci.yml ps
+          echo "=== api-go logs ===" && docker compose -f docker-compose.ci.yml logs api-go | tail -80
+          echo "=== pwa logs ===" && docker compose -f docker-compose.ci.yml logs pwa | tail -40
+          echo "=== postgres logs ===" && docker compose -f docker-compose.ci.yml logs postgres | tail -30
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4

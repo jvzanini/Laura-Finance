@@ -2,6 +2,46 @@
 
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+
+// Meses PT-BR para montar "Paris — <mês> <ano>" de forma dinâmica.
+const MESES_VIAGEM = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+];
+const MESES_ABREV = [
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
+];
+
+/** Mês da viagem = mês atual + 2 (rollover pra ano seguinte se Nov/Dez). */
+function proximaViagem(): { nomeMes: string; ano: number; idxMes: number } {
+    const hoje = new Date();
+    const idxMes = (hoje.getMonth() + 2) % 12;
+    const ano =
+        hoje.getMonth() + 2 >= 12 ? hoje.getFullYear() + 1 : hoje.getFullYear();
+    return { nomeMes: MESES_VIAGEM[idxMes], ano, idxMes };
+}
+
 import {
     Coffee,
     Globe2,
@@ -71,15 +111,19 @@ type DiaGasto = {
     eur: number;
 };
 
-const gastosDiarios: DiaGasto[] = [
-    { dia: "SEG", label: "10/jun", totalBrl: 48200, eur: 8480 },
-    { dia: "TER", label: "11/jun", totalBrl: 62400, eur: 10984 },
-    { dia: "QUA", label: "12/jun", totalBrl: 38900, eur: 6848 },
-    { dia: "QUI", label: "13/jun", totalBrl: 71200, eur: 12534 },
-    { dia: "SEX", label: "14/jun", totalBrl: 55600, eur: 9788 },
-    { dia: "SAB", label: "15/jun", totalBrl: 82400, eur: 14510 },
-    { dia: "DOM", label: "16/jun", totalBrl: 44100, eur: 7763 },
-];
+// Gastos por dia são gerados dinamicamente a partir do mês da viagem
+// (proximaViagem().mesAbrev em lowercase) — mantém os dias/valores, atualiza só o mês.
+function buildGastosDiarios(mesAbrevLower: string): DiaGasto[] {
+    return [
+        { dia: "SEG", label: `10/${mesAbrevLower}`, totalBrl: 48200, eur: 8480 },
+        { dia: "TER", label: `11/${mesAbrevLower}`, totalBrl: 62400, eur: 10984 },
+        { dia: "QUA", label: `12/${mesAbrevLower}`, totalBrl: 38900, eur: 6848 },
+        { dia: "QUI", label: `13/${mesAbrevLower}`, totalBrl: 71200, eur: 12534 },
+        { dia: "SEX", label: `14/${mesAbrevLower}`, totalBrl: 55600, eur: 9788 },
+        { dia: "SAB", label: `15/${mesAbrevLower}`, totalBrl: 82400, eur: 14510 },
+        { dia: "DOM", label: `16/${mesAbrevLower}`, totalBrl: 44100, eur: 7763 },
+    ];
+}
 
 type CategoriaViagem = {
     id: string;
@@ -237,6 +281,7 @@ const relatorios: Array<{
 
 export function PilarViagens() {
     const [relatorio, setRelatorio] = useState<RelatorioId>("orcamento");
+    const viagem = useMemo(() => proximaViagem(), []);
 
     return (
         <section
@@ -321,7 +366,7 @@ export function PilarViagens() {
                                         Laura Finance · Viagem
                                     </span>
                                     <h3 className="mt-1 text-xl font-bold text-white sm:text-2xl">
-                                        Paris — Junho 2026
+                                        Paris — {viagem.nomeMes} {viagem.ano}
                                     </h3>
                                     <span className="mt-1 text-xs text-zinc-400">
                                         7 dias · 2 pessoas
@@ -565,13 +610,19 @@ function RelatorioOrcamento() {
 }
 
 function RelatorioDiario() {
+    const viagem = useMemo(() => proximaViagem(), []);
+    const mesAbrev = MESES_ABREV[viagem.idxMes].toLowerCase();
+    const gastosDiarios = useMemo(
+        () => buildGastosDiarios(mesAbrev),
+        [mesAbrev]
+    );
     const max = useMemo(
         () => Math.max(...gastosDiarios.map((d) => d.totalBrl)),
-        []
+        [gastosDiarios]
     );
     const total = useMemo(
         () => gastosDiarios.reduce((s, d) => s + d.totalBrl, 0),
-        []
+        [gastosDiarios]
     );
 
     const width = 280;
@@ -608,7 +659,7 @@ function RelatorioDiario() {
                         Gastos por dia
                     </span>
                     <span className="text-sm font-semibold text-white">
-                        Últimos 7 dias em Paris
+                        Últimos 7 dias em Paris · {viagem.nomeMes}
                     </span>
                 </div>
                 <div className="flex flex-col items-end leading-tight">

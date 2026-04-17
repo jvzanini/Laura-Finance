@@ -11,11 +11,13 @@ type Categoria = {
     valor: number; // centavos
 };
 
+// Paleta distinta por categoria: alimentação roxo, transporte magenta,
+// lazer rosa claro, moradia azul neon (separar visualmente do alimentação).
 const categorias: Categoria[] = [
     { id: "alimentacao", label: "Alimentação", cor: "#7C3AED", valor: 128450 },
     { id: "transporte", label: "Transporte", cor: "#D946EF", valor: 62780 },
-    { id: "lazer", label: "Lazer", cor: "#F472B6", valor: 48200 },
-    { id: "moradia", label: "Moradia", cor: "#8B5CF6", valor: 215000 },
+    { id: "lazer", label: "Lazer", cor: "#F9A8D4", valor: 48200 },
+    { id: "moradia", label: "Moradia", cor: "#22D3EE", valor: 215000 },
     { id: "saude", label: "Saúde", cor: "#EC4899", valor: 37640 },
     { id: "outros", label: "Outros", cor: "#A78BFA", valor: 22110 },
 ];
@@ -313,7 +315,7 @@ export function PilarAssistente() {
                             aria-hidden
                             className="pointer-events-none absolute -inset-6 rounded-[2.5rem] bg-gradient-to-br from-violet-600/30 via-fuchsia-500/20 to-rose-400/10 opacity-70 blur-2xl"
                         />
-                        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#15121F]/95 via-[#0F0D1A]/95 to-[#0A0A10]/95 p-5 shadow-2xl shadow-violet-950/60 backdrop-blur-2xl sm:p-6">
+                        <div className="relative flex h-[46rem] flex-col overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#15121F]/95 via-[#0F0D1A]/95 to-[#0A0A10]/95 p-5 shadow-2xl shadow-violet-950/60 backdrop-blur-2xl sm:p-6">
                             {/* Chamariz pulsante — convida a interagir com as tabs */}
                             <div className="mb-4 flex justify-end">
                                 <motion.span
@@ -335,6 +337,8 @@ export function PilarAssistente() {
                                     Experimente os filtros
                                 </motion.span>
                             </div>
+                            {/* Conteúdo rolável interno — mantém altura fixa do card */}
+                            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
                             {/* Header */}
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex flex-col leading-tight">
@@ -562,6 +566,8 @@ export function PilarAssistente() {
                                             const maxVal = Math.max(
                                                 ...items.map((i) => i.amount)
                                             );
+                                            // Quando "Todas", cada linha usa a própria cor da categoria.
+                                            // Quando categoria específica, toda linha usa a cor da categoria selecionada.
                                             const categoriaCor =
                                                 categorias.find(
                                                     (c) => c.id === activeTab
@@ -574,6 +580,15 @@ export function PilarAssistente() {
                                                             100
                                                     )
                                                 );
+                                                // "Todas" → cor da categoria com mesmo nome; específica → cor do tab.
+                                                const corLinha =
+                                                    activeTab === "todas"
+                                                        ? categorias.find(
+                                                              (c) =>
+                                                                  c.label ===
+                                                                  tx.name
+                                                          )?.cor ?? categoriaCor
+                                                        : categoriaCor;
                                                 return (
                                                     <motion.li
                                                         key={tx.name}
@@ -598,7 +613,7 @@ export function PilarAssistente() {
                                                             <motion.div
                                                                 className="h-full rounded-full"
                                                                 style={{
-                                                                    background: `linear-gradient(90deg, ${categoriaCor}, #F472B6)`,
+                                                                    background: corLinha,
                                                                 }}
                                                                 initial={{
                                                                     width: 0,
@@ -618,6 +633,7 @@ export function PilarAssistente() {
                                         })()}
                                     </motion.ul>
                                 </AnimatePresence>
+                            </div>
                             </div>
                         </div>
                         <div className="mt-6 text-center lg:text-left">

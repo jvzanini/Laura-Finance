@@ -533,12 +533,12 @@ export function PilarFamilia() {
                                                 </div>
                                             </div>
 
-                                            {/* Barras verticais — altura absoluta para funcionar sem h-full quebrado */}
-                                            <div className="flex h-52 items-end justify-between gap-2 pt-2">
+                                            {/* Barras verticais finas + labels legíveis */}
+                                            <div className="flex h-56 items-end justify-center gap-3 pt-3 sm:gap-5">
                                                 {orcamentoMembro.items.map(
                                                     (item, i) => {
                                                         const pct = Math.max(
-                                                            12,
+                                                            14,
                                                             Math.round(
                                                                 (item.amount /
                                                                     orcamentoMembro.maxAmount) *
@@ -558,15 +558,15 @@ export function PilarFamilia() {
                                                                     duration: 0.3,
                                                                     delay: i * 0.05,
                                                                 }}
-                                                                className="flex flex-1 flex-col items-center justify-end gap-1.5"
+                                                                className="flex w-14 flex-col items-center justify-end gap-2 sm:w-16"
                                                             >
-                                                                <span className="text-[10px] font-semibold text-white tabular-nums">
+                                                                <span className="text-xs font-semibold text-white tabular-nums">
                                                                     {brlFromReais(
                                                                         item.amount
                                                                     )}
                                                                 </span>
                                                                 <motion.div
-                                                                    className="w-full rounded-t-md bg-gradient-to-t from-violet-600 to-fuchsia-400"
+                                                                    className="w-3 rounded-t-md bg-gradient-to-t from-violet-600 to-fuchsia-400 sm:w-4"
                                                                     initial={{
                                                                         height: "0%",
                                                                     }}
@@ -581,10 +581,10 @@ export function PilarFamilia() {
                                                                         ease: "easeOut",
                                                                     }}
                                                                     style={{
-                                                                        minHeight: 8,
+                                                                        minHeight: 10,
                                                                     }}
                                                                 />
-                                                                <span className="w-full truncate text-center text-[10px] text-zinc-400">
+                                                                <span className="w-full truncate text-center text-[11px] font-medium text-zinc-300">
                                                                     {item.category}
                                                                 </span>
                                                             </motion.div>
@@ -595,8 +595,8 @@ export function PilarFamilia() {
 
                                             {/* Total + barra de utilização da cota */}
                                             <div className="space-y-2 border-t border-white/10 pt-4">
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-zinc-300">
+                                                <div className="flex items-center justify-between text-base">
+                                                    <span className="text-zinc-200">
                                                         Total gasto
                                                     </span>
                                                     <span className="font-bold text-white tabular-nums">
@@ -605,7 +605,7 @@ export function PilarFamilia() {
                                                         )}
                                                     </span>
                                                 </div>
-                                                <div className="h-2 overflow-hidden rounded-full bg-white/5">
+                                                <div className="h-2.5 overflow-hidden rounded-full bg-white/5">
                                                     <motion.div
                                                         className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-400"
                                                         initial={{ width: 0 }}
@@ -618,16 +618,18 @@ export function PilarFamilia() {
                                                         }}
                                                     />
                                                 </div>
-                                                <div className="flex items-center justify-between text-[10px] text-zinc-500">
-                                                    <span>
+                                                <div className="flex items-center justify-between text-xs text-zinc-400">
+                                                    <span className="font-medium text-violet-200">
                                                         {orcamentoMembro.pctCota}
                                                         % da cota mensal
                                                     </span>
                                                     <span>
                                                         Cota{" "}
-                                                        {brlFromReais(
-                                                            orcamentoMembro.cotaReais
-                                                        )}
+                                                        <span className="font-semibold text-white">
+                                                            {brlFromReais(
+                                                                orcamentoMembro.cotaReais
+                                                            )}
+                                                        </span>
                                                     </span>
                                                 </div>
                                             </div>

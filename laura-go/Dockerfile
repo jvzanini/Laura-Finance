@@ -15,10 +15,12 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
         -ldflags="-s -w -X main.buildVersion=${BUILD_SHA} -X main.buildTime=${BUILD_TIME}" \
         -o /out/laura ./
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM alpine:3.20
 ENV TZ=America/Sao_Paulo
+RUN apk add --no-cache ca-certificates tzdata wget && \
+    addgroup -S laura && adduser -S -G laura laura
 WORKDIR /app
 COPY --from=build /out/laura /app/laura
-USER nonroot:nonroot
+USER laura:laura
 EXPOSE 8080
 ENTRYPOINT ["/app/laura"]

@@ -6,46 +6,69 @@
 
 ## Histórico de atualizações
 
-### 2026-04-16 — Fase 17B preparada (Playwright E2E real + smoke)
+### 2026-04-16 — Fase 17B parcialmente preparada (Playwright E2E — CI ainda vermelho)
 
+**Estado: infra entregue, CI ainda falha em healthcheck api-go.
+Tag `phase-17b-prepared` NÃO aplicada.**
+
+Entregue (commitado em master):
 - **Playwright CI real** — `playwright.yml` reescrito para rodar
-  `docker-compose.ci.yml` full stack (postgres + redis + api-go + pwa)
-  + seed one-shot (`docker compose --profile seed run --rm seed-e2e`)
-  + `npx playwright test`. Fim da ilusão de `--list`.
+  `docker-compose.ci.yml` full stack + seed one-shot + `npx
+  playwright test`. Fim da ilusão de `--list`. Step de debug
+  logs containers on failure adicionado.
 - **Seed E2E determinístico** — `scripts/e2e-seed.sql` + serviço
-  `seed-e2e` (profile "seed", one-shot). 2 users (`e2e@laura.test`,
-  `admin@laura.test` super_admin=TRUE) + 1 workspace. Bcrypt hashes
-  gerados via helper `laura-go/cmd/e2e-seed-hash/`.
+  `seed-e2e` (profile "seed", one-shot). 2 users + 1 workspace.
+  Helper `laura-go/cmd/e2e-seed-hash/`.
 - **Bugs herdados corrigidos:** (i) `docker-compose.ci.yml` env PWA
-  trocado de `NEXT_PUBLIC_API_URL` (não lido) para `LAURA_GO_API_URL`
-  + adicionado `SESSION_SECRET`; (ii) `error-shape.spec.ts` e
-  `observability.spec.ts` usavam `request.post('/api/v1/...')` via
-  `baseURL=http://localhost:3000` (PWA, 404). Fix: URL absoluta
-  `${API_URL}/api/v1/...`.
+  `NEXT_PUBLIC_API_URL` → `LAURA_GO_API_URL` + `SESSION_SECRET`;
+  (ii) `error-shape` e `observability` com URL absoluta via
+  `API_URL`; (iii) `DISABLE_WHATSAPP=true` em api-go (senão bloqueia
+  em QR scan); (iv) `lib/stripe.ts` + `lib/db.ts` com lazy init via
+  Proxy (throw top-level quebrava `next build` no Dockerfile);
+  (v) `laura-go/Dockerfile` alpine+wget (distroless não tinha wget
+  para healthcheck).
 - **Playwright config flakeless** — `retries: 2` CI, `workers: 1`,
-  `trace/video: 'retain-on-failure'`, reporter JUnit + HTML (ADR 006).
+  `trace/video: retain-on-failure`, reporter JUnit + HTML (ADR 006).
 - **8 specs com `test.fixme`** — auth, cards-invoices, goals,
   investments, reports, score, super-admin, transactions. Todos
-  dependem de data-testids inexistentes no PWA — reativar em
-  Fase 17B.2.
-- **5 testes passam real** — `mvp-flows` (3) + `error-shape` (1) +
-  `observability` (1). Validação local pulada por corrupção do
-  Docker Desktop (blobs containerd I/O error) — CI GitHub valida.
+  dependem de data-testids inexistentes no PWA (Fase 17B.2).
 - **Workflow consolidado** — `playwright-full.yml` deletado.
-- **Commits Fase 17B**: ~9.
-- **Tag**: `phase-17b-prepared`.
-- **Concerns Fase 17B.2+**:
+- **ADR 006** Playwright flakeless aceito.
+- **Commits Fase 17B**: 15.
+
+Pendente (bloqueio CI):
+- **api-go healthcheck ainda timeout** após alpine+wget. Server
+  Fiber sobe OK, migrations aplicadas, mas `wget http://localhost:8080/health`
+  não está respondendo dentro do container em 100s (20×5s).
+  Hipóteses não confirmadas:
+  (a) `/health` respondendo mas retornando status != 200.
+  (b) Middleware rate-limit / request-id ativo que bloqueia chamadas
+      do próprio container.
+  (c) Startup de algum componente (cron, cache pub/sub, webhook worker)
+      está bloqueando o main thread antes do listener aceitar
+      conexões.
+  (d) `wget` do alpine sem flag `-T 3` timing out em GET.
+
+Próximos diagnósticos sugeridos na retomada:
+  1. `curl -v` dentro do container no step debug para ver
+     resposta/status real de `/health`.
+  2. Adicionar `-T 3 -t 1` ao healthcheck wget.
+  3. Verificar se `/health` path está correto (conferir
+     `internal/health/liveness.go` e registro em bootstrap).
+  4. Se `webhook_secret_seed_failed` (JSON sintax error) for
+     bloqueante para request handling, investigar.
+
+- **Concerns Fase 17B.2+** (quando CI verde):
   - 17B.2: adicionar ~40 data-testids em ~15 componentes PWA
     + remover `test.fixme`.
-  - 17B.3: novos specs (cards-invoices lifecycle, banking API-only,
-    rollover quando UI existir).
+  - 17B.3: novos specs.
   - 17C: mobile native foundation.
-  - 17D: multi-region read replica (aguarda deploy ativo).
+  - 17D: multi-region read replica.
+
 - **Alerta ambiente local:** Docker Desktop do usuário precisa
-  factory reset para resolver corrupção containerd
-  (`/var/lib/desktop-containerd/.../blobs/sha256/...`
-  input/output error). Validação local de E2E ficou bloqueada;
-  CI GitHub Actions opera em ambiente limpo.
+  **factory reset** — corrupção containerd (`/var/lib/desktop-containerd/.../blobs/sha256/...`
+  input/output error) impediu validação local da stack. Afeta
+  outros projetos com containers Docker no mesmo Desktop.
 
 ### 2026-04-16 — Fase 17A preparada (lint sweep final)
 

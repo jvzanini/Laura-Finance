@@ -34,6 +34,7 @@ services:
       GROQ_API_KEY: test-fake-key
       APP_ENV: development
       MIGRATE_ON_BOOT: "true"
+      DISABLE_WHATSAPP: "true"
       PORT: "8080"
     depends_on:
       postgres:

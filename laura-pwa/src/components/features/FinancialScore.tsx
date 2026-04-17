@@ -87,7 +87,7 @@ export function FinancialScore({ factors = DEFAULT_FACTORS }: { factors?: ScoreF
             <CardContent className="p-5">
                 <div className="flex items-center gap-5">
                     {/* Score Gauge */}
-                    <div className="relative shrink-0">
+                    <div className="relative shrink-0" data-testid="score-gauge">
                         <svg width="140" height="140" viewBox="0 0 140 140" className={`transform -rotate-90 ${mounted ? "opacity-100" : "opacity-0"} transition-opacity duration-500`}>
                             {/* Background circle */}
                             <circle
@@ -112,7 +112,7 @@ export function FinancialScore({ factors = DEFAULT_FACTORS }: { factors?: ScoreF
                         </svg>
                         {/* Center content */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-3xl font-black font-mono" style={{ color: config.color }}>
+                            <span className="text-3xl font-black font-mono" style={{ color: config.color }} data-testid="score-value">
                                 {animatedScore}
                             </span>
                             <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">

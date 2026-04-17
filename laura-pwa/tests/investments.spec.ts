@@ -1,12 +1,14 @@
 import { test, expect } from './fixtures/auth';
 
-test('investments: criar CDB + listar', async ({ authedPage: page }) => {
-  test.fixme(true, 'needs data-testid in PWA components — reativar em Fase 17B.2');
+test('investments: criar via corretora + listar', async ({ authedPage: page }) => {
   await page.goto('/investments');
   await page.getByTestId('btn-new-investment').click();
-  await page.getByTestId('input-investment-name').fill('CDB E2E');
-  await page.getByTestId('input-investment-amount').fill('1000,00');
-  await page.getByTestId('select-investment-type-cdb').click();
+  // Corretora via shadcn Select
+  await page.getByTestId('select-investment-broker').click();
+  await page.getByRole('option').first().click();
+  await page.getByTestId('input-investment-invested').fill('1000');
+  await page.getByTestId('input-investment-current').fill('1050');
   await page.getByTestId('btn-save-investment').click();
-  await expect(page.getByText('CDB E2E')).toBeVisible();
+  // Patrimônio total deve refletir R$ 1.050 após criação
+  await expect(page.getByText(/1\.?050/)).toBeVisible({ timeout: 10_000 });
 });

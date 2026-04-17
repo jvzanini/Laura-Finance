@@ -150,7 +150,7 @@ export default function InvestmentsPage() {
                         Acompanhe seu patrimônio investido e rendimentos.
                     </p>
                 </div>
-                <Button onClick={() => setShowForm(!showForm)} size="sm" className="gap-2">
+                <Button onClick={() => setShowForm(!showForm)} size="sm" className="gap-2" data-testid="btn-new-investment">
                     {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                     {showForm ? "Cancelar" : "Novo Investimento"}
                 </Button>
@@ -231,7 +231,7 @@ export default function InvestmentsPage() {
                             <div className="space-y-1">
                                 <Label className="text-xs">Corretora</Label>
                                 <Select value={broker} onValueChange={(val) => setBroker(val || "")}>
-                                    <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                    <SelectTrigger className="h-9 bg-background" data-testid="select-investment-broker"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                     <SelectContent>
                                         {brokerOptions.map((b) => (
                                             <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
@@ -241,11 +241,11 @@ export default function InvestmentsPage() {
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-xs">Total Investido (R$)</Label>
-                                <Input type="number" placeholder="10000.00" value={inputInvested} onChange={(e) => setInputInvested(e.target.value)} className="h-9 bg-background" />
+                                <Input type="number" placeholder="10000.00" value={inputInvested} onChange={(e) => setInputInvested(e.target.value)} className="h-9 bg-background" data-testid="input-investment-invested" />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-xs">Valor Atual (R$)</Label>
-                                <Input type="number" placeholder="10500.00" value={inputCurrent} onChange={(e) => setInputCurrent(e.target.value)} className="h-9 bg-background" />
+                                <Input type="number" placeholder="10500.00" value={inputCurrent} onChange={(e) => setInputCurrent(e.target.value)} className="h-9 bg-background" data-testid="input-investment-current" />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-xs">Aporte Mensal (R$)</Label>
@@ -254,7 +254,7 @@ export default function InvestmentsPage() {
                         </div>
                         <div className="flex gap-2 justify-end">
                             <Button variant="ghost" size="sm" onClick={() => setShowForm(false)} disabled={submitting}>Cancelar</Button>
-                            <Button size="sm" onClick={handleSubmit} disabled={submitting}>
+                            <Button size="sm" onClick={handleSubmit} disabled={submitting} data-testid="btn-save-investment">
                                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Salvar
                             </Button>

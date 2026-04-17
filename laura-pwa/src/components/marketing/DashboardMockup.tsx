@@ -3,7 +3,6 @@
 import { motion } from "motion/react";
 import {
     ArrowUpRight,
-    Gauge,
     ShoppingBag,
     Wallet,
 } from "lucide-react";
@@ -205,12 +204,9 @@ function ScoreRing({ value }: { value: number }) {
                 />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex items-baseline gap-0.5">
-                    <Gauge className="size-3 text-violet-300" aria-hidden />
-                    <span className="text-[11px] font-bold text-white">
-                        {value}
-                    </span>
-                </div>
+                <span className="text-xs font-bold text-white">
+                    {value}
+                </span>
             </div>
         </div>
     );

@@ -50,6 +50,7 @@ export async function signupStartAction(input: {
     whatsapp: string;
     password: string;
     desiredPlan?: string;
+    desiredCycle?: "monthly" | "yearly";
 }) {
     const res = await callGo<StartResponse>("/api/v1/public/signup/start", {
         name: input.name,
@@ -57,6 +58,7 @@ export async function signupStartAction(input: {
         whatsapp: input.whatsapp,
         password: input.password,
         desired_plan_slug: input.desiredPlan ?? "",
+        desired_cycle: input.desiredCycle ?? "",
     });
     return res;
 }

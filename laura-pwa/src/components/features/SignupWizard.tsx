@@ -130,6 +130,11 @@ export function SignupWizard() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const desiredPlan = searchParams.get("plan") ?? undefined;
+    const desiredCycleRaw = searchParams.get("cycle");
+    const desiredCycle: "monthly" | "yearly" | undefined =
+        desiredCycleRaw === "monthly" || desiredCycleRaw === "yearly"
+            ? desiredCycleRaw
+            : undefined;
 
     const [step, setStep] = React.useState<1 | 2 | 3>(1);
     const [pendingId, setPendingId] = React.useState<string | null>(null);
@@ -221,6 +226,7 @@ export function SignupWizard() {
             whatsapp: normalizeWhatsappForSubmit(values.whatsapp),
             password: values.password,
             desiredPlan,
+            desiredCycle,
         });
         if (!res.ok) {
             setServerError(res.message || "Não conseguimos iniciar seu cadastro. Tente novamente.");
@@ -275,7 +281,7 @@ export function SignupWizard() {
             return;
         }
         clearPersisted();
-        router.push("/dashboard");
+        router.push("/dashboard?welcome=1");
     };
 
     // ── Handlers de reenvio ──────────────────────────────────────────
@@ -331,7 +337,7 @@ export function SignupWizard() {
 
             <div
                 className={cn(
-                    "relative overflow-hidden rounded-2xl",
+                    "relative overflow-hidden rounded-3xl",
                     "bg-white/5 backdrop-blur-sm border border-white/10",
                     "shadow-2xl p-6 sm:p-8"
                 )}
@@ -365,7 +371,7 @@ export function SignupWizard() {
                 {step === 2 && (
                     <StepVerify
                         icon={<Mail className="h-6 w-6" />}
-                        title="Verifique seu e-mail"
+                        title="Digite o código enviado por email"
                         description={
                             <>
                                 Enviamos um código de 6 dígitos para{" "}
@@ -389,7 +395,7 @@ export function SignupWizard() {
                 {step === 3 && (
                     <StepVerify
                         icon={<MessageCircle className="h-6 w-6" />}
-                        title="Verifique seu WhatsApp"
+                        title="Digite o código do WhatsApp"
                         description={
                             <>
                                 Enviamos um código de 6 dígitos para{" "}
@@ -434,7 +440,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
                 <div
-                    className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-500 transition-[width] duration-500"
+                    className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-500 transition-[width] duration-500"
                     style={{ width: `${pct}%` }}
                     aria-valuenow={pct}
                     aria-valuemin={0}
@@ -489,9 +495,9 @@ function Step1Form({ form, onSubmit, serverError, submitting }: Step1FormProps) 
     return (
         <form onSubmit={onSubmit} noValidate className="space-y-5" data-testid="signup-step1">
             <header className="space-y-1 text-center">
-                <h1 className="text-2xl font-semibold text-white">Crie sua conta</h1>
+                <h1 className="text-2xl font-semibold text-white">Crie sua conta Laura Finance</h1>
                 <p className="text-sm text-white/60">
-                    Comece a organizar suas finanças pelo WhatsApp.
+                    Comece a organizar suas finanças pelo WhatsApp. Primeiros 7 dias por nossa conta.
                 </p>
             </header>
 
@@ -581,7 +587,7 @@ function Step1Form({ form, onSubmit, serverError, submitting }: Step1FormProps) 
                 type="submit"
                 disabled={submitting}
                 data-testid="btn-signup-next"
-                className="w-full min-h-11 bg-primary text-primary-foreground hover:bg-primary/90"
+                className="w-full min-h-11 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-lg shadow-violet-600/30 hover:from-violet-500 hover:to-fuchsia-400"
             >
                 {submitting ? (
                     <>

@@ -1,10 +1,11 @@
 import { CTAFinal } from "./CTAFinal";
 import { FAQ } from "./FAQ";
-import { FeatureGrid } from "./FeatureGrid";
 import { Hero } from "./Hero";
-import { HowItWorks } from "./HowItWorks";
 import { MarketingFooter } from "./MarketingFooter";
 import { MarketingNavbar } from "./MarketingNavbar";
+import { PilarAssistente } from "./PilarAssistente";
+import { PilarFamilia } from "./PilarFamilia";
+import { PilarViagens } from "./PilarViagens";
 import { PricingCards } from "./PricingCards";
 import { Testimonials } from "./Testimonials";
 import { TrustBar } from "./TrustBar";
@@ -16,8 +17,9 @@ export function LandingPage() {
             <main>
                 <Hero />
                 <TrustBar />
-                <FeatureGrid />
-                <HowItWorks />
+                <PilarAssistente />
+                <PilarFamilia />
+                <PilarViagens />
                 <PricingCards />
                 <Testimonials />
                 <FAQ />

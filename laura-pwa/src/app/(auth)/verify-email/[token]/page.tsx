@@ -16,7 +16,7 @@ export default async function VerifyEmailPage({
 
     if (!pre.valid) {
         return (
-            <div className="rounded-2xl border border-red-500/30 bg-white/5 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
+            <div className="rounded-3xl border border-red-500/30 bg-white/5 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
                 <div className="mb-4 flex flex-col items-center text-center">
                     <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
                         <AlertCircle className="h-7 w-7 text-red-400" />
@@ -26,7 +26,7 @@ export default async function VerifyEmailPage({
                 </div>
                 <Link
                     href="/login"
-                    className="inline-flex w-full min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+                    className="inline-flex w-full min-h-11 items-center justify-center rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 text-sm font-medium text-white shadow-lg shadow-violet-600/30 transition hover:from-violet-500 hover:to-fuchsia-400"
                 >
                     Ir para o login
                 </Link>
@@ -39,7 +39,7 @@ export default async function VerifyEmailPage({
     const already = "alreadyVerified" in result && result.alreadyVerified === true;
 
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
             <div className="mb-4 flex flex-col items-center text-center">
                 <div
                     className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl ${
@@ -67,7 +67,7 @@ export default async function VerifyEmailPage({
             </div>
             <Link
                 href="/dashboard"
-                className="inline-flex w-full min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+                className="inline-flex w-full min-h-11 items-center justify-center rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 text-sm font-medium text-white shadow-lg shadow-violet-600/30 transition hover:from-violet-500 hover:to-fuchsia-400"
             >
                 Ir para o dashboard
             </Link>

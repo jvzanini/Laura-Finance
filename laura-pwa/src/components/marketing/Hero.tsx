@@ -2,11 +2,45 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowRight, MessageCircle, ShieldCheck } from "lucide-react";
+import {
+    ArrowRight,
+    MessageCircle,
+    Plane,
+    ShieldCheck,
+    Users,
+    Wallet,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 import { DashboardMockup } from "./DashboardMockup";
+
+const pilares = [
+    {
+        href: "#pilar-assistente",
+        label: "Assistente financeiro",
+        icon: Wallet,
+        className:
+            "border-violet-400/30 bg-violet-500/10 text-violet-100 hover:border-violet-400/60 hover:bg-violet-500/20",
+        iconClassName: "text-violet-300",
+    },
+    {
+        href: "#pilar-familia",
+        label: "Gestão familiar",
+        icon: Users,
+        className:
+            "border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-100 hover:border-fuchsia-400/60 hover:bg-fuchsia-500/20",
+        iconClassName: "text-fuchsia-300",
+    },
+    {
+        href: "#pilar-viagens",
+        label: "Planejador de viagens",
+        icon: Plane,
+        className:
+            "border-rose-400/30 bg-rose-500/10 text-rose-100 hover:border-rose-400/60 hover:bg-rose-500/20",
+        iconClassName: "text-rose-300",
+    },
+] as const;
 
 export function Hero() {
     return (
@@ -69,16 +103,46 @@ export function Hero() {
                         transition={{ duration: 0.55, delay: 0.15 }}
                         className="mt-6 max-w-xl text-base leading-relaxed text-zinc-300 sm:text-lg"
                     >
-                        Chega de planilha + 3 apps + bot no WhatsApp. Laura é a
-                        plataforma completa — assistente financeiro, gestão
-                        familiar e planejador de viagens em um só lugar.
+                        Chega de planilha + 3 apps + bot no WhatsApp. Laura
+                        Finance é a plataforma completa — assistente financeiro,
+                        gestão familiar e planejador de viagens em um só lugar.
                     </motion.p>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.55, delay: 0.2 }}
+                        className="mt-7 flex flex-wrap items-center justify-center gap-2 lg:justify-start"
+                        aria-label="Três pilares da Laura Finance"
+                    >
+                        {pilares.map(
+                            ({
+                                href,
+                                label,
+                                icon: Icon,
+                                className,
+                                iconClassName,
+                            }) => (
+                                <a
+                                    key={href}
+                                    href={href}
+                                    className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium backdrop-blur-sm transition-all sm:text-sm ${className}`}
+                                >
+                                    <Icon
+                                        className={`size-3.5 ${iconClassName}`}
+                                        aria-hidden
+                                    />
+                                    <span>{label}</span>
+                                </a>
+                            )
+                        )}
+                    </motion.div>
 
                     <motion.div
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.55, delay: 0.25 }}
-                        className="mt-9 flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center"
+                        transition={{ duration: 0.55, delay: 0.3 }}
+                        className="mt-8 flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center"
                     >
                         <Link href="/register" className="w-full sm:w-auto">
                             <Button className="h-12 w-full min-w-11 gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-6 text-base font-semibold text-white shadow-xl shadow-violet-600/40 transition-all hover:from-violet-500 hover:to-fuchsia-400 hover:shadow-violet-500/50 sm:w-auto">

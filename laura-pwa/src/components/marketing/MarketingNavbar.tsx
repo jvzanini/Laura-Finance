@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/sheet";
 
 const navLinks = [
-    { href: "#recursos", label: "Recursos" },
+    { href: "#pilar-assistente", label: "Recursos" },
     { href: "#planos", label: "Planos" },
     { href: "#faq", label: "FAQ" },
 ];
@@ -33,7 +33,10 @@ function LauraLogo({ className }: { className?: string }) {
                 L
             </span>
             <span className="text-xl font-bold tracking-tight text-white">
-                Laura
+                Laura{" "}
+                <span className="bg-gradient-to-r from-violet-300 to-fuchsia-300 bg-clip-text text-transparent">
+                    Finance
+                </span>
             </span>
         </span>
     );

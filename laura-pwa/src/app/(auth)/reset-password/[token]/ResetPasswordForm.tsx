@@ -45,7 +45,7 @@ export function ResetPasswordForm({ token, email }: { token: string; email: stri
     };
 
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
             <header className="mb-6 space-y-1 text-center">
                 <h1 className="text-2xl font-semibold text-white">Nova senha</h1>
                 <p className="text-sm text-white/60">
@@ -107,7 +107,7 @@ export function ResetPasswordForm({ token, email }: { token: string; email: stri
                     <Button
                         type="submit"
                         disabled={isPending}
-                        className="w-full min-h-11 bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="w-full min-h-11 bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-lg shadow-violet-600/30 hover:from-violet-500 hover:to-fuchsia-400"
                     >
                         {isPending ? (
                             <>

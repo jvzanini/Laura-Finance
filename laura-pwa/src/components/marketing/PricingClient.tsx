@@ -26,6 +26,7 @@ type Billing = "monthly" | "yearly";
 const currencyFmt = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
+    minimumFractionDigits: 2,
 });
 
 function formatPrice(cents: number): string {
@@ -76,38 +77,28 @@ function PricingToggle({
     );
 }
 
-// resolveBillingForPlan decide qual cobrança exibir para um plano considerando
-// a preferência global do toggle E os flags monthly_enabled/yearly_enabled.
-function resolveBillingForPlan(plan: PublicPlan, preferred: Billing): Billing {
-    if (preferred === "monthly" && plan.monthlyEnabled) return "monthly";
-    if (preferred === "yearly" && plan.yearlyEnabled) return "yearly";
-    if (plan.monthlyEnabled) return "monthly";
-    return "yearly";
-}
-
 function PricePanel({ plan, billing }: { plan: PublicPlan; billing: Billing }) {
     if (billing === "yearly" && plan.priceCentsYearly !== null) {
-        const monthly = plan.priceCents > 0 ? plan.priceCents : Math.round(plan.priceCentsYearly / 12);
+        const perMonthCents = Math.round(plan.priceCentsYearly / 12);
         return (
             <div className="mt-4">
                 <div className="flex items-baseline gap-1">
-                    <span className="text-sm font-medium text-zinc-300">12×</span>
                     <span className="text-4xl font-bold tracking-tight text-white">
-                        {formatPrice(monthly)}
+                        {formatPrice(plan.priceCentsYearly)}
                     </span>
+                    {plan.priceCentsYearly > 0 && (
+                        <span className="text-sm text-zinc-400">/ano</span>
+                    )}
                 </div>
-                <p className="mt-1 text-sm text-zinc-400">
-                    ou {formatPrice(plan.priceCentsYearly)} à vista
-                </p>
-                {plan.priceCentsYearlyDiscount !== null && plan.priceCentsYearlyDiscount > 0 && (
-                    <p className="mt-1 text-xs font-medium text-fuchsia-300">
-                        {formatPrice(plan.priceCentsYearlyDiscount)} no Pix (desconto)
+                {plan.priceCentsYearly > 0 && (
+                    <p className="mt-1 text-xs text-zinc-400">
+                        equivale a {formatPrice(perMonthCents)} por mês
                     </p>
                 )}
             </div>
         );
     }
-    // monthly (ou fallback quando não há yearly)
+    // monthly
     return (
         <div className="mt-4 flex items-baseline gap-1">
             <span className="text-4xl font-bold tracking-tight text-white">
@@ -121,14 +112,20 @@ function PricePanel({ plan, billing }: { plan: PublicPlan; billing: Billing }) {
 }
 
 export function PricingClient({ plans }: { plans: PublicPlan[] }) {
-    // Toggle só aparece se há pelo menos um plano com yearly E um com monthly.
+    // Toggle só aparece quando há ao menos um plano com mensal habilitado
+    // E ao menos um plano com anual habilitado.
     const anyMonthly = plans.some((p) => p.monthlyEnabled);
     const anyYearly = plans.some((p) => p.yearlyEnabled);
     const showToggle = anyMonthly && anyYearly;
 
-    // Default do toggle: anual se for o único habilitado; senão mensal.
+    // Default do toggle: anual se for o único habilitado; caso contrário mensal.
     const defaultBilling: Billing = !anyMonthly && anyYearly ? "yearly" : "monthly";
     const [billing, setBilling] = useState<Billing>(defaultBilling);
+
+    // Filtra planos conforme o toggle — plano só aparece se tiver o modo ativo.
+    const visiblePlans = plans.filter((p) =>
+        billing === "monthly" ? p.monthlyEnabled : p.yearlyEnabled
+    );
 
     return (
         <section
@@ -142,10 +139,10 @@ export function PricingClient({ plans }: { plans: PublicPlan[] }) {
                         id="planos-heading"
                         className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
                     >
-                        Planos simples, sem pegadinha
+                        Escolha seu plano
                     </h2>
                     <p className="mt-4 text-base text-zinc-300 sm:text-lg">
-                        Todos começam com 7 dias grátis — sem cadastrar cartão.
+                        Assine quando quiser — os 7 primeiros dias são por nossa conta.
                     </p>
                     {showToggle && (
                         <div className="mt-8 flex justify-center">
@@ -157,12 +154,13 @@ export function PricingClient({ plans }: { plans: PublicPlan[] }) {
                 <div
                     className={cn(
                         "mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2",
-                        plans.length >= 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
+                        visiblePlans.length >= 3 ? "lg:grid-cols-3" : "lg:grid-cols-2"
                     )}
                 >
-                    {plans.map((plan) => {
-                        const effectiveBilling = resolveBillingForPlan(plan, billing);
-                        const yearlyOnly = plan.yearlyEnabled && !plan.monthlyEnabled;
+                    {visiblePlans.map((plan) => {
+                        const href = `/register?plan=${encodeURIComponent(
+                            plan.slug
+                        )}&cycle=${billing}`;
 
                         return (
                             <motion.article
@@ -190,14 +188,9 @@ export function PricingClient({ plans }: { plans: PublicPlan[] }) {
                                     <h3 className="text-lg font-semibold text-white">
                                         {plan.name}
                                     </h3>
-                                    {yearlyOnly && (
-                                        <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-violet-200">
-                                            Apenas anual
-                                        </span>
-                                    )}
                                 </div>
 
-                                <PricePanel plan={plan} billing={effectiveBilling} />
+                                <PricePanel plan={plan} billing={billing} />
 
                                 {plan.features.length > 0 && (
                                     <ul className="mt-6 flex flex-col gap-3">
@@ -217,10 +210,7 @@ export function PricingClient({ plans }: { plans: PublicPlan[] }) {
                                 )}
 
                                 <div className="mt-8">
-                                    <Link
-                                        href={`/register?plan=${encodeURIComponent(plan.slug)}`}
-                                        className="block"
-                                    >
+                                    <Link href={href} className="block">
                                         <Button
                                             className={cn(
                                                 "h-12 w-full rounded-xl text-base font-semibold",
@@ -229,7 +219,7 @@ export function PricingClient({ plans }: { plans: PublicPlan[] }) {
                                                     : "bg-white/10 text-white hover:bg-white/15"
                                             )}
                                         >
-                                            Começar 7 dias grátis
+                                            Assinar agora
                                         </Button>
                                     </Link>
                                 </div>

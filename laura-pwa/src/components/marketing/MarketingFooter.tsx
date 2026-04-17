@@ -9,7 +9,7 @@ const groups: FooterGroup[] = [
     {
         title: "Produto",
         links: [
-            { label: "Recursos", href: "#recursos" },
+            { label: "Recursos", href: "#pilar-assistente" },
             { label: "Planos", href: "#planos" },
             { label: "FAQ", href: "#faq" },
         ],
@@ -56,7 +56,10 @@ export function MarketingFooter() {
                                 L
                             </span>
                             <span className="text-xl font-bold tracking-tight text-white">
-                                Laura
+                                Laura{" "}
+                                <span className="bg-gradient-to-r from-violet-300 to-fuchsia-300 bg-clip-text text-transparent">
+                                    Finance
+                                </span>
                             </span>
                         </Link>
                         <p className="mt-3 max-w-xs text-sm text-zinc-400">

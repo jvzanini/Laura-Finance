@@ -37,7 +37,19 @@ WHERE subscription_status = 'trial';
 CREATE INDEX IF NOT EXISTS idx_workspaces_subscription_status
     ON workspaces(subscription_status);
 
--- Unique phone_number per active user (allow NULL)
+-- Unique phone_number per active user (allow NULL).
+-- Deduplica antes: se alguma linha legada tem phone_number repetido,
+-- mantém o registro mais antigo e zera os demais. Isso mantém a
+-- migração segura em bancos com dados de teste já acumulados.
+UPDATE users SET phone_number = NULL
+WHERE id IN (
+    SELECT id FROM (
+        SELECT id,
+               ROW_NUMBER() OVER (PARTITION BY phone_number ORDER BY created_at) AS rn
+        FROM users WHERE phone_number IS NOT NULL
+    ) dup WHERE rn > 1
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique
     ON users(phone_number)
     WHERE phone_number IS NOT NULL;

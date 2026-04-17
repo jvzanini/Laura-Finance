@@ -194,6 +194,7 @@ export function ReportsView(props: ReportsData) {
                             <button
                                 key={t.id}
                                 onClick={() => setActiveTab(t.id)}
+                                data-testid={`tab-report-${t.id}`}
                                 className={`flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                                     activeTab === t.id
                                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -267,15 +268,17 @@ export function ReportsView(props: ReportsData) {
             </div>
 
             {/* Content: DRE */}
-            {activeTab === "dre" && <DRETab dre={dre} />}
-            {activeTab === "categorias" && <CategoriesTab data={categories} />}
-            {activeTab === "subcategorias" && <SubcategoriesTab data={subcategories} />}
-            {activeTab === "cartao" && <CardTab data={cards} />}
-            {activeTab === "metodo" && <PaymentMethodTab data={methods} />}
-            {activeTab === "viagem" && <TravelTab data={travel} />}
-            {activeTab === "comparativo" && <ComparativeTab data={comparative} />}
-            {activeTab === "tendencia" && <TrendTab data={trend} />}
-            {activeTab === "membro" && <MemberTab data={members} />}
+            <div data-testid={`report-${activeTab}-content`}>
+                {activeTab === "dre" && <DRETab dre={dre} />}
+                {activeTab === "categorias" && <CategoriesTab data={categories} />}
+                {activeTab === "subcategorias" && <SubcategoriesTab data={subcategories} />}
+                {activeTab === "cartao" && <CardTab data={cards} />}
+                {activeTab === "metodo" && <PaymentMethodTab data={methods} />}
+                {activeTab === "viagem" && <TravelTab data={travel} />}
+                {activeTab === "comparativo" && <ComparativeTab data={comparative} />}
+                {activeTab === "tendencia" && <TrendTab data={trend} />}
+                {activeTab === "membro" && <MemberTab data={members} />}
+            </div>
         </div>
     );
 }

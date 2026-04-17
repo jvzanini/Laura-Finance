@@ -137,7 +137,7 @@ export function OTPCodeInput({
                     aria-label={`Dígito ${index + 1}`}
                     data-testid={`otp-input-${index}`}
                     className={cn(
-                        "w-12 h-14 sm:w-14 sm:h-16 text-center text-xl font-semibold",
+                        "w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-semibold",
                         "bg-white/5 border border-white/10 rounded-xl",
                         "text-white placeholder:text-white/30 caret-violet-400",
                         "focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/60",

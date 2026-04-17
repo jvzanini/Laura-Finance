@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "motion/react";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import {
+    CheckCircle2,
+    CreditCard,
+    Sparkles,
+    XCircle,
+    Zap,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -77,28 +83,51 @@ function PricingToggle({
     );
 }
 
-function PricePanel({ plan, billing }: { plan: PublicPlan; billing: Billing }) {
+function TrialPricePanel() {
+    return (
+        <div className="mt-4">
+            <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-bold tracking-tight text-white">
+                    Grátis
+                </span>
+                <span className="text-sm text-zinc-400">por 7 dias</span>
+            </div>
+            <p className="mt-1 text-sm text-zinc-300">
+                Sem cartão de crédito. Sem cobrança ao final.
+            </p>
+        </div>
+    );
+}
+
+function VipPricePanel({
+    plan,
+    billing,
+}: {
+    plan: PublicPlan;
+    billing: Billing;
+}) {
     if (billing === "yearly" && plan.priceCentsYearly !== null) {
-        const perMonthCents = Math.round(plan.priceCentsYearly / 12);
+        const yearlyCents = plan.priceCentsYearly;
+        const perMonthCents = Math.round(yearlyCents / 12);
         return (
             <div className="mt-4">
-                <div className="flex items-baseline gap-1">
+                <div className="flex items-baseline gap-2">
+                    <span className="text-sm text-zinc-400">12×</span>
                     <span className="text-4xl font-bold tracking-tight text-white">
-                        {formatPrice(plan.priceCentsYearly)}
+                        {formatPrice(perMonthCents)}
                     </span>
-                    {plan.priceCentsYearly > 0 && (
-                        <span className="text-sm text-zinc-400">/ano</span>
-                    )}
                 </div>
-                {plan.priceCentsYearly > 0 && (
-                    <p className="mt-1 text-xs text-zinc-400">
-                        equivale a {formatPrice(perMonthCents)} por mês
-                    </p>
-                )}
+                <p className="mt-1 text-sm text-zinc-300">
+                    ou{" "}
+                    <span className="font-semibold text-white">
+                        {formatPrice(yearlyCents)}
+                    </span>{" "}
+                    no Pix à vista
+                </p>
             </div>
         );
     }
-    // monthly
+    // Mensal
     return (
         <div className="mt-4 flex items-baseline gap-1">
             <span className="text-4xl font-bold tracking-tight text-white">
@@ -111,20 +140,126 @@ function PricePanel({ plan, billing }: { plan: PublicPlan; billing: Billing }) {
     );
 }
 
+function TrialCard() {
+    return (
+        <motion.article
+            className="relative flex h-full w-full flex-col rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-white/20 sm:p-8"
+            whileHover={{ y: -4, transition: { duration: 0.25 } }}
+        >
+            <div className="flex items-baseline justify-between gap-2">
+                <h3 className="text-lg font-semibold text-white">Trial</h3>
+                <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-violet-200">
+                    7 dias
+                </span>
+            </div>
+            <p className="mt-1 text-sm text-zinc-300">
+                Teste tudo por 7 dias
+            </p>
+
+            <TrialPricePanel />
+
+            <ul className="mt-6 flex flex-col gap-3">
+                {[
+                    "Tudo do VIP por 7 dias",
+                    "WhatsApp + app + dashboard",
+                    "Modo viagem + Open Finance",
+                    "Sem cobrança ao final",
+                ].map((feature, i) => (
+                    <li
+                        key={i}
+                        className="flex items-start gap-2.5 text-sm text-zinc-200"
+                    >
+                        <CheckCircle2
+                            className="mt-0.5 size-4 shrink-0 text-violet-300"
+                            aria-hidden
+                        />
+                        <span>{feature}</span>
+                    </li>
+                ))}
+            </ul>
+
+            <div className="mt-auto pt-8">
+                <Link
+                    href="/register?plan=standard&cycle=monthly"
+                    className="block"
+                >
+                    <Button className="h-12 w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 text-base font-semibold text-white shadow-xl shadow-violet-600/40 hover:from-violet-500 hover:to-fuchsia-400">
+                        Comece grátis agora
+                    </Button>
+                </Link>
+            </div>
+        </motion.article>
+    );
+}
+
+function VipCard({ plan, billing }: { plan: PublicPlan; billing: Billing }) {
+    const href = `/register?plan=${encodeURIComponent(
+        plan.slug
+    )}&cycle=${billing}`;
+
+    return (
+        <motion.article
+            whileHover={{ y: -6, transition: { duration: 0.25 } }}
+            className="relative flex h-full w-full flex-col rounded-3xl border border-transparent bg-gradient-to-b from-violet-950/60 to-zinc-950/80 p-6 shadow-2xl shadow-violet-500/20 ring-2 ring-violet-500/60 sm:p-8"
+        >
+            <div className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 px-3 py-1 text-xs font-semibold text-white shadow-lg">
+                <Sparkles className="size-3.5" aria-hidden />
+                Mais popular
+            </div>
+
+            <div className="flex items-baseline justify-between gap-2">
+                <h3 className="text-lg font-semibold text-white">
+                    {plan.name}
+                </h3>
+            </div>
+
+            <VipPricePanel plan={plan} billing={billing} />
+
+            {plan.features.length > 0 && (
+                <ul className="mt-6 flex flex-col gap-3">
+                    {plan.features.map((feature, i) => (
+                        <li
+                            key={i}
+                            className="flex items-start gap-2.5 text-sm text-zinc-200"
+                        >
+                            <CheckCircle2
+                                className="mt-0.5 size-4 shrink-0 text-violet-300"
+                                aria-hidden
+                            />
+                            <span>{feature}</span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+
+            <div className="mt-auto pt-8">
+                <Link href={href} className="block">
+                    <Button className="h-12 w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 text-base font-semibold text-white shadow-xl shadow-violet-600/40 hover:from-violet-500 hover:to-fuchsia-400">
+                        Assinar agora
+                    </Button>
+                </Link>
+            </div>
+        </motion.article>
+    );
+}
+
 export function PricingClient({ plans }: { plans: PublicPlan[] }) {
-    // Toggle só aparece quando há ao menos um plano com mensal habilitado
-    // E ao menos um plano com anual habilitado.
-    const anyMonthly = plans.some((p) => p.monthlyEnabled);
-    const anyYearly = plans.some((p) => p.yearlyEnabled);
+    // Default anual sempre (toggle aparece só se houver planos com ambas modalidades).
+    const anyMonthly = plans.some(
+        (p) => p.slug !== "standard" && p.monthlyEnabled
+    );
+    const anyYearly = plans.some(
+        (p) => p.slug !== "standard" && p.yearlyEnabled
+    );
     const showToggle = anyMonthly && anyYearly;
+    const [billing, setBilling] = useState<Billing>("yearly");
 
-    // Default do toggle: anual se for o único habilitado; caso contrário mensal.
-    const defaultBilling: Billing = !anyMonthly && anyYearly ? "yearly" : "monthly";
-    const [billing, setBilling] = useState<Billing>(defaultBilling);
-
-    // Filtra planos conforme o toggle — plano só aparece se tiver o modo ativo.
-    const visiblePlans = plans.filter((p) =>
-        billing === "monthly" ? p.monthlyEnabled : p.yearlyEnabled
+    // Trial (slug=standard) sempre aparece; demais filtram pelo toggle.
+    const trialPlan = plans.find((p) => p.slug === "standard");
+    const vipPlans = plans.filter(
+        (p) =>
+            p.slug !== "standard" &&
+            (billing === "monthly" ? p.monthlyEnabled : p.yearlyEnabled)
     );
 
     return (
@@ -142,93 +277,51 @@ export function PricingClient({ plans }: { plans: PublicPlan[] }) {
                         Escolha seu plano
                     </h2>
                     <p className="mt-4 text-base text-zinc-300 sm:text-lg">
-                        Assine quando quiser — os 7 primeiros dias são por nossa conta.
+                        7 dias grátis em todos os planos. Sem cartão, sem
+                        pegadinha.
                     </p>
+                    <div className="mt-5 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-white/70">
+                        <span className="inline-flex items-center gap-1.5">
+                            <CreditCard
+                                className="size-3.5 text-violet-300"
+                                aria-hidden
+                            />
+                            Sem cartão
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                            <Zap
+                                className="size-3.5 text-violet-300"
+                                aria-hidden
+                            />
+                            Acesso imediato
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                            <XCircle
+                                className="size-3.5 text-violet-300"
+                                aria-hidden
+                            />
+                            Cancele quando quiser
+                        </span>
+                    </div>
                     {showToggle && (
                         <div className="mt-8 flex justify-center">
-                            <PricingToggle value={billing} onChange={setBilling} />
+                            <PricingToggle
+                                value={billing}
+                                onChange={setBilling}
+                            />
                         </div>
                     )}
                 </div>
 
-                <div
-                    className={cn(
-                        "mt-14 grid gap-6",
-                        visiblePlans.length === 1
-                            ? "mx-auto max-w-md grid-cols-1 justify-items-center"
-                            : "grid-cols-1 sm:grid-cols-2",
-                        visiblePlans.length >= 3 ? "lg:grid-cols-3" : ""
-                    )}
-                >
-                    {visiblePlans.map((plan) => {
-                        const href = `/register?plan=${encodeURIComponent(
-                            plan.slug
-                        )}&cycle=${billing}`;
-
-                        return (
-                            <motion.article
-                                key={plan.slug}
-                                whileHover={
-                                    plan.isMostPopular
-                                        ? { y: -6, transition: { duration: 0.25 } }
-                                        : undefined
-                                }
-                                className={cn(
-                                    "relative flex flex-col rounded-3xl border p-6 backdrop-blur-sm transition-all sm:p-8",
-                                    plan.isMostPopular
-                                        ? "border-transparent bg-gradient-to-b from-violet-950/60 to-zinc-950/80 ring-2 ring-violet-500/60 shadow-2xl shadow-violet-500/20"
-                                        : "border-white/10 bg-white/5 hover:-translate-y-1 hover:border-white/20"
-                                )}
-                            >
-                                {plan.isMostPopular && (
-                                    <div className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 px-3 py-1 text-xs font-semibold text-white shadow-lg">
-                                        <Sparkles className="size-3.5" aria-hidden />
-                                        Mais popular
-                                    </div>
-                                )}
-
-                                <div className="flex items-baseline justify-between gap-2">
-                                    <h3 className="text-lg font-semibold text-white">
-                                        {plan.name}
-                                    </h3>
-                                </div>
-
-                                <PricePanel plan={plan} billing={billing} />
-
-                                {plan.features.length > 0 && (
-                                    <ul className="mt-6 flex flex-col gap-3">
-                                        {plan.features.map((feature, i) => (
-                                            <li
-                                                key={i}
-                                                className="flex items-start gap-2.5 text-sm text-zinc-200"
-                                            >
-                                                <CheckCircle2
-                                                    className="mt-0.5 size-4 shrink-0 text-violet-300"
-                                                    aria-hidden
-                                                />
-                                                <span>{feature}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-
-                                <div className="mt-8">
-                                    <Link href={href} className="block">
-                                        <Button
-                                            className={cn(
-                                                "h-12 w-full rounded-xl text-base font-semibold",
-                                                plan.isMostPopular
-                                                    ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-xl shadow-violet-600/40 hover:from-violet-500 hover:to-fuchsia-400"
-                                                    : "bg-white/10 text-white hover:bg-white/15"
-                                            )}
-                                        >
-                                            Assinar agora
-                                        </Button>
-                                    </Link>
-                                </div>
-                            </motion.article>
-                        );
-                    })}
+                <div className="mx-auto mt-14 grid auto-rows-fr grid-cols-1 gap-6 sm:grid-cols-2">
+                    {trialPlan && <TrialCard />}
+                    {vipPlans.map((plan) => (
+                        <VipCard
+                            key={plan.slug}
+                            plan={plan}
+                            billing={billing}
+                        />
+                    ))}
                 </div>
             </div>
         </section>

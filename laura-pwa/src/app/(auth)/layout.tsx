@@ -3,11 +3,14 @@ import type { ReactNode } from "react";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
     return (
-        <div className="relative flex min-h-[100svh] w-full items-center justify-center overflow-hidden bg-[#0A0A0F] px-4 py-8 [contain:paint] sm:py-12">
+        <div className="relative flex min-h-[100svh] w-full items-center justify-center overflow-hidden bg-[#0A0A0F] px-4 py-8 [contain:paint] sm:px-6 sm:py-12 md:px-8">
             {/* Fundo com orbs animadas na paleta violet → fuchsia → rose */}
-            <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-                <div className="absolute -left-32 -top-24 h-[22rem] w-[22rem] rounded-full bg-violet-600/25 opacity-60 blur-3xl animate-orb-float" />
-                <div className="absolute right-[-6rem] top-1/3 h-[18rem] w-[18rem] rounded-full bg-fuchsia-500/20 opacity-50 blur-3xl animate-orb-float-delayed" />
+            <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+            >
+                <div className="absolute -left-20 -top-16 h-[16rem] w-[16rem] rounded-full bg-violet-600/25 opacity-60 blur-3xl animate-orb-float sm:-left-32 sm:-top-24 sm:h-[22rem] sm:w-[22rem]" />
+                <div className="absolute right-[-4rem] top-1/3 h-[14rem] w-[14rem] rounded-full bg-fuchsia-500/20 opacity-50 blur-3xl animate-orb-float-delayed sm:right-[-6rem] sm:h-[18rem] sm:w-[18rem]" />
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(124,58,237,0.1),transparent_60%)]" />
             </div>
 
@@ -16,16 +19,18 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                     <Link
                         href="/"
                         aria-label="Laura Finance"
-                        className="inline-flex flex-col items-center gap-2 rounded-2xl px-3 py-1.5 transition hover:opacity-90"
+                        className="inline-flex flex-col items-center gap-3 rounded-2xl px-3 py-1.5 transition hover:opacity-90"
                     >
-                        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-rose-500 text-xs font-bold text-white shadow-lg shadow-fuchsia-500/30">
+                        <span className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-rose-500 text-xl font-bold text-white shadow-lg shadow-fuchsia-500/30">
                             LF
                         </span>
                         <span className="text-lg font-semibold tracking-tight text-white sm:text-xl">
                             Laura Finance
                         </span>
                     </Link>
-                    <p className="text-xs text-white/40">Gestão financeira inteligente via WhatsApp</p>
+                    <p className="text-xs text-white/40">
+                        Sua plataforma financeira completa.
+                    </p>
                 </div>
 
                 {children}

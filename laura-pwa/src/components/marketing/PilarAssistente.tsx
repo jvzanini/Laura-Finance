@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "motion/react";
-import { Wallet } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { MousePointerClick, Wallet } from "lucide-react";
 
 type Categoria = {
     id: string;
@@ -30,17 +30,54 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
-// Linhas da "planilha feia" — deliberadamente inconsistentes.
+// Linhas da "planilha feia" — 8 datas de abril/2026.
 const planilhaLinhas = [
-    { mes: "Jan", gasto: "R$ 1.245,60", categoria: "mercado" },
-    { mes: "jan.", gasto: "382,90", categoria: "Uber" },
-    { mes: "FEV", gasto: "R$2100", categoria: "aluguel" },
-    { mes: "Fev 2026", gasto: "R$ 89,00", categoria: "lanche ifood" },
-    { mes: "março", gasto: "R$1.800,00", categoria: "Mercado + feira" },
-    { mes: "MAR", gasto: "450", categoria: "posto" },
-    { mes: "abr", gasto: "R$ 320,50", categoria: "Farmácia" },
-    { mes: "Abril", gasto: "R$ 1.2k", categoria: "cartão nubank" },
+    { data: "02/04/2026", gasto: "R$ 85,00", categoria: "Alimentação" },
+    { data: "05/04/2026", gasto: "R$ 340,00", categoria: "Moradia" },
+    { data: "08/04/2026", gasto: "R$ 120,00", categoria: "Transporte" },
+    { data: "11/04/2026", gasto: "R$ 45,00", categoria: "Lazer" },
+    { data: "14/04/2026", gasto: "R$ 210,00", categoria: "Alimentação" },
+    { data: "17/04/2026", gasto: "R$ 80,00", categoria: "Transporte" },
+    { data: "21/04/2026", gasto: "R$ 55,00", categoria: "Lazer" },
+    { data: "24/04/2026", gasto: "R$ 180,00", categoria: "Moradia" },
 ];
+
+// Transações detalhadas por categoria ativa — mostradas ao clicar em tab.
+type TransacaoCategoria = { name: string; amount: number };
+const TRANSACOES_POR_CATEGORIA: Record<TabId, TransacaoCategoria[]> = {
+    todas: [
+        { name: "Moradia", amount: 1800 },
+        { name: "Alimentação", amount: 1240 },
+        { name: "Transporte", amount: 700 },
+        { name: "Lazer", amount: 524 },
+        { name: "Outros", amount: 380 },
+    ],
+    alimentacao: [
+        { name: "Mercado", amount: 380 },
+        { name: "iFood", amount: 220 },
+        { name: "Restaurantes", amount: 310 },
+        { name: "Padaria", amount: 85 },
+        { name: "Delivery", amount: 245 },
+    ],
+    transporte: [
+        { name: "Combustível", amount: 420 },
+        { name: "Uber/99", amount: 180 },
+        { name: "Estacionamento", amount: 60 },
+        { name: "Pedágio", amount: 40 },
+    ],
+    lazer: [
+        { name: "Bares", amount: 220 },
+        { name: "Esportes", amount: 160 },
+        { name: "Cinema", amount: 90 },
+        { name: "Streaming", amount: 54 },
+    ],
+    moradia: [
+        { name: "Aluguel", amount: 1800 },
+        { name: "Condomínio", amount: 480 },
+        { name: "Energia", amount: 210 },
+        { name: "Internet", amount: 99 },
+    ],
+};
 
 function brl(centavos: number): string {
     const reais = centavos / 100;
@@ -167,11 +204,17 @@ export function PilarAssistente() {
                     </p>
                 </div>
 
-                <div className="mt-16 grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-8">
+                <motion.div
+                    initial={{ scale: 0.96, opacity: 0.85 }}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    viewport={{ once: true, margin: "-120px" }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="mt-16 grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-8"
+                >
                     {/* Esquerda: planilha antiga feia */}
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        whileInView={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true, amount: 0.3 }}
                         transition={{ duration: 0.6 }}
                         className="relative"
@@ -218,7 +261,7 @@ export function PilarAssistente() {
                                 <thead>
                                     <tr className="bg-[#C4BFB0]">
                                         <th className="border border-zinc-400 px-2 py-1 text-left font-bold">
-                                            Mês
+                                            Data
                                         </th>
                                         <th className="border border-zinc-400 px-2 py-1 text-left font-bold">
                                             Gasto
@@ -239,7 +282,7 @@ export function PilarAssistente() {
                                             }
                                         >
                                             <td className="border border-zinc-400 px-2 py-1">
-                                                {linha.mes}
+                                                {linha.data}
                                             </td>
                                             <td className="border border-zinc-400 px-2 py-1">
                                                 {linha.gasto}
@@ -270,8 +313,8 @@ export function PilarAssistente() {
 
                     {/* Direita: plataforma Laura bonita e interativa */}
                     <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        whileInView={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 16, scale: 0.94 }}
+                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true, amount: 0.3 }}
                         transition={{ duration: 0.6, delay: 0.1 }}
                         className="relative"
@@ -281,6 +324,27 @@ export function PilarAssistente() {
                             className="pointer-events-none absolute -inset-6 rounded-[2.5rem] bg-gradient-to-br from-violet-600/30 via-fuchsia-500/20 to-rose-400/10 opacity-70 blur-2xl"
                         />
                         <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#15121F]/95 via-[#0F0D1A]/95 to-[#0A0A10]/95 p-5 shadow-2xl shadow-violet-950/60 backdrop-blur-2xl sm:p-6">
+                            {/* Chamariz pulsante — convida a interagir com as tabs */}
+                            <div className="mb-4 flex justify-end">
+                                <motion.span
+                                    animate={{
+                                        scale: [1, 1.06, 1],
+                                        opacity: [0.8, 1, 0.8],
+                                    }}
+                                    transition={{
+                                        duration: 2,
+                                        repeat: Infinity,
+                                        ease: "easeInOut",
+                                    }}
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/15 px-2.5 py-1 text-xs text-violet-200 ring-1 ring-violet-400/30"
+                                >
+                                    <MousePointerClick
+                                        className="size-3.5"
+                                        aria-hidden
+                                    />
+                                    Experimente os filtros
+                                </motion.span>
+                            </div>
                             {/* Header */}
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex flex-col leading-tight">
@@ -347,9 +411,9 @@ export function PilarAssistente() {
                             <div className="mt-6 flex items-center justify-center">
                                 <div className="relative">
                                     <svg
-                                        width="220"
-                                        height="220"
-                                        viewBox="0 0 220 220"
+                                        width="280"
+                                        height="280"
+                                        viewBox="0 0 280 280"
                                         role="img"
                                         aria-label="Distribuição de gastos por categoria"
                                     >
@@ -381,16 +445,16 @@ export function PilarAssistente() {
                                             const [ox, oy] = polarToCartesian(
                                                 0,
                                                 0,
-                                                isHighlighted ? 10 : 0,
+                                                isHighlighted ? 12 : 0,
                                                 midAngle
                                             );
                                             return (
                                                 <motion.path
                                                     key={f.id}
                                                     d={arcPath(
-                                                        110,
-                                                        110,
-                                                        90,
+                                                        140,
+                                                        140,
+                                                        115,
                                                         f.startAngle,
                                                         f.endAngle
                                                     )}
@@ -414,7 +478,7 @@ export function PilarAssistente() {
                                                     }}
                                                     style={{
                                                         transformOrigin:
-                                                            "110px 110px",
+                                                            "140px 140px",
                                                         filter: isHighlighted
                                                             ? "url(#pizza-shadow)"
                                                             : undefined,
@@ -422,18 +486,18 @@ export function PilarAssistente() {
                                                 />
                                             );
                                         })}
-                                        {/* Centro */}
+                                        {/* Centro (donut hole) */}
                                         <circle
-                                            cx="110"
-                                            cy="110"
-                                            r="48"
+                                            cx="140"
+                                            cy="140"
+                                            r="58"
                                             fill="#0F0D1A"
                                             stroke="rgba(255,255,255,0.08)"
                                             strokeWidth="1"
                                         />
                                         <text
-                                            x="110"
-                                            y="104"
+                                            x="140"
+                                            y="132"
                                             textAnchor="middle"
                                             className="fill-zinc-400"
                                             style={{
@@ -446,13 +510,14 @@ export function PilarAssistente() {
                                             Total mês
                                         </text>
                                         <text
-                                            x="110"
-                                            y="122"
+                                            x="140"
+                                            y="152"
                                             textAnchor="middle"
+                                            dominantBaseline="middle"
                                             className="fill-white"
                                             style={{
-                                                fontSize: 16,
-                                                fontWeight: 700,
+                                                fontSize: 15,
+                                                fontWeight: 600,
                                             }}
                                         >
                                             {brl(
@@ -540,6 +605,54 @@ export function PilarAssistente() {
                                     })}
                                 </ul>
                             </div>
+
+                            {/* Lista de transações descritivas da categoria ativa */}
+                            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                                        {activeTab === "todas"
+                                            ? "Top gastos do mês"
+                                            : `Transações · ${
+                                                  tabs.find(
+                                                      (t) => t.id === activeTab
+                                                  )?.label ?? ""
+                                              }`}
+                                    </span>
+                                </div>
+                                <AnimatePresence mode="wait" initial={false}>
+                                    <motion.ul
+                                        key={activeTab}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -4 }}
+                                        transition={{ duration: 0.25 }}
+                                        className="mt-3 space-y-2"
+                                    >
+                                        {TRANSACOES_POR_CATEGORIA[activeTab].map(
+                                            (tx) => (
+                                                <li
+                                                    key={tx.name}
+                                                    className="flex items-center justify-between text-xs sm:text-sm"
+                                                >
+                                                    <span className="text-zinc-300">
+                                                        {tx.name}
+                                                    </span>
+                                                    <span className="font-medium text-white tabular-nums">
+                                                        R${" "}
+                                                        {tx.amount.toLocaleString(
+                                                            "pt-BR",
+                                                            {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2,
+                                                            }
+                                                        )}
+                                                    </span>
+                                                </li>
+                                            )
+                                        )}
+                                    </motion.ul>
+                                </AnimatePresence>
+                            </div>
                         </div>
                         <div className="mt-6 text-center lg:text-left">
                             <span className="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-100">
@@ -547,7 +660,7 @@ export function PilarAssistente() {
                             </span>
                         </div>
                     </motion.div>
-                </div>
+                </motion.div>
             </div>
         </section>
     );

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import {
     Car,
     Film,
+    MessageCircle,
     ShoppingCart,
     UtensilsCrossed,
     Users,
@@ -28,9 +29,9 @@ const membros: Membro[] = [
         nome: "João",
         cor: "#7C3AED",
         corSecundaria: "#5B21B6",
-        mensagem: "Laura, gastei R$ 85 no mercado",
+        mensagem: "Laura, gastei R$ 150 no mercado",
         categoria: "Mercado",
-        valor: 8500,
+        valor: 15000,
         icone: ShoppingCart,
     },
     {
@@ -58,9 +59,9 @@ const membros: Membro[] = [
         nome: "Clara",
         cor: "#F59E0B",
         corSecundaria: "#B45309",
-        mensagem: "Gastei R$ 150 no cinema",
+        mensagem: "Gastei R$ 70 no cinema",
         categoria: "Lazer",
-        valor: 15000,
+        valor: 7000,
         icone: Film,
     },
 ];
@@ -124,6 +125,45 @@ function Boneco({ cor, corSecundaria }: { cor: string; corSecundaria: string }) 
 
 type FiltroMembro = "todos" | Membro["id"];
 
+// Orçamento detalhado por membro — mostrado ao clicar em avatar/chip.
+type OrcamentoItem = { category: string; amount: number };
+const MEMBER_BUDGETS: Record<Membro["id"], OrcamentoItem[]> = {
+    joao: [
+        { category: "Alimentação", amount: 320 },
+        { category: "Transporte", amount: 140 },
+        { category: "Lazer", amount: 80 },
+        { category: "Moradia", amount: 900 },
+        { category: "Pessoal", amount: 60 },
+    ],
+    maria: [
+        { category: "Alimentação", amount: 260 },
+        { category: "Transporte", amount: 180 },
+        { category: "Lazer", amount: 120 },
+        { category: "Moradia", amount: 800 },
+        { category: "Pessoal", amount: 95 },
+    ],
+    lucas: [
+        { category: "Alimentação", amount: 90 },
+        { category: "Transporte", amount: 40 },
+        { category: "Lazer", amount: 150 },
+        { category: "Pessoal", amount: 110 },
+    ],
+    clara: [
+        { category: "Alimentação", amount: 180 },
+        { category: "Lazer", amount: 70 },
+        { category: "Pessoal", amount: 150 },
+        { category: "Transporte", amount: 35 },
+    ],
+};
+
+function brlFromReais(reais: number): string {
+    return reais.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        minimumFractionDigits: 2,
+    });
+}
+
 export function PilarFamilia() {
     const [filtro, setFiltro] = useState<FiltroMembro>("todos");
 
@@ -132,15 +172,27 @@ export function PilarFamilia() {
         []
     );
 
-    const transacoesFiltradas = useMemo(() => {
-        if (filtro === "todos") return membros;
-        return membros.filter((m) => m.id === filtro);
-    }, [filtro]);
-
-    const totalFiltrado = useMemo(
-        () => transacoesFiltradas.reduce((sum, m) => sum + m.valor, 0),
-        [transacoesFiltradas]
+    const membroSelecionado = useMemo(
+        () =>
+            filtro !== "todos"
+                ? membros.find((m) => m.id === filtro) ?? null
+                : null,
+        [filtro]
     );
+
+    const orcamentoMembro = useMemo(() => {
+        if (!membroSelecionado) return null;
+        const items = MEMBER_BUDGETS[membroSelecionado.id];
+        const totalReais = items.reduce((s, it) => s + it.amount, 0);
+        const maxAmount = Math.max(...items.map((it) => it.amount));
+        return { items, totalReais, maxAmount };
+    }, [membroSelecionado]);
+
+    const totalFiltrado = useMemo(() => {
+        if (!membroSelecionado || !orcamentoMembro) return totalGeral;
+        // Valor em reais → centavos para passar no brl()
+        return orcamentoMembro.totalReais * 100;
+    }, [membroSelecionado, orcamentoMembro, totalGeral]);
 
     return (
         <section
@@ -175,10 +227,10 @@ export function PilarFamilia() {
                     >
                         2.{" "}
                         <span className="bg-gradient-to-r from-fuchsia-300 via-rose-300 to-amber-200 bg-clip-text text-transparent">
-                            Gestão familiar de verdade.
+                            Gestão familiar.
                         </span>
                     </h2>
-                    <p className="mx-auto mt-4 max-w-2xl text-base text-zinc-300 sm:text-lg">
+                    <p className="mx-auto mt-4 max-w-none text-base text-zinc-300 sm:text-lg md:max-w-[64rem] md:whitespace-nowrap">
                         Cada membro lança seu gasto pelo WhatsApp ou app. Você
                         acompanha a família toda em um só painel.
                     </p>
@@ -229,17 +281,14 @@ export function PilarFamilia() {
                                                 "0 8px 24px -8px rgba(16,185,129,0.25)",
                                         }}
                                     >
-                                        {/* Tail bolha */}
-                                        <span
-                                            aria-hidden
-                                            className="absolute top-3 -left-1.5 size-3 rotate-45 border-b border-l border-emerald-400/20 bg-gradient-to-br from-emerald-500/10 to-teal-500/10"
-                                        />
-                                        <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-emerald-300">
-                                            <span
+                                        <div className="flex items-center gap-2 text-xs text-white/70">
+                                            <MessageCircle
+                                                className="size-3.5 text-emerald-300"
                                                 aria-hidden
-                                                className="block size-1.5 rounded-full bg-emerald-400"
                                             />
-                                            WhatsApp · {membro.nome}
+                                            <span>
+                                                WhatsApp · {membro.nome}
+                                            </span>
                                         </div>
                                         <p className="mt-1 text-sm leading-relaxed text-zinc-100">
                                             {membro.mensagem}
@@ -351,50 +400,175 @@ export function PilarFamilia() {
                                 })}
                             </div>
 
-                            {/* Lista transações filtrada */}
-                            <ul className="mt-5 space-y-2.5">
-                                <AnimatePresence mode="popLayout" initial={false}>
-                                    {transacoesFiltradas.map((m) => {
-                                        const Icon = m.icone;
-                                        return (
-                                            <motion.li
-                                                key={m.id}
-                                                layout
-                                                initial={{ opacity: 0, y: -6 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -6 }}
-                                                transition={{ duration: 0.25 }}
-                                                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3"
-                                            >
+                            {/* Conteúdo: lista consolidada (todos) ou barras por categoria (membro) */}
+                            <div className="mt-5 min-h-[24rem]">
+                                <AnimatePresence mode="wait" initial={false}>
+                                    {filtro === "todos" ? (
+                                        <motion.ul
+                                            key="todos"
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -4 }}
+                                            transition={{
+                                                duration: 0.28,
+                                                ease: [0.2, 0.8, 0.2, 1],
+                                            }}
+                                            className="space-y-2.5"
+                                        >
+                                            {membros.map((m) => {
+                                                const Icon = m.icone;
+                                                return (
+                                                    <li
+                                                        key={m.id}
+                                                        className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+                                                    >
+                                                        <span
+                                                            className="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ring-1 ring-inset ring-white/20"
+                                                            style={{
+                                                                background: `linear-gradient(135deg, ${m.cor}, ${m.corSecundaria})`,
+                                                            }}
+                                                            aria-hidden
+                                                        >
+                                                            {m.nome.charAt(0)}
+                                                        </span>
+                                                        <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                                                            <span className="truncate text-xs font-semibold text-white sm:text-sm">
+                                                                {m.nome} ·{" "}
+                                                                {m.categoria}
+                                                            </span>
+                                                            <span className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                                                                <Icon
+                                                                    className="size-3 text-fuchsia-300"
+                                                                    aria-hidden
+                                                                />
+                                                                via WhatsApp ·
+                                                                agora
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-sm font-bold text-white tabular-nums">
+                                                            − {brl(m.valor)}
+                                                        </span>
+                                                    </li>
+                                                );
+                                            })}
+                                        </motion.ul>
+                                    ) : membroSelecionado && orcamentoMembro ? (
+                                        <motion.div
+                                            key={`membro-${membroSelecionado.id}`}
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -4 }}
+                                            transition={{
+                                                duration: 0.28,
+                                                ease: [0.2, 0.8, 0.2, 1],
+                                            }}
+                                            className="space-y-4"
+                                        >
+                                            {/* Header membro */}
+                                            <div className="flex items-center gap-3">
                                                 <span
-                                                    className="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ring-1 ring-inset ring-white/20"
+                                                    className="flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ring-1 ring-inset ring-white/20"
                                                     style={{
-                                                        background: `linear-gradient(135deg, ${m.cor}, ${m.corSecundaria})`,
+                                                        background: `linear-gradient(135deg, ${membroSelecionado.cor}, ${membroSelecionado.corSecundaria})`,
                                                     }}
                                                     aria-hidden
                                                 >
-                                                    {m.nome.charAt(0)}
+                                                    {membroSelecionado.nome.charAt(
+                                                        0
+                                                    )}
                                                 </span>
-                                                <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                                                    <span className="truncate text-xs font-semibold text-white sm:text-sm">
-                                                        {m.nome} · {m.categoria}
+                                                <div className="flex flex-col leading-tight">
+                                                    <span className="text-sm font-semibold text-white">
+                                                        {membroSelecionado.nome}
                                                     </span>
-                                                    <span className="flex items-center gap-1.5 text-[10px] text-zinc-400">
-                                                        <Icon
-                                                            className="size-3 text-fuchsia-300"
-                                                            aria-hidden
-                                                        />
-                                                        via WhatsApp · agora
+                                                    <span className="text-[10px] text-zinc-400">
+                                                        Orçamento por categoria
                                                     </span>
                                                 </div>
-                                                <span className="text-sm font-bold text-white">
-                                                    − {brl(m.valor)}
+                                            </div>
+
+                                            {/* Barras horizontais */}
+                                            <ul className="space-y-3">
+                                                {orcamentoMembro.items.map(
+                                                    (item, i) => {
+                                                        const pct = Math.max(
+                                                            6,
+                                                            Math.round(
+                                                                (item.amount /
+                                                                    orcamentoMembro.maxAmount) *
+                                                                    100
+                                                            )
+                                                        );
+                                                        return (
+                                                            <motion.li
+                                                                key={
+                                                                    item.category
+                                                                }
+                                                                initial={{
+                                                                    opacity: 0,
+                                                                    x: -6,
+                                                                }}
+                                                                animate={{
+                                                                    opacity: 1,
+                                                                    x: 0,
+                                                                }}
+                                                                transition={{
+                                                                    duration: 0.3,
+                                                                    delay:
+                                                                        i * 0.05,
+                                                                }}
+                                                            >
+                                                                <div className="flex items-center justify-between text-xs">
+                                                                    <span className="text-zinc-200">
+                                                                        {
+                                                                            item.category
+                                                                        }
+                                                                    </span>
+                                                                    <span className="font-semibold text-white tabular-nums">
+                                                                        {brlFromReais(
+                                                                            item.amount
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/5">
+                                                                    <motion.div
+                                                                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                                                                        initial={{
+                                                                            width: 0,
+                                                                        }}
+                                                                        animate={{
+                                                                            width: `${pct}%`,
+                                                                        }}
+                                                                        transition={{
+                                                                            duration: 0.6,
+                                                                            delay:
+                                                                                i *
+                                                                                0.05,
+                                                                            ease: "easeOut",
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </motion.li>
+                                                        );
+                                                    }
+                                                )}
+                                            </ul>
+
+                                            {/* Total */}
+                                            <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm">
+                                                <span className="text-zinc-300">
+                                                    Total
                                                 </span>
-                                            </motion.li>
-                                        );
-                                    })}
+                                                <span className="font-bold text-white tabular-nums">
+                                                    {brlFromReais(
+                                                        orcamentoMembro.totalReais
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </motion.div>
+                                    ) : null}
                                 </AnimatePresence>
-                            </ul>
+                            </div>
 
                             <div className="mt-4 flex items-center justify-between rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/[0.08] p-3">
                                 <span className="text-[11px] text-fuchsia-100">

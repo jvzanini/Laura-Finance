@@ -25,6 +25,24 @@ const testimonials: Testimonial[] = [
         author: "Helena R.",
         role: "professora",
     },
+    {
+        quote:
+            "Conectei meus bancos e em 2 semanas a família inteira estava lançando gastos no WhatsApp. Acabou a planilha.",
+        author: "Pedro S.",
+        role: "analista financeiro",
+    },
+    {
+        quote:
+            "Usei o Modo Viagem na nossa lua de mel e voltei sem aquela dor de cabeça do cartão explodindo sem aviso.",
+        author: "Camila L.",
+        role: "designer",
+    },
+    {
+        quote:
+            "Tirei foto de um cupom de mercado e a IA identificou cada item. Isso mudou meu dia a dia.",
+        author: "Rafael M.",
+        role: "empresário",
+    },
 ];
 
 function initials(name: string): string {
@@ -40,6 +58,7 @@ function initials(name: string): string {
 export function Testimonials() {
     return (
         <section
+            id="depoimentos"
             aria-labelledby="depoimentos-heading"
             className="relative overflow-hidden py-20 sm:py-28"
         >
@@ -62,11 +81,11 @@ export function Testimonials() {
                     </p>
                 </div>
 
-                <div className="mt-14 grid grid-cols-1 gap-5 md:grid-cols-3">
+                <div className="mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-1 pb-4 [scrollbar-width:thin]">
                     {testimonials.map((t) => (
-                        <figure
+                        <article
                             key={t.author}
-                            className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm transition-colors hover:border-violet-500/30"
+                            className="flex w-[85%] shrink-0 snap-start flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm transition-colors hover:border-violet-500/30 sm:w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-2.5rem)/3)]"
                         >
                             <Quote
                                 className="size-6 text-violet-300"
@@ -88,7 +107,7 @@ export function Testimonials() {
                                     </span>
                                 </div>
                             </figcaption>
-                        </figure>
+                        </article>
                     ))}
                 </div>
             </div>

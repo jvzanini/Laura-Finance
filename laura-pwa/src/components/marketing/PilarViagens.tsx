@@ -7,6 +7,7 @@ import {
     Globe2,
     Hotel,
     LineChart,
+    MousePointerClick,
     PieChart,
     Plane,
     Repeat2,
@@ -294,10 +295,14 @@ export function PilarViagens() {
 
                 <div className="relative mt-16 flex justify-center">
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, amount: 0.3 }}
-                        transition={{ duration: 0.6 }}
+                        initial={{ opacity: 0, y: 20, scale: 0.94 }}
+                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                        viewport={{ once: true, margin: "-120px" }}
+                        transition={{
+                            duration: 0.5,
+                            delay: 0.1,
+                            ease: "easeOut",
+                        }}
                         className="relative w-full max-w-4xl"
                     >
                         <div
@@ -322,6 +327,25 @@ export function PilarViagens() {
                                         7 dias · 2 pessoas
                                     </span>
                                 </div>
+                                {/* Chamariz pulsante */}
+                                <motion.span
+                                    animate={{
+                                        scale: [1, 1.06, 1],
+                                        opacity: [0.8, 1, 0.8],
+                                    }}
+                                    transition={{
+                                        duration: 2,
+                                        repeat: Infinity,
+                                        ease: "easeInOut",
+                                    }}
+                                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-violet-500/15 px-2.5 py-1 text-xs text-violet-200 ring-1 ring-violet-400/30"
+                                >
+                                    <MousePointerClick
+                                        className="size-3.5"
+                                        aria-hidden
+                                    />
+                                    Navegue pelos relatórios
+                                </motion.span>
                             </div>
 
                             {/* Layout: sidebar + conteúdo */}
@@ -330,7 +354,7 @@ export function PilarViagens() {
                                 <nav
                                     role="tablist"
                                     aria-label="Escolher relatório"
-                                    className="flex overflow-x-auto border-b border-white/10 md:flex-col md:border-b-0 md:border-r"
+                                    className="flex gap-1.5 overflow-x-auto border-b border-white/10 p-3 md:flex-col md:border-b-0 md:border-r md:p-3"
                                 >
                                     {relatorios.map((r) => {
                                         const isActive = relatorio === r.id;
@@ -345,14 +369,14 @@ export function PilarViagens() {
                                                 }
                                                 className={
                                                     isActive
-                                                        ? "inline-flex min-h-11 shrink-0 items-center gap-2 border-b-2 border-rose-400 bg-gradient-to-r from-rose-500/15 to-fuchsia-500/10 px-4 py-3 text-xs font-semibold text-white transition-all sm:text-sm md:border-b-0 md:border-l-2"
-                                                        : "inline-flex min-h-11 shrink-0 items-center gap-2 border-b-2 border-transparent px-4 py-3 text-xs font-medium text-zinc-400 transition-all hover:bg-white/[0.03] hover:text-white sm:text-sm md:border-b-0 md:border-l-2"
+                                                        ? "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 px-3 text-xs font-semibold text-white shadow-lg shadow-violet-600/40 transition-all sm:text-sm md:justify-start md:px-4"
+                                                        : "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs font-semibold text-zinc-300 transition-all hover:border-white/20 hover:bg-white/[0.06] hover:text-white sm:text-sm md:justify-start md:px-4"
                                                 }
                                             >
                                                 <Icon
                                                     className={
                                                         isActive
-                                                            ? "size-4 text-rose-300"
+                                                            ? "size-4 text-white"
                                                             : "size-4 text-zinc-500"
                                                     }
                                                     aria-hidden
@@ -364,7 +388,7 @@ export function PilarViagens() {
                                 </nav>
 
                                 {/* Conteúdo do relatório selecionado */}
-                                <div className="relative min-h-[24rem] p-5 sm:p-6">
+                                <div className="relative min-h-[26rem] p-5 sm:p-6">
                                     <AnimatePresence mode="wait" initial={false}>
                                         {relatorio === "orcamento" && (
                                             <RelatorioOrcamento key="orcamento" />
@@ -400,7 +424,7 @@ function RelatorioOrcamento() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.28 }}
+            transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
             className="space-y-5"
         >
             <div className="flex items-start justify-between gap-3">
@@ -538,7 +562,7 @@ function RelatorioDiario() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.28 }}
+            transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
             className="space-y-5"
         >
             <div className="flex items-start justify-between gap-3">
@@ -698,7 +722,7 @@ function RelatorioCategorias() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.28 }}
+            transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
             className="space-y-5"
         >
             <div className="flex items-start justify-between gap-3">
@@ -826,7 +850,7 @@ function RelatorioConversao() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.28 }}
+            transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
             className="space-y-5"
         >
             <div className="flex items-start justify-between gap-3">

@@ -1,0 +1,36 @@
+name: Prod Stack Status
+
+# Lista TODOS os containers da stack laura-finance com seus estados + imagens.
+# Útil para entender se api subiu, se tem containers órfãos, se Swarm está
+# com tarefas pendentes, etc.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Listar containers
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_ENDPOINT_ID: ${{ secrets.PORTAINER_ENDPOINT_ID }}
+        run: |
+          set -euo pipefail
+          echo "── Containers da stack laura-finance ──"
+          curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/containers/json?all=1" \
+            | jq -r '.[] | select(.Names[] | test("laura")) | "\(.Names[0]) | state=\(.State) | status=\(.Status) | image=\(.Image)"' \
+            | sort
+          echo ""
+          echo "── Serviços Swarm ──"
+          curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/services" \
+            | jq -r '.[] | select(.Spec.Name | test("laura")) | "\(.Spec.Name) | replicas=\(.Spec.Mode.Replicated.Replicas) | updateStatus=\(.UpdateStatus.State // "none") | image=\(.Spec.TaskTemplate.ContainerSpec.Image)"'
+          echo ""
+          echo "── Tasks Swarm (laura-api) ──"
+          curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/tasks" \
+            | jq -r '.[] | select(.ServiceID as $s | $s | length > 0) | "\(.ID[0:12]) service=\(.ServiceID[0:12]) desired=\(.DesiredState) current=\(.Status.State) msg=\(.Status.Message // "")"' \
+            | head -30

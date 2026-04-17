@@ -1,80 +1,101 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
+import { AlertCircle, Loader2, Mail } from "lucide-react";
 import { loginAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export default function LoginPage() {
     const [state, formAction, pending] = useActionState(
-        async (prevState: { error?: string } | null, formData: FormData) => loginAction(formData),
+        async (_prev: { error?: string } | null, formData: FormData) => loginAction(formData),
         null
     );
 
     return (
-        <div className="flex h-screen w-full items-center justify-center p-4">
-            <Card className="w-full max-w-md mx-auto">
-                <CardHeader className="space-y-1 text-center">
-                    <CardTitle className="text-2xl font-bold tracking-tight text-white">Bem-vindo de volta</CardTitle>
-                    <CardDescription>
-                        Entre com suas credenciais de Proprietário ou Membro para a Laura.
-                    </CardDescription>
-                </CardHeader>
-                <form action={formAction}>
-                    <CardContent className="space-y-4">
-                        {state?.error && (
-                            <div className="bg-destructive/15 text-destructive p-3 rounded-md text-sm mb-4">
-                                {state.error}
-                            </div>
-                        )}
-                        <div className="space-y-2">
-                            <Label htmlFor="email">E-mail</Label>
-                            <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                placeholder="nome@empresa.com"
-                                required
-                                disabled={pending}
-                                data-testid="input-email"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Senha</Label>
-                                <Link
-                                    href="/forgot-password"
-                                    className="text-xs text-primary underline-offset-4 hover:underline"
-                                >
-                                    Esqueci minha senha
-                                </Link>
-                            </div>
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                                disabled={pending}
-                                data-testid="input-password"
-                            />
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex flex-col gap-4">
-                        <Button className="w-full" type="submit" disabled={pending} data-testid="btn-login-submit">
-                            {pending ? "Entrando..." : "Entrar"}
-                        </Button>
-                        <div className="text-center text-sm text-muted-foreground">
-                            Não tem uma conta?{" "}
-                            <Link href="/register" className="text-primary underline-offset-4 hover:underline">
-                                Crie um novo Workspace
-                            </Link>
-                        </div>
-                    </CardFooter>
-                </form>
-            </Card>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
+            <header className="mb-6 space-y-1 text-center">
+                <h1 className="text-2xl font-semibold text-white">Bem-vindo de volta</h1>
+                <p className="text-sm text-white/60">Entre com suas credenciais da Laura.</p>
+            </header>
+
+            <form action={formAction} className="space-y-5">
+                {state?.error && (
+                    <div
+                        role="alert"
+                        aria-live="polite"
+                        className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200"
+                    >
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>{state.error}</span>
+                    </div>
+                )}
+
+                <div className="space-y-2">
+                    <Label htmlFor="email" className="text-white/80">E-mail</Label>
+                    <div className="relative">
+                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                        <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autoComplete="email"
+                            placeholder="voce@email.com"
+                            required
+                            disabled={pending}
+                            data-testid="input-email"
+                            className="h-11 pl-9 focus-visible:ring-2 focus-visible:ring-violet-500/40"
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="password" className="text-white/80">Senha</Label>
+                        <Link
+                            href="/forgot-password"
+                            className="text-xs text-white/60 transition hover:text-white"
+                        >
+                            Esqueci minha senha
+                        </Link>
+                    </div>
+                    <PasswordInput
+                        id="password"
+                        name="password"
+                        autoComplete="current-password"
+                        required
+                        disabled={pending}
+                        data-testid="input-password"
+                        className="h-11 focus-visible:ring-2 focus-visible:ring-violet-500/40"
+                    />
+                </div>
+
+                <Button
+                    type="submit"
+                    disabled={pending}
+                    data-testid="btn-login-submit"
+                    className="w-full min-h-11 bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                    {pending ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Entrando…
+                        </>
+                    ) : (
+                        "Entrar"
+                    )}
+                </Button>
+
+                <p className="text-center text-sm text-white/60">
+                    Não tem uma conta?{" "}
+                    <Link href="/register" className="text-white/90 transition hover:text-white underline-offset-4 hover:underline">
+                        Criar conta
+                    </Link>
+                </p>
+            </form>
         </div>
     );
 }

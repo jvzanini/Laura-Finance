@@ -1,8 +1,7 @@
+import Link from "next/link";
+import { AlertCircle } from "lucide-react";
 import { verifyResetToken } from "@/lib/resetToken";
 import { ResetPasswordForm } from "./ResetPasswordForm";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
-import Link from "next/link";
 
 export default async function ResetPasswordPage({
     params,
@@ -14,30 +13,28 @@ export default async function ResetPasswordPage({
 
     if (!verified.valid) {
         return (
-            <div className="flex h-screen w-full items-center justify-center p-4">
-                <Card className="w-full max-w-md mx-auto border-destructive/30">
-                    <CardHeader className="text-center">
-                        <div className="mx-auto h-14 w-14 rounded-2xl bg-destructive/10 flex items-center justify-center mb-2">
-                            <AlertCircle className="h-7 w-7 text-destructive" />
-                        </div>
-                        <CardTitle className="text-xl">Link inválido ou expirado</CardTitle>
-                        <CardDescription className="text-sm">{verified.error}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <Link
-                            href="/forgot-password"
-                            className="w-full inline-flex items-center justify-center h-9 rounded-md bg-primary text-primary-foreground px-4 text-sm font-medium hover:bg-primary/90 transition-colors"
-                        >
-                            Solicitar novo link
-                        </Link>
-                        <Link
-                            href="/login"
-                            className="w-full inline-flex items-center justify-center h-9 rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent transition-colors"
-                        >
-                            Voltar ao login
-                        </Link>
-                    </CardContent>
-                </Card>
+            <div className="rounded-2xl border border-red-500/30 bg-white/5 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
+                <div className="mb-4 flex flex-col items-center text-center">
+                    <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
+                        <AlertCircle className="h-7 w-7 text-red-400" />
+                    </div>
+                    <h1 className="text-xl font-semibold text-white">Link inválido ou expirado</h1>
+                    <p className="mt-1 text-sm text-white/60">{verified.error}</p>
+                </div>
+                <div className="space-y-2">
+                    <Link
+                        href="/forgot-password"
+                        className="inline-flex w-full min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+                    >
+                        Solicitar novo link
+                    </Link>
+                    <Link
+                        href="/login"
+                        className="inline-flex w-full min-h-11 items-center justify-center rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10"
+                    >
+                        Voltar ao login
+                    </Link>
+                </div>
             </div>
         );
     }

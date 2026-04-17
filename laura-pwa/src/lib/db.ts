@@ -26,9 +26,9 @@ function resolvePool(): Pool {
         host: process.env.POSTGRES_HOST || 'localhost',
         port: parseInt(process.env.POSTGRES_PORT || '5432'),
         database: process.env.POSTGRES_DB || 'laura_finance',
-        max: 20,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 2000,
+        max: parseInt(process.env.PG_POOL_MAX || '50'),
+        idleTimeoutMillis: 10000,
+        connectionTimeoutMillis: 5000,
     });
     if (process.env.NODE_ENV !== 'production') globalForPg.pgPool = p;
     return p;

@@ -195,7 +195,7 @@ export default function CardsPage() {
                     </p>
                 </div>
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger render={<Button size="sm" className="gap-2" />}>
+                    <DialogTrigger render={<Button size="sm" className="gap-2" data-testid="btn-new-card" />}>
                         <Plus className="h-4 w-4" />
                         Novo Cartão
                     </DialogTrigger>
@@ -211,12 +211,12 @@ export default function CardsPage() {
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Nome / Apelido</Label>
-                                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Nubank JV" className="h-9 bg-background" />
+                                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Nubank JV" className="h-9 bg-background" data-testid="input-card-name" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Banco / Instituição</Label>
                                     <Select value={bankBroker} onValueChange={(val) => setBankBroker(val || "")}>
-                                        <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                        <SelectTrigger className="h-9 bg-background" data-testid="select-card-bank"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                         <SelectContent>
                                             {banks.map((b) => (
                                                 <SelectItem key={b} value={b}>{b}</SelectItem>
@@ -252,15 +252,15 @@ export default function CardsPage() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Limite de Crédito (R$)</Label>
-                                    <Input type="number" step="0.01" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} placeholder="8000.00" className="h-9 bg-background" />
+                                    <Input type="number" step="0.01" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} placeholder="8000.00" className="h-9 bg-background" data-testid="input-card-limit" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Dia de Fechamento</Label>
-                                    <Input type="number" min="1" max="31" value={closingDay} onChange={(e) => setClosingDay(e.target.value)} placeholder="20" className="h-9 bg-background" />
+                                    <Input type="number" min="1" max="31" value={closingDay} onChange={(e) => setClosingDay(e.target.value)} placeholder="20" className="h-9 bg-background" data-testid="input-card-closing-day" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Dia de Vencimento</Label>
-                                    <Input type="number" min="1" max="31" value={dueDay} onChange={(e) => setDueDay(e.target.value)} placeholder="27" className="h-9 bg-background" />
+                                    <Input type="number" min="1" max="31" value={dueDay} onChange={(e) => setDueDay(e.target.value)} placeholder="27" className="h-9 bg-background" data-testid="input-card-due-day" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-xs">Últimos 4 Dígitos</Label>
@@ -278,7 +278,7 @@ export default function CardsPage() {
 
                         <DialogFooter className="flex gap-2">
                             <Button variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Cancelar</Button>
-                            <Button onClick={handleSave} disabled={submitting}>
+                            <Button onClick={handleSave} disabled={submitting} data-testid="btn-save-card">
                                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Salvar Cartão
                             </Button>

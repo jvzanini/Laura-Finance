@@ -72,7 +72,7 @@ export function InvoicesList({ invoices }: { invoices: InvoiceRow[] }) {
     const paidThisQuarter = invoices.filter((i) => i.status === "paid").length;
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500" data-testid="list-invoices">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Faturas</h1>

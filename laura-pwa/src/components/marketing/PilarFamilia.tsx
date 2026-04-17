@@ -533,67 +533,82 @@ export function PilarFamilia() {
                                                 </div>
                                             </div>
 
-                                            {/* Barras verticais finas + labels legíveis */}
-                                            <div className="flex h-56 items-end justify-center gap-3 pt-3 sm:gap-5">
-                                                {orcamentoMembro.items.map(
-                                                    (item, i) => {
-                                                        const pct = Math.max(
-                                                            14,
-                                                            Math.round(
-                                                                (item.amount /
-                                                                    orcamentoMembro.maxAmount) *
-                                                                    100
-                                                            )
-                                                        );
-                                                        return (
-                                                            <motion.div
-                                                                key={item.category}
-                                                                initial={{
-                                                                    opacity: 0,
-                                                                }}
-                                                                animate={{
-                                                                    opacity: 1,
-                                                                }}
-                                                                transition={{
-                                                                    duration: 0.3,
-                                                                    delay: i * 0.05,
-                                                                }}
-                                                                className="flex w-14 flex-col items-center justify-end gap-2 sm:w-16"
-                                                            >
-                                                                <span className="text-xs font-semibold text-white tabular-nums">
-                                                                    {brlFromReais(
-                                                                        item.amount
-                                                                    )}
-                                                                </span>
-                                                                <motion.div
-                                                                    className="w-3 rounded-t-md bg-gradient-to-t from-violet-600 to-fuchsia-400 sm:w-4"
-                                                                    initial={{
-                                                                        height: "0%",
-                                                                    }}
-                                                                    animate={{
-                                                                        height: `${pct}%`,
-                                                                    }}
-                                                                    transition={{
-                                                                        duration: 0.55,
-                                                                        delay:
-                                                                            i *
-                                                                            0.05,
-                                                                        ease: "easeOut",
-                                                                    }}
-                                                                    style={{
-                                                                        minHeight: 10,
-                                                                    }}
-                                                                />
-                                                                <span className="w-full truncate text-center text-[11px] font-medium text-zinc-300">
-                                                                    {item.category}
-                                                                </span>
-                                                            </motion.div>
-                                                        );
-                                                    }
-                                                )}
-                                            </div>
+                                            {/* Barras verticais — altura em PIXELS ABSOLUTOS
+                                                 para evitar bug de height-% sem parent definido.
+                                                 Cor usa a cor primária do membro selecionado. */}
+                                            {(() => {
+                                                const MAX_BAR_PX = 180;
+                                                const MIN_BAR_PX = 14;
+                                                return (
+                                                    <div className="flex items-end justify-center gap-4 pt-2 sm:gap-6">
+                                                        {orcamentoMembro.items.map(
+                                                            (item, i) => {
+                                                                const barPx =
+                                                                    Math.max(
+                                                                        MIN_BAR_PX,
+                                                                        Math.round(
+                                                                            (item.amount /
+                                                                                orcamentoMembro.maxAmount) *
+                                                                                MAX_BAR_PX
+                                                                        )
+                                                                    );
+                                                                return (
+                                                                    <motion.div
+                                                                        key={
+                                                                            item.category
+                                                                        }
+                                                                        initial={{
+                                                                            opacity: 0,
+                                                                        }}
+                                                                        animate={{
+                                                                            opacity: 1,
+                                                                        }}
+                                                                        transition={{
+                                                                            duration: 0.3,
+                                                                            delay:
+                                                                                i *
+                                                                                0.05,
+                                                                        }}
+                                                                        className="flex w-16 flex-col items-center gap-2 sm:w-20"
+                                                                    >
+                                                                        <span className="text-xs font-semibold text-white tabular-nums">
+                                                                            {brlFromReais(
+                                                                                item.amount
+                                                                            )}
+                                                                        </span>
+                                                                        <motion.div
+                                                                            className="w-4 rounded-t-md sm:w-5"
+                                                                            style={{
+                                                                                background: `linear-gradient(180deg, ${membroSelecionado.cor}, ${membroSelecionado.corSecundaria})`,
+                                                                            }}
+                                                                            initial={{
+                                                                                height: 0,
+                                                                            }}
+                                                                            animate={{
+                                                                                height: barPx,
+                                                                            }}
+                                                                            transition={{
+                                                                                duration: 0.55,
+                                                                                delay:
+                                                                                    i *
+                                                                                    0.05,
+                                                                                ease: "easeOut",
+                                                                            }}
+                                                                        />
+                                                                        <span className="w-full whitespace-normal break-words text-center text-[11px] font-medium leading-tight text-zinc-300">
+                                                                            {
+                                                                                item.category
+                                                                            }
+                                                                        </span>
+                                                                    </motion.div>
+                                                                );
+                                                            }
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
 
-                                            {/* Total + barra de utilização da cota */}
+                                            {/* Total + barra de utilização da cota na cor do membro */}
                                             <div className="space-y-2 border-t border-white/10 pt-4">
                                                 <div className="flex items-center justify-between text-base">
                                                     <span className="text-zinc-200">
@@ -607,7 +622,10 @@ export function PilarFamilia() {
                                                 </div>
                                                 <div className="h-2.5 overflow-hidden rounded-full bg-white/5">
                                                     <motion.div
-                                                        className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-rose-400"
+                                                        className="h-full rounded-full"
+                                                        style={{
+                                                            background: `linear-gradient(90deg, ${membroSelecionado.cor}, ${membroSelecionado.corSecundaria})`,
+                                                        }}
                                                         initial={{ width: 0 }}
                                                         animate={{
                                                             width: `${orcamentoMembro.pctCota}%`,
@@ -619,7 +637,12 @@ export function PilarFamilia() {
                                                     />
                                                 </div>
                                                 <div className="flex items-center justify-between text-xs text-zinc-400">
-                                                    <span className="font-medium text-violet-200">
+                                                    <span
+                                                        className="font-medium"
+                                                        style={{
+                                                            color: membroSelecionado.cor,
+                                                        }}
+                                                    >
                                                         {orcamentoMembro.pctCota}
                                                         % da cota mensal
                                                     </span>

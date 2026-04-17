@@ -86,11 +86,13 @@ export function MarketingNavbar() {
                 </nav>
 
                 <div className="hidden items-center gap-2 md:flex">
-                    <Link
-                        href="/login"
-                        className="inline-flex min-h-11 items-center justify-center rounded-full border border-violet-400/60 bg-transparent px-4 text-sm font-medium text-violet-100 transition hover:border-violet-300 hover:bg-violet-500/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40"
-                    >
-                        Entrar
+                    <Link href="/login">
+                        <Button
+                            variant="outline"
+                            className="min-h-11 border-violet-400/60 bg-transparent px-4 text-sm font-medium text-violet-100 transition hover:border-violet-300 hover:bg-violet-500/15 hover:text-white"
+                        >
+                            Entrar
+                        </Button>
                     </Link>
                     <Link href="/register">
                         <Button className="min-h-11 bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 text-sm font-semibold text-white shadow-lg shadow-violet-600/30 hover:from-violet-500 hover:to-fuchsia-400">

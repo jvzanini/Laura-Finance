@@ -78,7 +78,7 @@ function Boneco({ cor, corSecundaria }: { cor: string; corSecundaria: string }) 
     return (
         <svg
             viewBox="0 0 60 72"
-            className="h-20 w-auto drop-shadow-xl sm:h-24"
+            className="h-12 w-auto drop-shadow-md sm:h-14"
             aria-hidden
         >
             <defs>
@@ -126,33 +126,34 @@ function Boneco({ cor, corSecundaria }: { cor: string; corSecundaria: string }) 
 type FiltroMembro = "todos" | Membro["id"];
 
 // Orçamento detalhado por membro — mostrado ao clicar em avatar/chip.
+// Categorias DIFERENTES por pessoa para mostrar dinamismo real da plataforma.
 type OrcamentoItem = { category: string; amount: number };
 const MEMBER_BUDGETS: Record<Membro["id"], OrcamentoItem[]> = {
     joao: [
-        { category: "Alimentação", amount: 320 },
-        { category: "Transporte", amount: 140 },
-        { category: "Lazer", amount: 80 },
-        { category: "Moradia", amount: 900 },
-        { category: "Pessoal", amount: 60 },
+        { category: "Mercado", amount: 480 },
+        { category: "Combustível", amount: 320 },
+        { category: "Restaurantes", amount: 180 },
+        { category: "Academia", amount: 120 },
+        { category: "Farmácia", amount: 85 },
     ],
     maria: [
-        { category: "Alimentação", amount: 260 },
-        { category: "Transporte", amount: 180 },
-        { category: "Lazer", amount: 120 },
-        { category: "Moradia", amount: 800 },
-        { category: "Pessoal", amount: 95 },
+        { category: "Viagem", amount: 1200 },
+        { category: "Presentes", amount: 340 },
+        { category: "Salão", amount: 220 },
+        { category: "Streaming", amount: 95 },
+        { category: "Cafés", amount: 60 },
     ],
     lucas: [
-        { category: "Alimentação", amount: 90 },
-        { category: "Transporte", amount: 40 },
-        { category: "Lazer", amount: 150 },
-        { category: "Pessoal", amount: 110 },
+        { category: "Lanches", amount: 140 },
+        { category: "Games", amount: 210 },
+        { category: "Uber", amount: 75 },
+        { category: "Material escolar", amount: 95 },
     ],
     clara: [
-        { category: "Alimentação", amount: 180 },
-        { category: "Lazer", amount: 70 },
-        { category: "Pessoal", amount: 150 },
-        { category: "Transporte", amount: 35 },
+        { category: "Cinema", amount: 70 },
+        { category: "Livros", amount: 160 },
+        { category: "Roupas", amount: 240 },
+        { category: "Pet", amount: 180 },
     ],
 };
 
@@ -487,12 +488,12 @@ export function PilarFamilia() {
                                                 </div>
                                             </div>
 
-                                            {/* Barras horizontais */}
-                                            <ul className="space-y-3">
+                                            {/* Barras verticais */}
+                                            <div className="flex h-44 items-end justify-between gap-2 pt-2">
                                                 {orcamentoMembro.items.map(
                                                     (item, i) => {
                                                         const pct = Math.max(
-                                                            6,
+                                                            8,
                                                             Math.round(
                                                                 (item.amount /
                                                                     orcamentoMembro.maxAmount) *
@@ -500,59 +501,53 @@ export function PilarFamilia() {
                                                             )
                                                         );
                                                         return (
-                                                            <motion.li
-                                                                key={
-                                                                    item.category
-                                                                }
+                                                            <motion.div
+                                                                key={item.category}
                                                                 initial={{
                                                                     opacity: 0,
-                                                                    x: -6,
+                                                                    y: 8,
                                                                 }}
                                                                 animate={{
                                                                     opacity: 1,
-                                                                    x: 0,
+                                                                    y: 0,
                                                                 }}
                                                                 transition={{
-                                                                    duration: 0.3,
-                                                                    delay:
-                                                                        i * 0.05,
+                                                                    duration: 0.35,
+                                                                    delay: i * 0.06,
                                                                 }}
+                                                                className="flex flex-1 flex-col items-center gap-1.5"
                                                             >
-                                                                <div className="flex items-center justify-between text-xs">
-                                                                    <span className="text-zinc-200">
-                                                                        {
-                                                                            item.category
-                                                                        }
-                                                                    </span>
-                                                                    <span className="font-semibold text-white tabular-nums">
-                                                                        {brlFromReais(
-                                                                            item.amount
-                                                                        )}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/5">
+                                                                <span className="text-[10px] font-semibold text-white tabular-nums">
+                                                                    {brlFromReais(
+                                                                        item.amount
+                                                                    )}
+                                                                </span>
+                                                                <div className="relative flex h-full w-full items-end">
                                                                     <motion.div
-                                                                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                                                                        className="w-full rounded-t-md bg-gradient-to-t from-violet-600 to-fuchsia-400"
                                                                         initial={{
-                                                                            width: 0,
+                                                                            height: 0,
                                                                         }}
                                                                         animate={{
-                                                                            width: `${pct}%`,
+                                                                            height: `${pct}%`,
                                                                         }}
                                                                         transition={{
-                                                                            duration: 0.6,
+                                                                            duration: 0.55,
                                                                             delay:
                                                                                 i *
-                                                                                0.05,
+                                                                                0.06,
                                                                             ease: "easeOut",
                                                                         }}
                                                                     />
                                                                 </div>
-                                                            </motion.li>
+                                                                <span className="truncate text-center text-[10px] text-zinc-400">
+                                                                    {item.category}
+                                                                </span>
+                                                            </motion.div>
                                                         );
                                                     }
                                                 )}
-                                            </ul>
+                                            </div>
 
                                             {/* Total */}
                                             <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm">

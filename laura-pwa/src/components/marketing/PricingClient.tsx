@@ -108,13 +108,12 @@ function VipPricePanel({
 }) {
     if (billing === "yearly" && plan.priceCentsYearly !== null) {
         const yearlyCents = plan.priceCentsYearly;
-        const perMonthCents = Math.round(yearlyCents / 12);
         return (
             <div className="mt-4">
                 <div className="flex items-baseline gap-2">
                     <span className="text-sm text-zinc-400">12×</span>
                     <span className="text-4xl font-bold tracking-tight text-white">
-                        {formatPrice(perMonthCents)}
+                        R$ 19,90
                     </span>
                 </div>
                 <p className="mt-1 text-sm text-zinc-300">
@@ -122,7 +121,7 @@ function VipPricePanel({
                     <span className="font-semibold text-white">
                         {formatPrice(yearlyCents)}
                     </span>{" "}
-                    no Pix à vista
+                    no Pix
                 </p>
             </div>
         );
@@ -147,7 +146,7 @@ function TrialCard() {
             whileHover={{ y: -4, transition: { duration: 0.25 } }}
         >
             <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-lg font-semibold text-white">Trial</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-white">Trial</h3>
                 <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-violet-200">
                     7 dias
                 </span>
@@ -183,7 +182,7 @@ function TrialCard() {
                     href="/register?plan=standard&cycle=monthly"
                     className="block"
                 >
-                    <Button className="h-12 w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 text-base font-semibold text-white shadow-xl shadow-violet-600/40 hover:from-violet-500 hover:to-fuchsia-400">
+                    <Button className="h-12 w-full rounded-xl bg-white/10 text-base font-semibold text-white transition hover:bg-white/15 hover:text-white">
                         Comece grátis agora
                     </Button>
                 </Link>
@@ -208,7 +207,7 @@ function VipCard({ plan, billing }: { plan: PublicPlan; billing: Billing }) {
             </div>
 
             <div className="flex items-baseline justify-between gap-2">
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-2xl font-bold tracking-tight text-white">
                     {plan.name}
                 </h3>
             </div>

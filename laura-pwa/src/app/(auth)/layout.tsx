@@ -21,7 +21,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                         aria-label="Laura Finance"
                         className="inline-flex flex-col items-center gap-3 rounded-2xl px-3 py-1.5 transition hover:opacity-90"
                     >
-                        <span className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-rose-500 text-xl font-bold text-white shadow-lg shadow-fuchsia-500/30">
+                        <span className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-rose-500 text-3xl font-extrabold tracking-tight text-white shadow-lg shadow-fuchsia-500/30 sm:text-[2rem]">
                             LF
                         </span>
                         <span className="text-lg font-semibold tracking-tight text-white sm:text-xl">

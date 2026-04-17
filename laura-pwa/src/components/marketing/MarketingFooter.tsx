@@ -28,9 +28,8 @@ export function MarketingFooter() {
                         </span>
                     </span>
                 </Link>
-                <p className="max-w-md text-sm text-zinc-400">
-                    Sua plataforma financeira completa. Dashboard, app e
-                    WhatsApp em um só lugar.
+                <p className="max-w-4xl text-sm text-zinc-400 md:whitespace-nowrap">
+                    Sua plataforma financeira completa. Dashboard, app e WhatsApp em um só lugar.
                 </p>
                 <p className="text-xs text-zinc-500">
                     © 2026 Laura Finance

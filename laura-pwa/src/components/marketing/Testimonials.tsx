@@ -1,4 +1,7 @@
-import { Quote } from "lucide-react";
+"use client";
+
+import { useRef } from "react";
+import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
 
 type Testimonial = {
     quote: string;
@@ -56,6 +59,18 @@ function initials(name: string): string {
 }
 
 export function Testimonials() {
+    const scrollerRef = useRef<HTMLDivElement | null>(null);
+
+    const scrollBy = (dir: "left" | "right") => {
+        const el = scrollerRef.current;
+        if (!el) return;
+        const cardWidth = el.clientWidth / 3 + 20;
+        el.scrollBy({
+            left: dir === "left" ? -cardWidth : cardWidth,
+            behavior: "smooth",
+        });
+    };
+
     return (
         <section
             id="depoimentos"
@@ -81,34 +96,57 @@ export function Testimonials() {
                     </p>
                 </div>
 
-                <div className="mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-1 pb-4 [scrollbar-width:thin]">
-                    {testimonials.map((t) => (
-                        <article
-                            key={t.author}
-                            className="flex w-[85%] shrink-0 snap-start flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm transition-colors hover:border-violet-500/30 sm:w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-2.5rem)/3)]"
-                        >
-                            <Quote
-                                className="size-6 text-violet-300"
-                                aria-hidden
-                            />
-                            <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-zinc-100 sm:text-base">
-                                &ldquo;{t.quote}&rdquo;
-                            </blockquote>
-                            <figcaption className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4">
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-500 text-sm font-semibold text-white ring-1 ring-inset ring-white/20">
-                                    {initials(t.author)}
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-semibold text-white">
-                                        {t.author}
-                                    </span>
-                                    <span className="text-xs text-zinc-400">
-                                        {t.role}
-                                    </span>
-                                </div>
-                            </figcaption>
-                        </article>
-                    ))}
+                <div className="relative mt-12">
+                    {/* Setas de navegação */}
+                    <button
+                        type="button"
+                        onClick={() => scrollBy("left")}
+                        aria-label="Depoimento anterior"
+                        className="absolute top-1/2 -left-2 z-10 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 backdrop-blur-sm transition hover:border-violet-400/60 hover:bg-violet-500/15 hover:text-white sm:-left-4 md:flex"
+                    >
+                        <ChevronLeft className="size-5" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => scrollBy("right")}
+                        aria-label="Próximo depoimento"
+                        className="absolute top-1/2 -right-2 z-10 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 backdrop-blur-sm transition hover:border-violet-400/60 hover:bg-violet-500/15 hover:text-white sm:-right-4 md:flex"
+                    >
+                        <ChevronRight className="size-5" />
+                    </button>
+
+                    <div
+                        ref={scrollerRef}
+                        className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-1 pb-4 [scrollbar-width:thin]"
+                    >
+                        {testimonials.map((t) => (
+                            <article
+                                key={t.author}
+                                className="flex w-[85%] shrink-0 snap-start flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm transition-colors hover:border-violet-500/30 sm:w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-2.5rem)/3)]"
+                            >
+                                <Quote
+                                    className="size-6 text-violet-300"
+                                    aria-hidden
+                                />
+                                <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-zinc-100 sm:text-base">
+                                    &ldquo;{t.quote}&rdquo;
+                                </blockquote>
+                                <figcaption className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4">
+                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-500 text-sm font-semibold text-white ring-1 ring-inset ring-white/20">
+                                        {initials(t.author)}
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-semibold text-white">
+                                            {t.author}
+                                        </span>
+                                        <span className="text-xs text-zinc-400">
+                                            {t.role}
+                                        </span>
+                                    </div>
+                                </figcaption>
+                            </article>
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>

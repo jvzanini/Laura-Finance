@@ -32,16 +32,23 @@ var (
 	ErrOTPInvalid     = errors.New("otp: código inválido")
 )
 
-// getOTPSecret devolve o segredo HMAC. Em produção é obrigatório
-// (crash no boot); em dev tem fallback.
+// getOTPSecret devolve o segredo HMAC.
+// Prioridade: OTP_SECRET > HMAC(SESSION_SECRET,"otp") > fallback dev.
+// Em prod, se OTP_SECRET não estiver definido mas SESSION_SECRET estiver,
+// derivamos um segredo dedicado determinístico — evita crash sem comprometer
+// segurança (SESSION_SECRET já é segredo forte, e o derivado só vale pra OTP).
 func getOTPSecret() string {
 	s := os.Getenv("OTP_SECRET")
 	if s != "" {
 		return s
 	}
+	if ss := os.Getenv("SESSION_SECRET"); ss != "" {
+		mac := hmac.New(sha256.New, []byte(ss))
+		mac.Write([]byte("otp"))
+		return hex.EncodeToString(mac.Sum(nil))
+	}
 	if os.Getenv("APP_ENV") == "production" {
-		// Config.LoadConfig já valida, mas garantimos aqui também.
-		panic("OTP_SECRET obrigatória em produção")
+		panic("OTP_SECRET e SESSION_SECRET ausentes em produção")
 	}
 	return "laura-dev-otp-secret-change-me"
 }

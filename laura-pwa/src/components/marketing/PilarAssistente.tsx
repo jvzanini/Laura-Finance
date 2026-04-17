@@ -411,9 +411,9 @@ export function PilarAssistente() {
                             <div className="mt-6 flex items-center justify-center">
                                 <div className="relative">
                                     <svg
-                                        width="280"
-                                        height="280"
-                                        viewBox="0 0 280 280"
+                                        width="220"
+                                        height="220"
+                                        viewBox="0 0 220 220"
                                         role="img"
                                         aria-label="Distribuição de gastos por categoria"
                                     >
@@ -452,9 +452,9 @@ export function PilarAssistente() {
                                                 <motion.path
                                                     key={f.id}
                                                     d={arcPath(
-                                                        140,
-                                                        140,
-                                                        115,
+                                                        110,
+                                                        110,
+                                                        88,
                                                         f.startAngle,
                                                         f.endAngle
                                                     )}
@@ -478,7 +478,7 @@ export function PilarAssistente() {
                                                     }}
                                                     style={{
                                                         transformOrigin:
-                                                            "140px 140px",
+                                                            "110px 110px",
                                                         filter: isHighlighted
                                                             ? "url(#pizza-shadow)"
                                                             : undefined,
@@ -488,20 +488,20 @@ export function PilarAssistente() {
                                         })}
                                         {/* Centro (donut hole) */}
                                         <circle
-                                            cx="140"
-                                            cy="140"
-                                            r="58"
+                                            cx="110"
+                                            cy="110"
+                                            r="44"
                                             fill="#0F0D1A"
                                             stroke="rgba(255,255,255,0.08)"
                                             strokeWidth="1"
                                         />
                                         <text
-                                            x="140"
-                                            y="132"
+                                            x="110"
+                                            y="102"
                                             textAnchor="middle"
                                             className="fill-zinc-400"
                                             style={{
-                                                fontSize: 9,
+                                                fontSize: 8,
                                                 textTransform: "uppercase",
                                                 letterSpacing: 1,
                                                 fontWeight: 500,
@@ -510,13 +510,13 @@ export function PilarAssistente() {
                                             Total mês
                                         </text>
                                         <text
-                                            x="140"
-                                            y="152"
+                                            x="110"
+                                            y="120"
                                             textAnchor="middle"
                                             dominantBaseline="middle"
                                             className="fill-white"
                                             style={{
-                                                fontSize: 15,
+                                                fontSize: 13,
                                                 fontWeight: 600,
                                             }}
                                         >

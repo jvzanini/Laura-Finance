@@ -387,20 +387,57 @@ export function PilarViagens() {
                                     })}
                                 </nav>
 
-                                {/* Conteúdo do relatório selecionado */}
-                                <div className="relative min-h-[26rem] p-5 sm:p-6">
+                                {/* Conteúdo do relatório selecionado — altura FIXA pra evitar
+                                    layout shift ao trocar entre relatórios. */}
+                                <div className="relative h-[28rem] overflow-hidden p-5 sm:p-6">
                                     <AnimatePresence mode="wait" initial={false}>
                                         {relatorio === "orcamento" && (
-                                            <RelatorioOrcamento key="orcamento" />
+                                            <motion.div
+                                                key="orcamento"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+                                                className="absolute inset-0 overflow-y-auto p-5 sm:p-6"
+                                            >
+                                                <RelatorioOrcamento />
+                                            </motion.div>
                                         )}
                                         {relatorio === "diario" && (
-                                            <RelatorioDiario key="diario" />
+                                            <motion.div
+                                                key="diario"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+                                                className="absolute inset-0 overflow-y-auto p-5 sm:p-6"
+                                            >
+                                                <RelatorioDiario />
+                                            </motion.div>
                                         )}
                                         {relatorio === "categorias" && (
-                                            <RelatorioCategorias key="categorias" />
+                                            <motion.div
+                                                key="categorias"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+                                                className="absolute inset-0 overflow-y-auto p-5 sm:p-6"
+                                            >
+                                                <RelatorioCategorias />
+                                            </motion.div>
                                         )}
                                         {relatorio === "conversao" && (
-                                            <RelatorioConversao key="conversao" />
+                                            <motion.div
+                                                key="conversao"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+                                                className="absolute inset-0 overflow-y-auto p-5 sm:p-6"
+                                            >
+                                                <RelatorioConversao />
+                                            </motion.div>
                                         )}
                                     </AnimatePresence>
                                 </div>

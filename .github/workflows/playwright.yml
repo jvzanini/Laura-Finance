@@ -26,7 +26,35 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Start stack (postgres/redis/api-go/pwa)
         working-directory: ${{ github.workspace }}
-        run: docker compose -f docker-compose.ci.yml up -d --wait --build
+        run: docker compose -f docker-compose.ci.yml up -d --build
+      - name: Wait api-go responding on :8080
+        working-directory: ${{ github.workspace }}
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/health > /dev/null 2>&1; then
+              echo "api-go UP after ${i}x2s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "api-go did not respond on :8080/health in 120s"
+          docker compose -f docker-compose.ci.yml ps
+          docker compose -f docker-compose.ci.yml logs api-go | tail -60
+          exit 1
+      - name: Wait pwa responding on :3000
+        working-directory: ${{ github.workspace }}
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000 > /dev/null 2>&1; then
+              echo "pwa UP after ${i}x2s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "pwa did not respond on :3000 in 120s"
+          docker compose -f docker-compose.ci.yml ps
+          docker compose -f docker-compose.ci.yml logs pwa | tail -60
+          exit 1
       - name: Run seed (one-shot)
         working-directory: ${{ github.workspace }}
         run: docker compose -f docker-compose.ci.yml --profile seed run --rm seed-e2e

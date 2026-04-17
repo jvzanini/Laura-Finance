@@ -43,12 +43,6 @@ services:
         condition: service_healthy
     ports:
       - "8080:8080"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -O /dev/null -q --tries=1 --timeout=3 http://localhost:8080/health || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 10s
 
   pwa:
     build:
@@ -61,15 +55,9 @@ services:
       NEXT_PUBLIC_BUILD_SHA: ci
     depends_on:
       api-go:
-        condition: service_healthy
+        condition: service_started
     ports:
       - "3000:3000"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -O /dev/null -q --tries=1 --timeout=3 http://localhost:3000 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 10s
 
   # one-shot: rodar via `docker compose --profile seed run --rm seed-e2e`
   # após stack principal healthy. Não sobe em `docker compose up`.

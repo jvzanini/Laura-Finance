@@ -217,22 +217,32 @@ das mais sensíveis:
 
 ---
 
-## Status atual (snapshot 2026-04-15)
+## Status atual (snapshot 2026-04-17)
 
 ### Done
 - Epics 1–9 + Super Admin Panel — features completas.
 - Security hardening (HMAC, rate limit, headers, whitelist SQL, context
-  timeout, migration 035 escrita).
+  timeout, migration 035).
+- Deploy produção em `laura.nexusai360.com` (Portainer + GHCR + Traefik).
+- Fase 17A lint sweep + Fase 17B Playwright E2E real + Fase 17B.2 data-testids.
+- **Fase 18 (este commit):** LP pública imersiva + trial 7d sem cartão +
+  signup wizard OTP (email+WhatsApp) + redesign auth com olhinho senha +
+  seção `/subscription` + banners trial/past_due + paywall server-side
+  (middleware Go 402 + layout check PWA). Ver `docs/HANDOFF.md` para
+  detalhe completo.
 
-### Pendências críticas (Fase 10+)
-1. **Revogar GROQ_API_KEY exposta** em `laura-go/.env` (commitada no git).
-2. **Aplicar migration 000035** em ambientes ativos.
-3. **CI/CD Go** — pipeline de build/test/lint ausente (só Playwright PWA existe).
-4. **E2E PWA expandido** — atualmente só 2 testes; epics 8–9 sem cobertura.
-5. **Deploy produção** — Vercel para PWA + container Go (Fly.io / Render
-   / Railway / Cloud Run a definir).
-6. **`.gitignore` corrigido** — `.env` e `.env.local` estão tracked
-   (vazamento de credenciais).
+### Pendências pré-deploy Fase 18
+1. Aplicar migrations 000038–000042 em prod.
+2. Configurar env vars novas (`OTP_SECRET`, `TRIAL_DAYS=7`,
+   `PAST_DUE_GRACE_DAYS=3`, `OTP_TEST_MODE=false`, `NEXT_PUBLIC_APP_URL`).
+3. Popular `stripe_price_id` (+ opcional `stripe_price_id_yearly`) via
+   super admin antes de testar checkout real.
+4. Smoke pós-deploy + tag `phase-18-deployed`.
+
+### Pendências gerais (próximas fases)
+- Ativar E2E Playwright novos em CI (`test.fixme` condicionais).
+- `gitleaks` + `gitignore` — já corrigidos em fases anteriores.
+- Rotação de `GROQ_API_KEY` — confirmar se prod usa secret seguro.
 
 ---
 

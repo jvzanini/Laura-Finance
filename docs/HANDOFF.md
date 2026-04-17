@@ -6,6 +6,95 @@
 
 ## Histórico de atualizações
 
+### 2026-04-17 — Fase 18: LP pública + Assinatura + Auth redesign + OTP
+
+**Backend (Go)**
+- Migrations 000038–000042: `otp_codes`, `pending_signups`,
+  `subscription_status`/trial/ciclo/cartão + `stripe_events` + unique
+  `users.phone_number`, 8 templates email billing, `price_cents_yearly`
+  em `subscription_plans`.
+- Services: `otp.go` (HMAC-SHA256, 10min, 5 attempts, 3/h rate),
+  `email.go` (Resend Go SDK + templates DB), `subscription.go`
+  (state machine pura 7 estados), `cron_trial.go` (04:00 UTC daily).
+- Pacote novo `internal/msgsender/whatsapp.go` (quebra ciclo whatsapp↔services).
+- Handlers: `public_plans.go` (GET /public/plans filtra campos
+  sensíveis + is_most_popular), `signup.go` (6 endpoints com rate
+  limit 10/min por IP), `subscription.go` (GET /me/subscription),
+  `paywall.go` (middleware 402 que super admin bypass).
+- Router.go: grupo `/public/*` sem RequireSession + grupo `feature`
+  com RequireActiveSubscription aplicado em transactions/cards/
+  reports/goals/etc (whitelist automática em /me*, /admin*, /public/*).
+- Admin yearly: `PUT /admin/plans/:slug` aceita
+  price_cents_yearly + stripe_price_id_yearly.
+- Unit tests subscription state machine + NormalizeE164 passando.
+
+**PWA (Next.js)**
+- `/` vira LP pública (redirect para /dashboard se logado).
+- 10 componentes `src/components/marketing/`: MarketingNavbar,
+  Hero (orbs + mock WhatsApp animados), TrustBar, FeatureGrid,
+  HowItWorks (conector useInView), PricingCards (server fetch Go +
+  fallback + client toggle mensal/anual), Testimonials, FAQ (8
+  perguntas), CTAFinal, MarketingFooter + LandingPage composer.
+- Auth redesign com glass/orbs em `(auth)/layout.tsx`: login, forgot,
+  reset, verify-email, register. Actions intocadas — só UX.
+- `SignupWizard` 3 passos (dados → OTP email → OTP WhatsApp +
+  finalize automático): react-hook-form + zod, máscara BR, progress
+  bar, sessionStorage restore, countdown 60s, reenvio por canal.
+- `OTPCodeInput`: 6 slots 44×44, auto-avanço/backspace/paste/shake.
+  5 unit tests (vitest + @testing-library) passando.
+- **Componente `PasswordInput`** (`components/ui/password-input.tsx`):
+  botão olhinho (Eye/EyeOff lucide, aria-label PT-BR, tap 44×44)
+  aplicado em login, signup (senha + confirmar), reset-password.
+- Server actions: `lib/actions/signup.ts` (6 actions proxy Go) +
+  `lib/actions/subscription.ts` (checkout/portal/cancel/reactivate
+  via Stripe SDK + fetchMySubscriptionAction/fetchPublicPlansAction
+  com fallback Postgres).
+- Webhook Stripe `/api/stripe/webhook` expandido: idempotência
+  via stripe_events + 5 eventos (checkout completed, invoice paid/
+  failed, subscription updated/deleted) + extração de cartão.
+- `(dashboard)/layout.tsx`: fetch /me/subscription server-side,
+  SubscriptionProvider context, renderiza TrialBanner + PastDueBanner
+  + PaywallGate. Super admin passa direto.
+- `/subscription` + SubscriptionManager (dispatch 7 estados) +
+  PlanSelector (toggle mensal/anual) + CancelDialog + banners.
+- Admin PlansEditor ganha campos yearly.
+- Dependências novas: motion@12 (substitui framer-motion),
+  react-hook-form, zod, @hookform/resolvers, vitest +
+  @testing-library (jsdom environment).
+
+**Docs**
+- Specs/plans v1/v2/v3 em `docs/superpowers/{specs,plans}/`.
+- ADR 007: decisão de Stripe SDK só no PWA + state machine pura no Go.
+- `docs/ops/subscription-state-machine.md` com diagrama + transições
+  + paywall + banners + idempotência + observabilidade.
+
+**Verificação local**
+- `go build ./...` clean.
+- `go vet ./...` clean.
+- `go test ./internal/services/ ./internal/msgsender/` unit passa
+  (integration tests pedem DB up — pré-existentes, não fase 18).
+- `pnpm typecheck` 0 errors.
+- `pnpm lint` 0 errors (47 warnings pré-existentes).
+- `pnpm test` 5/5 passa.
+- `pnpm build` compila LP + auth + subscription + dashboard OK.
+
+**Pendências pré-deploy**
+- Aplicar migrations 000038–000042 em produção (Portainer `migrate
+  up` ou `MIGRATE_ON_BOOT=true` no boot).
+- Configurar env vars prod: `OTP_SECRET` (openssl rand -hex 32),
+  `TRIAL_DAYS=7`, `PAST_DUE_GRACE_DAYS=3`, `OTP_TEST_MODE=false`,
+  `NEXT_PUBLIC_APP_URL=https://laura.nexusai360.com`.
+- Popular `stripe_price_id` + opcionalmente `stripe_price_id_yearly`
+  no super admin antes de testar checkout real.
+- E2E Playwright paywall/signup/lp-public são `test.fixme`/condicionais
+  ao seed e ao OTP_TEST_MODE — ativar no CI futuramente.
+- Smoke pós-deploy: LP 200, `/api/v1/public/plans` JSON, signup até
+  step 2, checkout Stripe test mode, webhook `stripe trigger
+  invoice.paid`.
+- Tag git `phase-18-deployed` depois do smoke.
+
+
+
 ### 2026-04-17 — 🚀 DEPLOY PRODUÇÃO + Fase 17B.2 parcial
 
 **Deploy em produção concluído** em `https://laura.nexusai360.com`.

@@ -20,10 +20,12 @@ import (
 const SessionCookieName = "laura_session_token"
 
 // sessionPayload corresponde ao shape que o PWA grava no cookie via
-// Buffer.from(JSON.stringify({userId, exp})).toString('base64').
+// base64url(JSON.stringify({userId, exp, v})). PWA usa base64url sem
+// padding (b64url helper em src/lib/session.ts) + `exp` em UNIX seconds.
 type sessionPayload struct {
 	UserID string `json:"userId"`
-	Exp    int64  `json:"exp"` // unix milliseconds
+	Exp    int64  `json:"exp"` // unix seconds (alinhado com PWA src/lib/session.ts)
+	V      int    `json:"v,omitempty"`
 }
 
 // SessionContext é o payload enriquecido que o middleware guarda em
@@ -65,8 +67,19 @@ func decodeSessionCookie(raw string) (*sessionPayload, error) {
 	payloadB64 := parts[0]
 	sigB64 := parts[1]
 
-	// Verificar HMAC-SHA256
-	sig, err := base64.StdEncoding.DecodeString(sigB64)
+	// Decoder resiliente: aceita base64url sem padding (PWA) OU base64 std
+	// (compat retroativa com eventuais cookies legados).
+	decodeResilient := func(s string) ([]byte, error) {
+		if b, err := base64.RawURLEncoding.DecodeString(s); err == nil {
+			return b, nil
+		}
+		if b, err := base64.URLEncoding.DecodeString(s); err == nil {
+			return b, nil
+		}
+		return base64.StdEncoding.DecodeString(s)
+	}
+
+	sig, err := decodeResilient(sigB64)
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "assinatura de sessão inválida")
 	}
@@ -79,7 +92,7 @@ func decodeSessionCookie(raw string) (*sessionPayload, error) {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "assinatura de sessão inválida")
 	}
 
-	decoded, err := base64.StdEncoding.DecodeString(payloadB64)
+	decoded, err := decodeResilient(payloadB64)
 	if err != nil {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "cookie de sessão mal-formado")
 	}
@@ -91,7 +104,15 @@ func decodeSessionCookie(raw string) (*sessionPayload, error) {
 	if payload.UserID == "" {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "sessão sem userId")
 	}
-	if payload.Exp > 0 && payload.Exp < time.Now().UnixMilli() {
+	// PWA grava exp em unix seconds. Se for um valor em ms (>1e12), converte.
+	exp := payload.Exp
+	now := time.Now()
+	if exp > 1_000_000_000_000 {
+		// exp parece estar em ms — comparar com UnixMilli()
+		if exp < now.UnixMilli() {
+			return nil, fiber.NewError(fiber.StatusUnauthorized, "sessão expirada")
+		}
+	} else if exp > 0 && exp < now.Unix() {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "sessão expirada")
 	}
 	return &payload, nil

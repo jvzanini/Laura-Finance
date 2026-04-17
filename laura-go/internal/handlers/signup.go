@@ -85,7 +85,7 @@ func handlePublicSignupStart(c *fiber.Ctx) error {
 	}
 
 	var pendingID uuid.UUID
-	var desiredPlan any = nil
+	var desiredPlan any
 	if body.DesiredPlanSlug != "" {
 		desiredPlan = body.DesiredPlanSlug
 	}

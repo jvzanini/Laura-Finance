@@ -191,7 +191,7 @@ func CanResendOTP(ctx context.Context, targetType, targetValue, purpose string) 
 	if earliest == nil {
 		return true, 0, nil
 	}
-	retryAfter := earliest.Add(1 * time.Hour).Sub(time.Now())
+	retryAfter := time.Until(earliest.Add(1 * time.Hour))
 	if retryAfter < 0 {
 		return true, 0, nil
 	}

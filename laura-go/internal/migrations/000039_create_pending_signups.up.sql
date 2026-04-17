@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS pending_signups (
 
 CREATE INDEX IF NOT EXISTS idx_pending_email_active
     ON pending_signups(email)
-    WHERE consumed_at IS NULL AND expires_at > CURRENT_TIMESTAMP;
+    WHERE consumed_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_pending_whatsapp_active
     ON pending_signups(whatsapp)
-    WHERE consumed_at IS NULL AND expires_at > CURRENT_TIMESTAMP;
+    WHERE consumed_at IS NULL;

@@ -53,6 +53,11 @@ services:
       LAURA_GO_API_URL: http://api-go:8080
       SESSION_SECRET: ci-secret-not-real-32bytes-padding-x
       NEXT_PUBLIC_BUILD_SHA: ci
+      POSTGRES_USER: laura
+      POSTGRES_PASSWORD: laura_test
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: laura_finance_test
     depends_on:
       api-go:
         condition: service_started

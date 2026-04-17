@@ -9,7 +9,7 @@ type Testimonial = {
 const testimonials: Testimonial[] = [
     {
         quote:
-            "A Laura virou uma sócia nossa. A família toda registra gastos no WhatsApp e a gente finalmente tem clareza no fim do mês.",
+            "A Laura virou uma sócia nossa. Registro gastos no WhatsApp, planejo viagens no app e abro o dashboard pra decidir. Tudo em um lugar só.",
         author: "Mariana C.",
         role: "publicitária",
     },
@@ -21,7 +21,7 @@ const testimonials: Testimonial[] = [
     },
     {
         quote:
-            "O que me convenceu foi o score. Ver aquela nota subir semana a semana é motivador.",
+            "O que me convenceu foi o score. Ver aquela nota subir semana a semana é motivador — e o modo viagem salvou o orçamento no último rolê.",
         author: "Helena R.",
         role: "professora",
     },
@@ -45,14 +45,20 @@ export function Testimonials() {
         >
             <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-2xl text-center">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium uppercase tracking-wider text-violet-200 backdrop-blur-sm">
+                        Depoimentos
+                    </div>
                     <h2
                         id="depoimentos-heading"
-                        className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
+                        className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl"
                     >
-                        Famílias que já têm clareza
+                        Quem já tem{" "}
+                        <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-rose-300 bg-clip-text text-transparent">
+                            clareza financeira
+                        </span>
                     </h2>
                     <p className="mt-4 text-base text-zinc-300 sm:text-lg">
-                        O que dizem quem trocou planilhas pela conversa com a Laura.
+                        O que dizem quem trocou caos e planilhas pela Laura.
                     </p>
                 </div>
 
@@ -60,17 +66,17 @@ export function Testimonials() {
                     {testimonials.map((t) => (
                         <figure
                             key={t.author}
-                            className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+                            className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm transition-colors hover:border-violet-500/30"
                         >
                             <Quote
-                                className="size-6 text-violet-400"
+                                className="size-6 text-violet-300"
                                 aria-hidden
                             />
                             <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-zinc-100 sm:text-base">
-                                “{t.quote}”
+                                &ldquo;{t.quote}&rdquo;
                             </blockquote>
                             <figcaption className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4">
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500/30 to-emerald-500/30 text-sm font-semibold text-white ring-1 ring-inset ring-white/10">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-500 text-sm font-semibold text-white ring-1 ring-inset ring-white/20">
                                     {initials(t.author)}
                                 </div>
                                 <div className="flex flex-col">

@@ -32,9 +32,9 @@ const faqs: FaqItem[] = [
             "Sim. Todos os dados são criptografados em trânsito e em repouso, e seguimos as melhores práticas de segurança da indústria para proteger suas informações.",
     },
     {
-        question: "Posso usar em família? Quantos membros?",
+        question: "Posso compartilhar com minha família?",
         answer:
-            "A Laura foi feita para famílias. O número de membros depende do plano escolhido, e cada pessoa conversa com a Laura pelo próprio WhatsApp, mantendo tudo compartilhado.",
+            "Sim. Laura suporta membros compartilhados — você convida quem quiser por e-mail, cada pessoa conversa pelo próprio WhatsApp e tudo se consolida na mesma conta. O plano VIP inclui até 6 membros; os demais têm limites menores.",
     },
     {
         question: "A Laura se conecta com meus bancos?",
@@ -62,11 +62,17 @@ export function FAQ() {
         >
             <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
                 <div className="text-center">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium uppercase tracking-wider text-violet-200 backdrop-blur-sm">
+                        FAQ
+                    </div>
                     <h2
                         id="faq-heading"
-                        className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
+                        className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl"
                     >
-                        Perguntas frequentes
+                        Perguntas{" "}
+                        <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-rose-300 bg-clip-text text-transparent">
+                            frequentes
+                        </span>
                     </h2>
                     <p className="mt-4 text-base text-zinc-300 sm:text-lg">
                         Respostas para as dúvidas mais comuns antes de começar.

@@ -21,6 +21,24 @@ const navLinks = [
     { href: "#faq", label: "FAQ" },
 ];
 
+// LauraLogo renderiza um brand mark inline (quadrado gradient violet→fuchsia
+// com "L" branco) + wordmark. Sem imagens externas.
+function LauraLogo({ className }: { className?: string }) {
+    return (
+        <span className={cn("inline-flex items-center gap-2", className)}>
+            <span
+                aria-hidden
+                className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 via-fuchsia-500 to-rose-400 text-sm font-bold text-white shadow-lg shadow-violet-600/40 ring-1 ring-inset ring-white/20"
+            >
+                L
+            </span>
+            <span className="text-xl font-bold tracking-tight text-white">
+                Laura
+            </span>
+        </span>
+    );
+}
+
 export function MarketingNavbar() {
     const [scrolled, setScrolled] = useState(false);
 
@@ -46,11 +64,9 @@ export function MarketingNavbar() {
                 <Link
                     href="/"
                     aria-label="Ir para a página inicial da Laura Finance"
-                    className="flex min-h-11 items-center gap-2 rounded-lg px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
+                    className="flex min-h-11 items-center rounded-lg px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
                 >
-                    <span className="bg-gradient-to-r from-violet-400 via-violet-500 to-emerald-400 bg-clip-text text-xl font-bold tracking-tight text-transparent">
-                        Laura
-                    </span>
+                    <LauraLogo />
                 </Link>
 
                 <nav className="hidden items-center gap-1 md:flex">
@@ -75,7 +91,7 @@ export function MarketingNavbar() {
                         </Button>
                     </Link>
                     <Link href="/register">
-                        <Button className="min-h-11 bg-violet-600 px-4 text-sm font-semibold text-white shadow-lg shadow-violet-600/20 hover:bg-violet-500">
+                        <Button className="min-h-11 bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 text-sm font-semibold text-white shadow-lg shadow-violet-600/30 hover:from-violet-500 hover:to-fuchsia-400">
                             Começar grátis
                         </Button>
                     </Link>
@@ -99,8 +115,8 @@ export function MarketingNavbar() {
                         className="border-white/10 bg-[#0A0A0F]"
                     >
                         <SheetHeader>
-                            <SheetTitle className="bg-gradient-to-r from-violet-400 to-emerald-400 bg-clip-text text-xl font-bold text-transparent">
-                                Laura
+                            <SheetTitle className="flex items-center">
+                                <LauraLogo />
                             </SheetTitle>
                         </SheetHeader>
                         <div className="flex flex-col gap-1 px-4">
@@ -128,7 +144,7 @@ export function MarketingNavbar() {
                                 </Button>
                             </Link>
                             <Link href="/register" className="w-full">
-                                <Button className="min-h-11 w-full justify-center bg-violet-600 text-white hover:bg-violet-500">
+                                <Button className="min-h-11 w-full justify-center bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white hover:from-violet-500 hover:to-fuchsia-400">
                                     Começar grátis
                                 </Button>
                             </Link>

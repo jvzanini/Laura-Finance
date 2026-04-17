@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const API = process.env.API_URL || 'http://localhost:8080';
-const PWA = process.env.BASE_URL || 'http://localhost:3100';
 const AUTH_DIR = path.resolve(__dirname, '.auth');
 const AUTH_FILE = path.join(AUTH_DIR, 'user.json');
 
@@ -14,7 +13,9 @@ async function waitHealthy() {
     try {
       const r = await ctx.get(`${API}/health`);
       if (r.ok()) return;
-    } catch {}
+    } catch {
+      // keep trying
+    }
     await new Promise((r) => setTimeout(r, 1000));
   }
   throw new Error(`API ${API}/health nao ficou healthy em 30s`);
@@ -22,14 +23,14 @@ async function waitHealthy() {
 
 export default async function globalSetup() {
   if (process.env.SKIP_E2E_AUTH === '1') return;
+
   await waitHealthy();
+
+  // storageState placeholder vazio — Fase 17B.2 vai popular via login
+  // real quando testids existirem no PWA. Por enquanto os specs que
+  // usam authedPage fixture estão com test.fixme (ver spec).
   fs.mkdirSync(AUTH_DIR, { recursive: true });
-  const ctx = await request.newContext({ baseURL: PWA });
-  const resp = await ctx.post(`${API}/api/v1/auth/login`, {
-    data: { email: 'e2e@laura.test', password: 'e2epass123!' },
-  });
-  if (!resp.ok()) {
-    throw new Error(`login E2E falhou: ${resp.status()} ${await resp.text()}`);
+  if (!fs.existsSync(AUTH_FILE)) {
+    fs.writeFileSync(AUTH_FILE, JSON.stringify({ cookies: [], origins: [] }));
   }
-  await ctx.storageState({ path: AUTH_FILE });
 }

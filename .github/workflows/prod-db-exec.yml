@@ -19,6 +19,10 @@ on:
         description: 'Digite CONFIRMO para executar o wipe+seed em produção'
         required: true
         default: ''
+      sql_file:
+        description: 'SQL a executar (default: recovery-and-seed.sql)'
+        required: false
+        default: 'infrastructure/scripts/recovery-and-seed.sql'
 
 jobs:
   exec:
@@ -59,7 +63,10 @@ jobs:
           PORTAINER_ENDPOINT_ID: ${{ secrets.PORTAINER_ENDPOINT_ID }}
         run: |
           set -euo pipefail
-          SQL_B64=$(base64 -w0 < infrastructure/scripts/wipe-and-seed-admin.sql)
+          SQL_FILE="${{ github.event.inputs.sql_file }}"
+          SQL_FILE="${SQL_FILE:-infrastructure/scripts/recovery-and-seed.sql}"
+          echo "Usando SQL: $SQL_FILE"
+          SQL_B64=$(base64 -w0 < "$SQL_FILE")
           CMD="echo $SQL_B64 | base64 -d | psql -U laura -d laura_finance -v ON_ERROR_STOP=1"
 
           EXEC_BODY=$(jq -nc --arg c "$CMD" '{

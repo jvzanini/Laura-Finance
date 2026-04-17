@@ -39,6 +39,7 @@ export default function LoginPage() {
                                 placeholder="nome@empresa.com"
                                 required
                                 disabled={pending}
+                                data-testid="input-email"
                             />
                         </div>
                         <div className="space-y-2">
@@ -57,11 +58,12 @@ export default function LoginPage() {
                                 type="password"
                                 required
                                 disabled={pending}
+                                data-testid="input-password"
                             />
                         </div>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-4">
-                        <Button className="w-full" type="submit" disabled={pending}>
+                        <Button className="w-full" type="submit" disabled={pending} data-testid="btn-login-submit">
                             {pending ? "Entrando..." : "Entrar"}
                         </Button>
                         <div className="text-center text-sm text-muted-foreground">

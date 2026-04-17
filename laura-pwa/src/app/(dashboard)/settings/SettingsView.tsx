@@ -359,6 +359,7 @@ export function SettingsView({ profile }: { profile: UserProfile }) {
                         <a
                             href="/api/auth/logout"
                             className="flex items-center gap-2 h-8 px-3 rounded-lg text-xs font-semibold border border-border hover:bg-accent transition-colors"
+                            data-testid="btn-logout"
                         >
                             <LogOut className="h-3.5 w-3.5" />
                             Sair

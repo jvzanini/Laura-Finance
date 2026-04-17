@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 test('auth: register + login + logout happy path', async ({ page }) => {
-  test.fixme(true, 'needs data-testid in PWA components — reativar em Fase 17B.2');
   const stamp = Date.now();
   const email = `user${stamp}@laura.test`;
   await page.goto('/register');
@@ -10,6 +9,7 @@ test('auth: register + login + logout happy path', async ({ page }) => {
   await page.getByTestId('input-password').fill('Senha123!');
   await page.getByTestId('btn-register-submit').click();
   await expect(page).toHaveURL(/\/dashboard/);
+  await page.goto('/settings');
   await page.getByTestId('btn-logout').click();
   await expect(page).toHaveURL(/\/login/);
 });

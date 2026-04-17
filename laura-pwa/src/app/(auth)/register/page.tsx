@@ -39,6 +39,7 @@ export default function RegisterPage() {
                                 placeholder="Carlos Alberto"
                                 required
                                 disabled={pending}
+                                data-testid="input-name"
                             />
                         </div>
 
@@ -51,6 +52,7 @@ export default function RegisterPage() {
                                 placeholder="nome@empresa.com"
                                 required
                                 disabled={pending}
+                                data-testid="input-email"
                             />
                         </div>
 
@@ -62,11 +64,12 @@ export default function RegisterPage() {
                                 type="password"
                                 required
                                 disabled={pending}
+                                data-testid="input-password"
                             />
                         </div>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-4">
-                        <Button className="w-full" type="submit" disabled={pending}>
+                        <Button className="w-full" type="submit" disabled={pending} data-testid="btn-register-submit">
                             {pending ? "Criando Workspace Seguro..." : "Começar a usar Laura"}
                         </Button>
                         <div className="text-center text-sm text-muted-foreground">

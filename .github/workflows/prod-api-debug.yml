@@ -1,0 +1,68 @@
+name: Prod API Debug (all tasks logs)
+
+# Varre todos os containers com "laura-api" no nome, pega logs do mais
+# recente que tenha timestamp StartedAt válido. Útil quando a task falhou
+# e o container ficou parado como "exited".
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Listar api containers com timestamps
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_ENDPOINT_ID: ${{ secrets.PORTAINER_ENDPOINT_ID }}
+        run: |
+          set -euo pipefail
+
+          # Busca todos com api no nome, com detalhes
+          curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/containers/json?all=1" \
+            | jq -r '.[] | select(.Names[] | test("laura-api")) | .Id' \
+            > /tmp/api-cids.txt
+
+          echo "Found $(wc -l < /tmp/api-cids.txt) api containers"
+          echo ""
+
+          # Para cada, dump inspect breve + últimas linhas de log
+          while read -r CID; do
+            echo "═══════════════════════════════════════════════════════"
+            echo "Container: $CID"
+            echo "───────────────────────────────────────────────────────"
+            curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+              "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/containers/$CID/json" \
+              | jq '{Name: .Name, State: .State.Status, StartedAt: .State.StartedAt, FinishedAt: .State.FinishedAt, ExitCode: .State.ExitCode, Error: .State.Error, Pid: .State.Pid, RestartCount: .RestartCount}'
+            echo ""
+            echo "── Logs ──"
+            curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+              "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/containers/$CID/logs?stdout=true&stderr=true&tail=50&timestamps=true" \
+              -o /tmp/log.raw 2>/dev/null || echo "(falha no fetch)"
+            strings /tmp/log.raw | head -50
+            echo ""
+          done < /tmp/api-cids.txt
+
+      - name: Listar tasks do service laura-api
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_ENDPOINT_ID: ${{ secrets.PORTAINER_ENDPOINT_ID }}
+        run: |
+          set -euo pipefail
+          echo "═══════════════════════════════════════════════════════"
+          echo "Tasks Swarm do service laura-api"
+          echo "═══════════════════════════════════════════════════════"
+
+          # Descobre service ID
+          API_SVC=$(curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/services" \
+            | jq -r '.[] | select(.Spec.Name == "laura-finance_laura-api") | .ID')
+
+          echo "laura-api service ID: $API_SVC"
+
+          curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/tasks?filters=%7B%22service%22%3A%5B%22$API_SVC%22%5D%7D" \
+            | jq '[.[] | {ID, DesiredState, State: .Status.State, Timestamp: .Status.Timestamp, Err: .Status.Err, Message: .Status.Message, ContainerID: .Status.ContainerStatus.ContainerID, ExitCode: .Status.ContainerStatus.ExitCode}] | sort_by(.Timestamp) | reverse | .[0:10]'

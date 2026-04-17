@@ -300,7 +300,9 @@ export async function updatePlanAction(slug: string, data: Record<string, JsonVa
 export async function updatePlanFullAction(slug: string, data: {
     name: string;
     price_cents: number;
+    price_cents_yearly?: number | null;
     stripe_price_id?: string;
+    stripe_price_id_yearly?: string;
     capabilities: Record<string, boolean>;
     ai_model_config: Record<string, JsonValue>;
     limits: Record<string, JsonValue>;
@@ -310,13 +312,57 @@ export async function updatePlanFullAction(slug: string, data: {
     const gate = await assertSuperAdmin();
     if (!gate.ok) return { error: "Sem permissão" };
 
+    // Tenta Go primeiro — mantém audit log centralizado. Se o Go
+    // falhar com 4xx, repassa erro; em 5xx/offline cai no fallback
+    // local para evitar que o painel admin fique inutilizável.
+    try {
+        const res = await callLauraGo<{ success: boolean }>(
+            `/api/v1/admin/plans/${slug}`,
+            {
+                method: "PUT",
+                body: {
+                    name: data.name,
+                    price_cents: data.price_cents,
+                    price_cents_yearly: data.price_cents_yearly ?? null,
+                    stripe_price_id: data.stripe_price_id || null,
+                    stripe_price_id_yearly: data.stripe_price_id_yearly || null,
+                    capabilities: data.capabilities,
+                    ai_model_config: data.ai_model_config,
+                    limits: data.limits,
+                    features_description: data.features_description,
+                    active: data.active,
+                },
+            },
+        );
+        if (res) return { success: true };
+    } catch (err: unknown) {
+        if (isLauraGoError(err)) {
+            const status = typeof err.status === "number" ? err.status : 0;
+            if (status >= 400 && status < 500) {
+                return { error: err.message || "Erro de validação" };
+            }
+        }
+        // 5xx/rede: cai para fallback local abaixo.
+    }
+
     await pool.query(
-        `UPDATE subscription_plans SET name=$1, price_cents=$2, stripe_price_id=$3,
-         capabilities=$4::jsonb, ai_model_config=$5::jsonb, limits=$6::jsonb,
-         features_description=$7::jsonb, active=$8 WHERE slug=$9`,
-        [data.name, data.price_cents, data.stripe_price_id || null,
-         JSON.stringify(data.capabilities), JSON.stringify(data.ai_model_config),
-         JSON.stringify(data.limits), JSON.stringify(data.features_description), data.active, slug]
+        `UPDATE subscription_plans SET name=$1, price_cents=$2, price_cents_yearly=$3,
+         stripe_price_id=$4, stripe_price_id_yearly=$5,
+         capabilities=$6::jsonb, ai_model_config=$7::jsonb, limits=$8::jsonb,
+         features_description=$9::jsonb, active=$10 WHERE slug=$11`,
+        [
+            data.name,
+            data.price_cents,
+            data.price_cents_yearly ?? null,
+            data.stripe_price_id || null,
+            data.stripe_price_id_yearly || null,
+            JSON.stringify(data.capabilities),
+            JSON.stringify(data.ai_model_config),
+            JSON.stringify(data.limits),
+            JSON.stringify(data.features_description),
+            data.active,
+            slug,
+        ],
     );
     return { success: true };
 }

@@ -1,0 +1,82 @@
+name: Prod Logs (api/pwa/postgres)
+
+# Coleta logs dos containers da stack laura-finance via Portainer Docker API.
+# Útil quando o Deploy Prod falha no health-check e preciso entender
+# por que o container não subiu.
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Serviço (api|pwa|postgres|redis)'
+        required: true
+        default: 'api'
+      tail:
+        description: 'Últimas N linhas'
+        required: false
+        default: '200'
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descobrir container
+        id: find
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_ENDPOINT_ID: ${{ secrets.PORTAINER_ENDPOINT_ID }}
+          SERVICE: ${{ github.event.inputs.service }}
+        run: |
+          set -euo pipefail
+          PATTERN=""
+          case "$SERVICE" in
+            api) PATTERN='laura-finance.*laura-api|laura-api' ;;
+            pwa) PATTERN='laura-finance.*laura-pwa|laura-pwa' ;;
+            postgres) PATTERN='laura-finance.*postgres|postgres' ;;
+            redis) PATTERN='laura-finance.*redis|redis' ;;
+            *) echo "::error::serviço inválido"; exit 1 ;;
+          esac
+
+          CID=$(curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/containers/json?all=1" \
+            | jq -r --arg p "$PATTERN" '.[] | select(.Names[] | test($p)) | .Id' \
+            | head -n1)
+
+          if [ -z "$CID" ] || [ "$CID" = "null" ]; then
+            echo "::error::container não encontrado para serviço $SERVICE"
+            curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+              "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/containers/json?all=1" \
+              | jq -r '.[] | .Names[]' | head
+            exit 1
+          fi
+
+          echo "CONTAINER_ID=$CID" >> "$GITHUB_ENV"
+          echo "Container: $CID"
+
+      - name: Dump logs
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_ENDPOINT_ID: ${{ secrets.PORTAINER_ENDPOINT_ID }}
+          TAIL: ${{ github.event.inputs.tail }}
+        run: |
+          set -euo pipefail
+          curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/containers/$CONTAINER_ID/logs?stdout=true&stderr=true&tail=$TAIL&timestamps=true" \
+            -o /tmp/logs.raw
+
+          # Remove headers 8-byte do Docker stream
+          cat /tmp/logs.raw | strings | head -500
+
+      - name: Inspect container
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_ENDPOINT_ID: ${{ secrets.PORTAINER_ENDPOINT_ID }}
+        run: |
+          set -euo pipefail
+          curl -sSf -H "X-API-Key: $PORTAINER_API_KEY" \
+            "$PORTAINER_URL/api/endpoints/$PORTAINER_ENDPOINT_ID/docker/containers/$CONTAINER_ID/json" \
+            | jq '{State: .State, RestartCount: .RestartCount, Config: {Env: .Config.Env}}' \
+            | head -60

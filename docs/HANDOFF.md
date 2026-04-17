@@ -6,6 +6,83 @@
 
 ## Histórico de atualizações
 
+### 2026-04-17 — 🚀 DEPLOY PRODUÇÃO + Fase 17B.2 parcial
+
+**Deploy em produção concluído** em `https://laura.nexusai360.com`.
+Padrão seguido: Nexus AI Platform (Traefik + GHCR + rede_nexusAI).
+
+**Infra entregue:**
+- `.github/workflows/deploy-prod.yml` — build GHCR (api+pwa) + deploy
+  Portainer API (swarm create/update stack) + health check pós rollout.
+- `portainer-stack.yml` — 4 services (laura-api + laura-pwa +
+  laura-postgres + laura-redis), hostnames explícitos, Traefik labels
+  para HTTPS via Let's Encrypt.
+- Removidos `deploy-api.yml` (Fly.io) e `deploy-pwa.yml` (Vercel)
+  — substituídos.
+- GitHub Secrets configurados: `PORTAINER_URL`, `PORTAINER_API_KEY`,
+  `PORTAINER_ENDPOINT_ID`, `SWARM_ID`, `DOMAIN`, `DB_PASSWORD`
+  (gerado), `SESSION_SECRET` (gerado), `RESEND_API_KEY` (reutilizado
+  Nexus), `GROQ_API_KEY` (placeholder — pendente rotação real).
+- Gitleaks: 421 commits escaneados, zero leaks confirmado antes do push
+  final de prod. Repo Laura-Finance já era público.
+
+**Bugs infra descobertos durante deploy (todos corrigidos):**
+1. Docker Swarm hostname default usa underscore (`stack_service.slot`)
+   → Next.js 16 rejeita URL → 500 em todas rotas. Fix: `hostname:`
+   explícito (`laura-api`, `laura-pwa`, etc.) sem underscore.
+2. Traefik rule inicial `PathPrefix(/api/)` capturava rotas PWA
+   (`/api/auth/logout`, `/api/stripe/*`). Fix: rule refinada com lista
+   explícita de prefixos api-go (`/api/v1/`, `/api/banking/`,
+   `/api/ops/`, `/api/whatsapp/`, `/api/_debug/`, `/health`, `/ready`).
+3. Stripe/DB lazy init via Proxy (throws top-level quebravam
+   `next build`). Já corrigido em Fase 17B.
+4. api-go Dockerfile distroless sem wget. Trocado para alpine+wget.
+5. `global-setup.ts` esperava endpoint `/api/v1/auth/login` que nunca
+   existiu no api-go (login é server action PWA). Reescrito.
+6. Cookie HMAC: PWA gerava com `base64url + unix seconds`, api-go
+   validava com `base64.StdEncoding + UnixMilli`. Decoder resiliente
+   em `session.go` aceita ambos.
+7. PWA `lib/db.ts` pool max=20 esgotava em CI E2E. Aumentado para 50.
+8. api-go rate limiter 60/min esgotava com rajada PWA. `RATE_LIMIT_MAX`
+   configurável via env.
+
+**Smoke pós-deploy:**
+- `GET https://laura.nexusai360.com` → 307 redirect (home→login) ✓
+- `GET /login` → 200 ✓
+- `GET /api/v1/health` → 200 `{"service":"laura-go","status":"ok"}` ✓
+- `GET /api/auth/logout` → 307 (PWA handler; redireciona login) ✓
+- TLS via Let's Encrypt OK.
+- Migrations 000001–000037 aplicadas via `MIGRATE_ON_BOOT=true`.
+
+**Fase 17B.2 — data-testids PWA (parcial):**
+- ~30 data-testids adicionados em login, register, layout settings
+  (logout), cards/CardWizard, invoices list, goals, investments,
+  reports (9 tabs com ids string), score gauge, super-admin list.
+- `global-setup.ts` faz login real via UI (Chromium headless) + salva
+  storageState.
+- `reports.spec.ts` reescrito com ids string reais (dre, categorias,
+  ...).
+- `transactions.spec.ts` reescrito como smoke (UI de create não existe
+  — transação via WhatsApp NLP).
+- **CI Playwright**: 18/24 passed + 6 failed pendentes
+  (goals/investments/reports/score/super-admin/transactions por
+  conexão DB esgotando em cascata mesmo com pool 50 + rate 1000).
+  Principais smoke (mvp-flows, auth, error-shape, observability,
+  cards-invoices) ✓. **Tag não aplicada** — marcada como parcial;
+  refinamentos pertencem a 17B.3.
+
+**Pendências para próxima sessão (17B.3/18):**
+- Refinar testes E2E falhando (pool/rate ainda insuficiente para rajada
+  paralela de 6 server actions simultâneas no dashboard).
+- Implementar UI create/edit transactions (hoje só WhatsApp).
+- Rotacionar `GROQ_API_KEY` placeholder por chave real.
+- Ajustar logout redirect (`http://localhost:3100/login` → `/login` relativo).
+- Configurar Stripe real (`STRIPE_SECRET_KEY`) se monetização ativa.
+- Migração 000035 já aplicada em prod via MIGRATE_ON_BOOT.
+
+**Tags:**
+- `phase-17-deployed` (produção ativa em `laura.nexusai360.com`).
+
 ### 2026-04-16 — Fase 17B preparada (Playwright E2E real + smoke) ✓
 
 - **Playwright CI real** — `playwright.yml` reescrito: sobe

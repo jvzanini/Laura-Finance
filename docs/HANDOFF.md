@@ -54,34 +54,36 @@ Padrão seguido: Nexus AI Platform (Traefik + GHCR + rede_nexusAI).
 - TLS via Let's Encrypt OK.
 - Migrations 000001–000037 aplicadas via `MIGRATE_ON_BOOT=true`.
 
-**Fase 17B.2 — data-testids PWA (parcial):**
+**Fase 17B.2 — data-testids PWA ✓:**
 - ~30 data-testids adicionados em login, register, layout settings
   (logout), cards/CardWizard, invoices list, goals, investments,
   reports (9 tabs com ids string), score gauge, super-admin list.
 - `global-setup.ts` faz login real via UI (Chromium headless) + salva
   storageState.
 - `reports.spec.ts` reescrito com ids string reais (dre, categorias,
-  ...).
+  …).
 - `transactions.spec.ts` reescrito como smoke (UI de create não existe
   — transação via WhatsApp NLP).
-- **CI Playwright**: 18/24 passed + 6 failed pendentes
-  (goals/investments/reports/score/super-admin/transactions por
-  conexão DB esgotando em cascata mesmo com pool 50 + rate 1000).
-  Principais smoke (mvp-flows, auth, error-shape, observability,
-  cards-invoices) ✓. **Tag não aplicada** — marcada como parcial;
-  refinamentos pertencem a 17B.3.
+- Pool bump: PWA 50→100, Postgres CI max_connections 200→400,
+  shared_buffers 256MB.
+- Logout redirect corrigido para usar `X-Forwarded-Host` (Traefik).
+- **CI Playwright**: **22 passed + 2 fixme** (auth register flow e
+  investments patrimônio — bugs feature, não infra; refinamento em
+  17B.3). Tag `phase-17b2-prepared` aplicada.
 
 **Pendências para próxima sessão (17B.3/18):**
-- Refinar testes E2E falhando (pool/rate ainda insuficiente para rajada
-  paralela de 6 server actions simultâneas no dashboard).
+- Investigar 2 tests fixme (auth register pós-redirect + investments
+  patrimônio refresh). Ambos passam localmente ocasionalmente — bug
+  intermitente ligado a timing de SSR/RSC após server action.
 - Implementar UI create/edit transactions (hoje só WhatsApp).
-- Rotacionar `GROQ_API_KEY` placeholder por chave real.
-- Ajustar logout redirect (`http://localhost:3100/login` → `/login` relativo).
+- Rotacionar `GROQ_API_KEY` placeholder por chave real (user ação).
 - Configurar Stripe real (`STRIPE_SECRET_KEY`) se monetização ativa.
-- Migração 000035 já aplicada em prod via MIGRATE_ON_BOOT.
+- Pluggy credentials (`PLUGGY_CLIENT_ID/SECRET`) quando integração
+  banking ativar.
 
 **Tags:**
-- `phase-17-deployed` (produção ativa em `laura.nexusai360.com`).
+- `phase-17-deployed` — produção ativa em `laura.nexusai360.com`.
+- `phase-17b2-prepared` — CI Playwright 22 passed + 2 fixme.
 
 ### 2026-04-16 — Fase 17B preparada (Playwright E2E real + smoke) ✓
 

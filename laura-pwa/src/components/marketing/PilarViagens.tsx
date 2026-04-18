@@ -434,7 +434,7 @@ export function PilarViagens() {
 
                                 {/* Conteúdo do relatório selecionado — altura FIXA pra evitar
                                     layout shift ao trocar entre relatórios. */}
-                                <div className="relative h-[32rem] overflow-hidden p-5 sm:p-7">
+                                <div className="relative h-auto min-h-[28rem] overflow-hidden p-5 sm:p-7 lg:h-[32rem]">
                                     <AnimatePresence mode="wait" initial={false}>
                                         {relatorio === "orcamento" && (
                                             <motion.div

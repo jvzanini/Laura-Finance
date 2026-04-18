@@ -360,7 +360,7 @@ export function PilarFamilia() {
                             aria-hidden
                             className="pointer-events-none absolute -inset-6 rounded-[2.5rem] bg-gradient-to-br from-fuchsia-500/30 via-rose-400/20 to-amber-400/10 opacity-70 blur-2xl"
                         />
-                        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#1A0F22]/95 via-[#140B1C]/95 to-[#0A0A10]/95 p-5 shadow-2xl shadow-fuchsia-950/60 backdrop-blur-2xl sm:p-6">
+                        <div className="relative flex h-auto min-h-[34rem] flex-col overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#1A0F22]/95 via-[#140B1C]/95 to-[#0A0A10]/95 p-5 shadow-2xl shadow-fuchsia-950/60 backdrop-blur-2xl sm:p-6 lg:h-[38rem]">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <span className="text-[10px] font-medium uppercase tracking-wider text-fuchsia-300">
@@ -447,7 +447,7 @@ export function PilarFamilia() {
                             </div>
 
                             {/* Conteúdo: lista consolidada (todos) ou barras por categoria (membro) */}
-                            <div className="mt-5 min-h-[24rem]">
+                            <div className="mt-4 flex flex-1 min-h-0 flex-col overflow-hidden">
                                 <AnimatePresence mode="wait" initial={false}>
                                     {filtro === "hoje" ? (
                                         <motion.ul
@@ -508,7 +508,7 @@ export function PilarFamilia() {
                                                 duration: 0.28,
                                                 ease: [0.2, 0.8, 0.2, 1],
                                             }}
-                                            className="space-y-4"
+                                            className="flex flex-1 min-h-0 flex-col gap-3"
                                         >
                                             {/* Header membro */}
                                             <div className="flex items-center gap-3">
@@ -533,14 +533,14 @@ export function PilarFamilia() {
                                                 </div>
                                             </div>
 
-                                            {/* Barras verticais — altura em PIXELS ABSOLUTOS
+                                                            {/* Barras verticais — altura em PIXELS ABSOLUTOS
                                                  para evitar bug de height-% sem parent definido.
                                                  Cor usa a cor primária do membro selecionado. */}
                                             {(() => {
-                                                const MAX_BAR_PX = 180;
+                                                const MAX_BAR_PX = 130;
                                                 const MIN_BAR_PX = 14;
                                                 return (
-                                                    <div className="flex items-end justify-center gap-4 pt-2 sm:gap-6">
+                                                    <div className="flex flex-1 items-end justify-center gap-3 pt-1 sm:gap-5">
                                                         {orcamentoMembro.items.map(
                                                             (item, i) => {
                                                                 const barPx =
@@ -569,9 +569,9 @@ export function PilarFamilia() {
                                                                                 i *
                                                                                 0.05,
                                                                         }}
-                                                                        className="flex w-16 flex-col items-center gap-2 sm:w-20"
+                                                                        className="flex w-14 flex-col items-center gap-1.5 sm:w-16"
                                                                     >
-                                                                        <span className="text-xs font-semibold text-white tabular-nums">
+                                                                        <span className="text-[11px] font-semibold text-white tabular-nums">
                                                                             {brlFromReais(
                                                                                 item.amount
                                                                             )}
@@ -595,7 +595,7 @@ export function PilarFamilia() {
                                                                                 ease: "easeOut",
                                                                             }}
                                                                         />
-                                                                        <span className="w-full whitespace-normal break-words text-center text-[11px] font-medium leading-tight text-zinc-300">
+                                                                        <span className="w-full whitespace-normal break-words text-center text-[10px] font-medium leading-tight text-zinc-300">
                                                                             {
                                                                                 item.category
                                                                             }
@@ -661,7 +661,7 @@ export function PilarFamilia() {
                                 </AnimatePresence>
                             </div>
 
-                            <div className="mt-4 flex items-center justify-between rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/[0.08] p-3">
+                            <div className="mt-3 flex shrink-0 items-center justify-between rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/[0.08] px-3 py-2">
                                 <span className="text-[11px] text-fuchsia-100">
                                     Consolidado em tempo real
                                 </span>

@@ -315,7 +315,7 @@ export function PilarAssistente() {
                             aria-hidden
                             className="pointer-events-none absolute -inset-6 rounded-[2.5rem] bg-gradient-to-br from-violet-600/30 via-fuchsia-500/20 to-rose-400/10 opacity-70 blur-2xl"
                         />
-                        <div className="relative flex h-[54rem] flex-col overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#15121F]/95 via-[#0F0D1A]/95 to-[#0A0A10]/95 p-5 shadow-2xl shadow-violet-950/60 backdrop-blur-2xl sm:p-6">
+                        <div className="relative flex h-auto min-h-[48rem] flex-col overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#15121F]/95 via-[#0F0D1A]/95 to-[#0A0A10]/95 p-5 shadow-2xl shadow-violet-950/60 backdrop-blur-2xl sm:p-6 lg:h-[54rem]">
                             {/* Chamariz pulsante — convida a interagir com as tabs */}
                             <div className="mb-4 flex justify-end">
                                 <motion.span

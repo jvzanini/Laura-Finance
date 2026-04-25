@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { LauraBrandMark } from "@/components/brand/LauraBrandMark";
+
 export default function AuthLayout({ children }: { children: ReactNode }) {
     return (
         <div className="relative flex min-h-[100svh] w-full items-center justify-center overflow-hidden bg-[#0A0A0F] px-4 py-8 [contain:paint] sm:px-6 sm:py-12 md:px-8">
@@ -21,12 +23,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                         aria-label="Laura Finance"
                         className="inline-flex flex-col items-center gap-3 rounded-2xl px-3 py-1.5 transition hover:opacity-90"
                     >
-                        <span className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-rose-500 text-3xl font-extrabold tracking-tight text-white shadow-lg shadow-fuchsia-500/30 sm:text-[2rem]">
-                            LF
-                        </span>
-                        <span className="text-lg font-semibold tracking-tight text-white sm:text-xl">
-                            Laura Finance
-                        </span>
+                        <LauraBrandMark variant="auth" />
                     </Link>
                     <p className="text-xs text-white/40">
                         Sua plataforma financeira completa.

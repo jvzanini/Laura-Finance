@@ -56,6 +56,8 @@ import {
     type LucideIcon,
 } from "lucide-react";
 
+import { LauraAvatar } from "@/components/brand/LauraAvatar";
+
 type ItemOrcamento = {
     id: string;
     label: string;
@@ -357,20 +359,27 @@ export function PilarViagens() {
                         <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#1F1325]/95 via-[#170E1E]/95 to-[#0A0A10]/95 shadow-2xl shadow-rose-950/60 backdrop-blur-2xl">
                             {/* Header do card com contexto da viagem */}
                             <div className="flex items-start justify-between gap-3 border-b border-white/10 p-5 sm:p-6">
-                                <div className="flex flex-col leading-tight">
-                                    <span className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-rose-300">
-                                        <Globe2
-                                            className="size-3.5"
-                                            aria-hidden
-                                        />
-                                        Laura Finance · Viagem
-                                    </span>
-                                    <h3 className="mt-1 text-xl font-bold text-white sm:text-2xl">
-                                        Paris — {viagem.nomeMes} {viagem.ano}
-                                    </h3>
-                                    <span className="mt-1 text-xs text-zinc-400">
-                                        7 dias · 2 pessoas
-                                    </span>
+                                <div className="flex items-center gap-3">
+                                    <LauraAvatar
+                                        size="sm"
+                                        ring="subtle"
+                                        halo="soft"
+                                    />
+                                    <div className="flex flex-col leading-tight">
+                                        <span className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-rose-300">
+                                            <Globe2
+                                                className="size-3.5"
+                                                aria-hidden
+                                            />
+                                            Laura Finance · Viagem
+                                        </span>
+                                        <h3 className="mt-1 text-xl font-bold text-white sm:text-2xl">
+                                            Paris — {viagem.nomeMes} {viagem.ano}
+                                        </h3>
+                                        <span className="mt-1 text-xs text-zinc-400">
+                                            7 dias · 2 pessoas
+                                        </span>
+                                    </div>
                                 </div>
                                 {/* Chamariz pulsante */}
                                 <motion.span

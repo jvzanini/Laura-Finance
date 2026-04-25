@@ -6,6 +6,7 @@ import { Menu } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { LauraBrandMark } from "@/components/brand/LauraBrandMark";
 import {
     Sheet,
     SheetContent,
@@ -21,27 +22,6 @@ const navLinks = [
     { href: "#depoimentos", label: "Depoimentos" },
     { href: "#faq", label: "FAQ" },
 ];
-
-// LauraLogo renderiza um brand mark inline (quadrado gradient violet→fuchsia
-// com "L" branco) + wordmark. Sem imagens externas.
-function LauraLogo({ className }: { className?: string }) {
-    return (
-        <span className={cn("inline-flex items-center gap-2", className)}>
-            <span
-                aria-hidden
-                className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 via-fuchsia-500 to-rose-400 text-[10px] font-bold text-white shadow-lg shadow-violet-600/40 ring-1 ring-inset ring-white/20"
-            >
-                LF
-            </span>
-            <span className="text-xl font-bold tracking-tight text-white">
-                Laura{" "}
-                <span className="bg-gradient-to-r from-violet-300 to-fuchsia-300 bg-clip-text text-transparent">
-                    Finance
-                </span>
-            </span>
-        </span>
-    );
-}
 
 export function MarketingNavbar() {
     const [scrolled, setScrolled] = useState(false);
@@ -70,7 +50,7 @@ export function MarketingNavbar() {
                     aria-label="Ir para a página inicial da Laura Finance"
                     className="flex min-h-11 items-center rounded-lg px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
                 >
-                    <LauraLogo />
+                    <LauraBrandMark variant="navbar" />
                 </Link>
 
                 <nav className="hidden items-center gap-1 md:flex">
@@ -120,7 +100,7 @@ export function MarketingNavbar() {
                     >
                         <SheetHeader>
                             <SheetTitle className="flex items-center">
-                                <LauraLogo />
+                                <LauraBrandMark variant="navbar" />
                             </SheetTitle>
                         </SheetHeader>
                         <div className="flex flex-col gap-1 px-4">

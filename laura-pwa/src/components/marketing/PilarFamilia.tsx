@@ -12,6 +12,8 @@ import {
     type LucideIcon,
 } from "lucide-react";
 
+import { LauraAvatar } from "@/components/brand/LauraAvatar";
+
 type Membro = {
     id: string;
     nome: string;
@@ -362,13 +364,20 @@ export function PilarFamilia() {
                         />
                         <div className="relative flex h-auto min-h-[34rem] flex-col overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#1A0F22]/95 via-[#140B1C]/95 to-[#0A0A10]/95 p-5 shadow-2xl shadow-fuchsia-950/60 backdrop-blur-2xl sm:p-6 lg:h-[38rem]">
                             <div className="flex items-center justify-between">
-                                <div>
-                                    <span className="text-[10px] font-medium uppercase tracking-wider text-fuchsia-300">
-                                        Laura Finance · Família
-                                    </span>
-                                    <h3 className="mt-0.5 text-base font-semibold text-white sm:text-lg">
-                                        Painel da família
-                                    </h3>
+                                <div className="flex items-center gap-3">
+                                    <LauraAvatar
+                                        size="sm"
+                                        ring="subtle"
+                                        halo="soft"
+                                    />
+                                    <div>
+                                        <span className="text-[10px] font-medium uppercase tracking-wider text-fuchsia-300">
+                                            Laura Finance · Família
+                                        </span>
+                                        <h3 className="mt-0.5 text-base font-semibold text-white sm:text-lg">
+                                            Painel da família
+                                        </h3>
+                                    </div>
                                 </div>
                                 <div className="flex flex-col items-end leading-tight">
                                     <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">

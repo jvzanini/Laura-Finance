@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Shield, Sparkles, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LauraAvatar } from "@/components/brand/LauraAvatar";
 
 export function CTAFinal() {
     return (
@@ -35,6 +36,14 @@ export function CTAFinal() {
                     />
 
                     <div className="relative">
+                        <div className="mb-8 flex justify-center">
+                            <LauraAvatar
+                                size="hero"
+                                halo="intense"
+                                ring="violet"
+                                animate
+                            />
+                        </div>
                         <div className="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-violet-200 backdrop-blur-sm">
                             <Sparkles className="size-3.5" aria-hidden />
                             Experimente sem compromisso

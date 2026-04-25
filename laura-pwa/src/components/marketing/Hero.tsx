@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowRight, MessageCircle, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LauraAvatar } from "@/components/brand/LauraAvatar";
 
 import { DashboardMockup } from "./DashboardMockup";
 
@@ -124,12 +125,13 @@ export function Hero() {
                             className="absolute -bottom-6 -left-6 hidden max-w-[16rem] rounded-2xl border border-white/10 bg-gradient-to-br from-[#1E1B2E]/95 to-[#141221]/95 p-3 shadow-2xl shadow-violet-950/60 backdrop-blur-xl sm:-bottom-10 sm:-left-10 sm:block sm:max-w-xs sm:p-4"
                         >
                             <div className="flex items-center gap-2">
-                                <div className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500">
-                                    <MessageCircle
-                                        className="size-4 text-white"
-                                        aria-hidden
-                                    />
-                                </div>
+                                <LauraAvatar
+                                    size="sm"
+                                    ring="violet"
+                                    halo="soft"
+                                    priority
+                                    withStatusDot
+                                />
                                 <div className="flex flex-col leading-tight">
                                     <span className="text-xs font-semibold text-white">
                                         Laura Finance

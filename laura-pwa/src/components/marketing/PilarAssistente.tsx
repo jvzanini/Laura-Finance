@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { MousePointerClick, Wallet } from "lucide-react";
 
+import { LauraAvatar } from "@/components/brand/LauraAvatar";
+
 type Categoria = {
     id: string;
     label: string;
@@ -341,16 +343,23 @@ export function PilarAssistente() {
                             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
                             {/* Header */}
                             <div className="flex items-start justify-between gap-3">
-                                <div className="flex flex-col leading-tight">
-                                    <span className="text-[10px] font-medium uppercase tracking-wider text-violet-300">
-                                        Laura Finance
-                                    </span>
-                                    <h3 className="mt-0.5 text-base font-semibold text-white sm:text-lg">
-                                        Relatório por categoria
-                                    </h3>
-                                    <span className="text-xs text-zinc-400">
-                                        Abril de 2026
-                                    </span>
+                                <div className="flex items-center gap-3">
+                                    <LauraAvatar
+                                        size="sm"
+                                        ring="subtle"
+                                        halo="soft"
+                                    />
+                                    <div className="flex flex-col leading-tight">
+                                        <span className="text-[10px] font-medium uppercase tracking-wider text-violet-300">
+                                            Laura Finance
+                                        </span>
+                                        <h3 className="mt-0.5 text-base font-semibold text-white sm:text-lg">
+                                            Relatório por categoria
+                                        </h3>
+                                        <span className="text-xs text-zinc-400">
+                                            Abril de 2026
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="flex flex-col items-end leading-tight">
                                     <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">

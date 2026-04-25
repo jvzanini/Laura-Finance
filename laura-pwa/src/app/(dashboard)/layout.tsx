@@ -12,6 +12,7 @@ import { PaywallGate } from "@/components/features/PaywallGate";
 import { SubscriptionProvider } from "@/lib/contexts/subscription";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { LauraAvatar } from "@/components/brand/LauraAvatar";
 import { Bell } from "lucide-react";
 
 export default async function DashboardLayout({
@@ -54,6 +55,7 @@ export default async function DashboardLayout({
                         <SidebarTrigger className="-ml-1 h-8 w-8 text-muted-foreground hover:text-foreground" />
                         <Separator orientation="vertical" className="mr-2 h-4" />
                         <div className="flex items-center gap-2">
+                            <LauraAvatar size="xs" ring="subtle" />
                             <span className="text-sm font-medium text-muted-foreground">Laura Finance</span>
                         </div>
                         <div className="ml-auto flex items-center gap-3">

@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { LauraBrandMark } from "@/components/brand/LauraBrandMark";
+
 export function MarketingFooter() {
     return (
         <footer className="relative border-t border-white/10 bg-[#0A0A0F]">
@@ -15,18 +17,7 @@ export function MarketingFooter() {
                     aria-label="Laura Finance"
                     className="inline-flex min-h-11 items-center gap-2"
                 >
-                    <span
-                        aria-hidden
-                        className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 via-fuchsia-500 to-rose-400 text-[10px] font-bold text-white shadow-lg shadow-violet-600/40 ring-1 ring-inset ring-white/20"
-                    >
-                        LF
-                    </span>
-                    <span className="text-lg font-bold tracking-tight text-white">
-                        Laura{" "}
-                        <span className="bg-gradient-to-r from-violet-300 to-fuchsia-300 bg-clip-text text-transparent">
-                            Finance
-                        </span>
-                    </span>
+                    <LauraBrandMark variant="footer" />
                 </Link>
                 <p className="max-w-4xl text-sm text-zinc-400 md:whitespace-nowrap">
                     Sua plataforma financeira completa. Dashboard, app e WhatsApp em um só lugar.

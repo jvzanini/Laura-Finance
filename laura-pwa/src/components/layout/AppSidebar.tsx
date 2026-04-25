@@ -21,7 +21,6 @@ import {
     BarChart3,
     Settings,
     Sparkles,
-    MessageCircle,
     Receipt,
     LogOut,
     Target,
@@ -34,6 +33,9 @@ import {
     ArrowDownUp,
     ShieldAlert,
 } from "lucide-react";
+
+import { LauraAvatar } from "@/components/brand/LauraAvatar";
+import { LauraBrandMark } from "@/components/brand/LauraBrandMark";
 
 type NavItem = {
     title: string;
@@ -74,15 +76,7 @@ export function AppSidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean })
     return (
         <Sidebar collapsible="icon" className="border-r border-sidebar-border">
             <SidebarHeader className="p-6">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-black text-sm shrink-0 shadow-lg shadow-primary/20">
-                        LF
-                    </div>
-                    <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                        <span className="text-base font-bold tracking-tight">Laura Finance</span>
-                        <span className="text-[11px] text-muted-foreground">Gestão Inteligente</span>
-                    </div>
-                </div>
+                <LauraBrandMark variant="sidebar" />
             </SidebarHeader>
 
             <SidebarContent>
@@ -196,7 +190,7 @@ export function AppSidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean })
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton tooltip="Falar com a Laura" render={<a href="https://wa.me/" target="_blank" rel="noopener noreferrer" />} className="text-muted-foreground hover:text-foreground hover:bg-accent">
-                                    <MessageCircle className="h-4 w-4 shrink-0 text-emerald-500" />
+                                    <LauraAvatar size="xs" ring="subtle" withStatusDot />
                                     <span>Falar com Laura</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

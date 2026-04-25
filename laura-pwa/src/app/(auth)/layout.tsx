@@ -21,13 +21,13 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                     Margem negativa puxa o card pra colar visualmente nela.
                     Sem wordmark sobreposto: o card já tem subtitle "Laura
                     Finance". */}
-                <div className="relative z-10 -mb-20 flex justify-center sm:-mb-24">
+                <div className="relative z-10 -mb-12 flex justify-center sm:-mb-16">
                     <Link
                         href="/"
                         aria-label="Laura Finance"
                         className="group inline-flex items-center justify-center rounded-full transition hover:scale-[1.02]"
                     >
-                        <LauraShowcase size="lg" priority parallax />
+                        <LauraShowcase size="md" priority parallax />
                     </Link>
                 </div>
 

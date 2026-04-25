@@ -239,22 +239,32 @@ das mais sensíveis:
   sem clip circular + 3 camadas de halo + breathing/parallax,
   aplicado em AuthLayout/Hero/CTA. Bug do xadrez fixado.
   Tags `phase-19-1-laura-premium` + `phase-19-1-deployed`.
-- **Fase 19.2 (este commit):** refinement baseado em feedback +
-  Playwright snapshots. Voltou "LF" rosa MAIOR (size-10 text-base
-  font-extrabold) em navbar+footer via `LFBrandMark` novo —
-  sidebar/auth/dashboard mantêm Laura. CTA Final invertido: Laura
-  ATRÁS do texto (lateral direita, mix-blend-luminosity em lg).
-  AuthLayout: removido wordmark/tagline duplicado que cobria o
-  busto. Hero: Laura mais à direita (-right-56 lg:-right-64) tamanho
-  lg. Removidas animações "de jogo" (float Y + shimmer diagonal),
-  manteve só breathing+halo-pulse+aura-rotate+parallax. Foto nova
-  "Modelo Laura 3" RGBA. 5 Playwright snapshots verdes. Ver
+- Fase 19.2 — refinement (LF maior + Laura atrás + sem float/shimmer).
+  Tags `phase-19-2-refinement` + `phase-19-2-deployed`.
+- **Fase 19.3 (este commit):** Laura fix completo. 4 bugs visuais
+  fixados (foto agora literal via cp -p sem Pillow optimize, MD5 bate;
+  xadrez nos avatares circulares pequenos resolvido com `bg-[#1A0A1F]`
+  no inner wrapper LauraAvatar; breathing animation removido do
+  LauraShowcase — era percebido como "de jogo"; sizes lg→md em
+  AuthLayout/Hero/CTA com offsets reduzidos pra não sangrar viewport).
+  Bug auth flakiness ("3 tentativas pra logar") investigado via Prod
+  API Debug — sem causa raiz nos logs disponíveis, ADR 008 criado.
+  Skills: brainstorming + writing-plans + ui-ux-pro-max + code-reviewer
+  (aprovou). Spec/plan v1→v3 em `docs/superpowers/`. Lições importantes
+  documentadas em `phase_19_3_fix_completo.md` no memory. Ver
   `docs/HANDOFF.md`.
 
-### Pendências pré-deploy Fase 19.2
+### Pendências pré-deploy Fase 19.3
 - `git push origin master --tags` para disparar deploy via Portainer.
-- Smoke pós-deploy em `laura.nexusai360.com` + aplicar tag
-  `phase-19-2-deployed` quando ok.
+- Smoke prod com cache-bust (`?v=$(date +%s)`) em `laura.nexusai360.
+  com` + validar que MD5 do PNG servido = MD5 original do usuário +
+  aplicar tag `phase-19-3-deployed`.
+
+### Pendências de follow-up (não bloqueiam)
+- ADR 008 — auth login flakiness: pedir ao usuário pra reproduzir
+  em janela anônima com Network tab aberto.
+- `webhook_secret_seed_failed` no startup do api Go (JSON malformado
+  em env) — investigar separadamente.
 
 ### Pendências gerais (próximas fases)
 - Ativar E2E Playwright novos em CI (`test.fixme` condicionais).

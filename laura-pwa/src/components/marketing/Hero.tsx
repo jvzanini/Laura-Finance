@@ -114,11 +114,11 @@ export function Hero() {
 
                         {/* Laura ao lado direito do mockup — fora dele, como
                             personagem-marca acompanhando a tela do produto.
-                            Aparece a partir de telas grandes; em desktop padrão
-                            fica deslocada bem pra fora à direita pra mostrar
-                            o busto inteiro. */}
-                        <div className="pointer-events-none absolute -top-12 -right-56 z-0 hidden lg:block xl:-right-64 2xl:-right-72">
-                            <LauraShowcase size="lg" priority />
+                            Tamanho md (192px) e offsets reduzidos garantem que
+                            o busto não saia da viewport em telas a partir de
+                            1280px. */}
+                        <div className="pointer-events-none absolute -top-8 -right-28 z-0 hidden lg:block xl:-right-36 2xl:-right-40">
+                            <LauraShowcase size="md" priority />
                         </div>
 
                         <div className="relative z-10">

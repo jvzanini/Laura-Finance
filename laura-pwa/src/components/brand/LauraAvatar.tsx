@@ -109,7 +109,7 @@ export function LauraAvatar({
             )}
             <span
                 className={cn(
-                    "relative inline-flex overflow-hidden rounded-full",
+                    "relative inline-flex overflow-hidden rounded-full bg-[#1A0A1F]",
                     sizeClass,
                     ringClass
                 )}

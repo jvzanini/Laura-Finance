@@ -32,9 +32,11 @@ const SIZE_PIXELS: Record<LauraShowcaseSize, string> = {
 /**
  * LauraShowcase — tratamento premium "full-bust" da Laura, sem clip
  * circular. Usa o PNG transparente diretamente, com 3 camadas de halo
- * animadas atrás (radial pulse, conic aura rotativa, lightspot
- * superior) e respiração sutil + flutuação no PNG. Parallax opcional
- * em desktop (pointer:fine) move imagem ±6px conforme cursor.
+ * animadas atrás (aura conic rotativa 22s, radial pulse 5s, lightspot
+ * superior estático). PNG da Laura é totalmente estático — sem
+ * breathing, float ou shimmer (feedback do usuário Fase 19.3:
+ * "parece de jogo"). Parallax opcional em desktop (pointer:fine)
+ * move a imagem ±8px conforme posição do cursor (rAF throttled).
  */
 export function LauraShowcase({
     size = "lg",
@@ -127,23 +129,22 @@ export function LauraShowcase({
                 }}
             />
 
-            {/* PNG transparente da Laura — apenas respiração sutil
-                (sem float vertical nem shimmer: feedback do usuário
-                "parece de jogo, fica feio"). Parallax opcional via prop. */}
+            {/* PNG transparente da Laura — totalmente estático.
+                Sem breathing, float ou shimmer: feedback do usuário
+                "parece de jogo". Animação visível só no halo (pulse +
+                aura conic) e parallax opcional do cursor. */}
             <div
                 ref={imageWrapperRef}
                 className="relative z-10 h-full w-full transition-transform duration-300 ease-out"
             >
-                <div className="animate-laura-breathe relative h-full w-full">
-                    <Image
-                        src="/brand/laura-portrait.png"
-                        alt={alt}
-                        fill
-                        sizes={SIZE_PIXELS[size]}
-                        priority={priority}
-                        className="object-contain object-bottom drop-shadow-[0_25px_40px_rgba(124,58,237,0.45)]"
-                    />
-                </div>
+                <Image
+                    src="/brand/laura-portrait.png"
+                    alt={alt}
+                    fill
+                    sizes={SIZE_PIXELS[size]}
+                    priority={priority}
+                    className="object-contain object-bottom drop-shadow-[0_25px_40px_rgba(124,58,237,0.45)]"
+                />
             </div>
         </div>
     );

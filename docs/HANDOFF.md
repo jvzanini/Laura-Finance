@@ -6,6 +6,92 @@
 
 ## Histórico de atualizações
 
+### 2026-04-25 — Fase 19.3: Laura fix completo (foto literal + xadrez + sem breathing + sizes ajustados)
+
+Iteração corretiva crítica baseada em 4 prints + reclamação dura do
+usuário pós Fase 19.2 deploy. 4 bugs descobertos e fixados, 1 bug
+investigado (auth flakiness) e documentado.
+
+**Bug 1 — Foto não-literal.** `Image.save(optimize=True)` na Fase
+19.2 recodificou os bytes do PNG. MD5 da `laura-portrait.png` em prod
+(`27062d743b2a...`) **diferia** do `Modelo Laura 3 (Laura Finance).
+png` original do usuário (`0699e38ed108...`). **Fix:** `cp -p` literal
+sem qualquer Pillow no portrait. Face crop 800×800 regenerado com
+`Image.save()` SEM `optimize=True`. MD5 prod agora = MD5 original do
+usuário.
+
+**Bug 2 — Xadrez nos avatares circulares pequenos** (sidebar header
+da plataforma interna, dashboard top bar, atalho "Falar com Laura").
+Wrapper de `LauraAvatar` sem bg sólido vazava as semitransparências
+do cabelo da Laura — Em superfícies dark do tema, isso aparecia como
+padrão xadrez nas screenshots do usuário. **Fix:** adicionado
+`bg-[#1A0A1F]` (tom escuro com leve violeta, casa com paleta dark
+do projeto) no inner wrapper circular do `LauraAvatar.tsx`. `bg-zinc-
+900` foi descartado por ser cinza-azulado e fundir-se com o sidebar
+sem contraste.
+
+**Bug 3 — Breathing animation "de jogo".** O `animate-laura-breathe`
+(`scale 1 → 1.018 → 1` em 5s) ainda existia no `LauraShowcase` após
+a 19.2. Usuário descreveu o efeito como "fica pulando, flutuando,
+parece de jogo". **Fix:** removido. PNG da Laura agora **100%
+estático** em todos os showcases. Animação visível só no halo
+decorativo (conic aura 22s + radial pulse 5s) e parallax mousemove
+desktop only — esses ele aprovou. Os keyframes `laura-breathe`,
+`laura-float` e `laura-shimmer` permanecem em `globals.css` como
+future-proof, mas sem callers.
+
+**Bug 4 — Sizes excessivos no Hero/CTA/AuthLayout.** Usuário disse
+"muito grande, ficou na lateral, quase caindo da tela". **Fix** (todos
+de `size="lg"` 288px → `size="md"` 192px):
+- AuthLayout: `-mb-20 sm:-mb-24` → `-mb-12 sm:-mb-16` (Laura mais
+  compacta saindo do card de login)
+- Hero LP: `-top-12 -right-56 lg → -64 xl → -72 2xl` →
+  `-top-8 -right-28 lg → -36 xl → -40 2xl` (não cai mais da viewport)
+- CTA Final: `-right-12 lg → xl:-right-4` → `right-2 lg →
+  xl:right-6` (encaixa **dentro** da borda direita do card, não
+  sangra pra fora)
+
+**Bug 5 (investigado, não bloqueia) — Auth login flakiness.** Usuário
+relatou "3 tentativas pra logar". Disparado workflow `Prod API Debug
+(all tasks logs)` (run #24940886600). Logs mostraram apenas
+`webhook_secret_seed_failed` (não-auth, JSON malformado em env, é
+follow-up separado) e `AUTH_INVALID_CREDENTIALS` em GET `/api/v*/.env`
+(bot scanner). Sem evidência do bug real do usuário nos logs disponíveis.
+**Criado** `docs/architecture/adr/008-auth-login-flakiness-
+investigation.md` com 5 hipóteses (cache stale, rate limit, race
+condition HMAC, latência postgres, Traefik) + plano de reprodução em
+janela anônima com Network tab. **Não bloqueia deploy 19.3.**
+
+**Skills invocadas no fluxo formal exigido pelo usuário:**
+- `superpowers:brainstorming` (interno — autorização autônoma da LEI #1)
+- `superpowers:writing-plans` (plan v3 com 12 tasks granulares)
+- `ui-ux-pro-max:ui-ux-pro-max` (validou overflow guidance)
+- `superpowers:code-reviewer` (aprovou para deploy, único polish do
+  JSDoc do `LauraShowcase` aplicado antes do commit)
+
+Specs: `docs/superpowers/specs/2026-04-25-fase-19-3-laura-fix-
+completo-{v1,v2,v3}.md`. Plan: `docs/superpowers/plans/2026-04-25-
+fase-19-3-laura-fix-completo-v3.md`.
+
+**Verificação:** `pnpm typecheck` e `pnpm lint` verdes (44 warnings
+pré-existentes mantidos), Playwright snapshots 5/5 verdes (LP, Login,
+CTA, Hero, Navbar em viewport 1440×900), validação extra em viewport
+1100px no CTA confirmou Laura encaixada sem sobrepor headline.
+
+Tags `phase-19-3-fix-completo` (commit) + `phase-19-3-deployed`
+(após smoke prod). Fase 19.2 fica na história como interim — visualmente
+substituída pela 19.3.
+
+**Lições documentadas** para futuras integrações de fotos do usuário:
+1. NUNCA rodar `Image.save(optimize=True)` em PNG enviado pelo usuário
+   — recodifica bytes. Usar `cp -p` literal.
+2. Avatares circulares com PNG transparente sempre precisam de bg
+   sólido (mesmo escuro neutro) atrás do clip pra cobrir
+   semitransparências de cabelo/bordas.
+3. Animações de "respiração" (scale > 1.02) podem ser percebidas
+   como "de jogo" — preferir animação só no halo decorativo, deixar
+   a foto humana 100% estática.
+
 ### 2026-04-25 — Fase 19.2: refinement feedback (LF maior + Laura atrás + sem float/shimmer)
 
 Iteração baseada em 5 prints + feedback do usuário em prod 19.1.

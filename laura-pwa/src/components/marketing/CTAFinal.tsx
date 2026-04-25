@@ -31,9 +31,9 @@ export function CTAFinal() {
                         presença premium sem cobrir texto. Desktop only. */}
                     <div
                         aria-hidden
-                        className="pointer-events-none absolute -right-12 top-1/2 z-0 hidden -translate-y-1/2 opacity-90 mix-blend-luminosity lg:block xl:-right-4 xl:opacity-100 xl:mix-blend-normal"
+                        className="pointer-events-none absolute right-2 top-1/2 z-0 hidden -translate-y-1/2 opacity-90 mix-blend-luminosity lg:block xl:right-6 xl:opacity-100 xl:mix-blend-normal"
                     >
-                        <LauraShowcase size="lg" priority />
+                        <LauraShowcase size="md" priority />
                     </div>
 
                     {/* Borda luminosa interna */}

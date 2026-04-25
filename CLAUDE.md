@@ -230,24 +230,32 @@ das mais sensíveis:
   + banners trial/past_due + paywall server-side (middleware Go 402 +
   layout check PWA) + 8 polish iterations (LP responsiva, matemática
   bate, Top Cats dinâmico, Pilar 3 expandido, altura fixa Pilar 2).
-- **Fase 19 (este commit):** Laura como rosto da marca em LP +
-  plataforma. `brand/LauraAvatar` + `brand/LauraBrandMark` substituem o
-  brand mark "LF" em 4 lugares (navbar/footer/sidebar/auth) e adicionam
-  presença visual em 5 pontos da LP (Hero card WhatsApp, headers de 3
-  pilares, CTA Final hero) + 2 pontos da plataforma interna (header
-  dashboard, atalho "Falar com Laura"). PNG tratada com Pillow para
-  alpha real (variantes `laura-portrait.png` 1254×1254 e
-  `laura-face.png` 800×800 em `public/brand/`). Sem mudança de cor,
-  componente, copy ou layout estrutural. Ver `docs/HANDOFF.md` para
-  detalhe completo.
+- Fase 19 — Laura como rosto da marca em LP + plataforma.
+  `brand/LauraAvatar` + `brand/LauraBrandMark` substituem o brand
+  mark "LF" em 4 lugares (navbar/footer/sidebar/auth) e adicionam
+  presença visual em 5 pontos da LP + 2 pontos da plataforma
+  interna. Tags `phase-19-laura-rosto` + `phase-19-deployed`.
+- **Fase 19.1 (este commit):** Laura premium showcase — refinement.
+  Bug do "xadrez" no avatar circular corrigido (PNG RGBA real do
+  usuário substituiu o tratamento Pillow + removido `bg-gradient`
+  do wrapper). Componente novo `brand/LauraShowcase` full-bust sem
+  clip circular com 3 camadas de halo animadas (aura conic
+  rotativa 22s, halo radial pulsante 5s, lightspot superior),
+  breathing scale 1→1.018 5s, float vertical 7s, parallax mousemove
+  ±8px desktop only, shimmer diagonal 6s. Easing Expo.out
+  `cubic-bezier(0.16, 1, 0.3, 1)` em todas as animações (skill
+  ui-ux-pro-max recomendou estilo "Modern Dark / Cinema Mobile").
+  Aplicado "brincando com camadas" em AuthLayout (288px emergindo
+  do card), Hero (192px atrás do mockup), CTA Final (480px
+  quebrando topo do card). `LauraAvatar` ganhou prop `pulse`
+  usado no sidebar "Falar com Laura". `prefers-reduced-motion`
+  desliga todas as animações Laura. Ver `docs/HANDOFF.md`.
 
-### Pendências pré-deploy Fase 19
-- Validar visual local (`pnpm dev` em `laura-pwa/`, testar `/`,
-  `/login`, `/register`, `/dashboard`).
+### Pendências pré-deploy Fase 19.1
 - `git push origin master --tags` para disparar deploy via Portainer
-  (rebuild da imagem PWA com a Laura).
+  (rebuild da imagem PWA com a Laura premium).
 - Smoke pós-deploy em `laura.nexusai360.com` + aplicar tag
-  `phase-19-deployed` quando ok.
+  `phase-19-1-deployed` quando ok.
 
 ### Pendências gerais (próximas fases)
 - Ativar E2E Playwright novos em CI (`test.fixme` condicionais).

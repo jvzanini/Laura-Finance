@@ -190,7 +190,7 @@ export function AppSidebar({ isSuperAdmin = false }: { isSuperAdmin?: boolean })
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton tooltip="Falar com a Laura" render={<a href="https://wa.me/" target="_blank" rel="noopener noreferrer" />} className="text-muted-foreground hover:text-foreground hover:bg-accent">
-                                    <LauraAvatar size="xs" ring="subtle" withStatusDot />
+                                    <LauraAvatar size="xs" ring="subtle" halo="soft" pulse withStatusDot />
                                     <span>Falar com Laura</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

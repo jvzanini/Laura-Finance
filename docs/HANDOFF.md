@@ -6,6 +6,70 @@
 
 ## Histórico de atualizações
 
+### 2026-04-25 — Fase 19.1: Laura premium showcase (refinement + fix do xadrez)
+
+**Problema corrigido (xadrez no avatar circular).** A Fase 19 deixou
+um artefato visual: nas telas de login/register, atrás do rosto da
+Laura aparecia um padrão xadrez cinza-violeta. Causa raiz: o PNG
+original do usuário tinha **fundo branco opaco** (RGB sem alfa);
+meu chroma key Pillow gerou alfa parcial nos pixels do cabelo escuro
+com brilho, e o `bg-gradient-to-br from-violet-900/20 to-fuchsia-
+900/20` do wrapper em `LauraAvatar` vazou através das transparências
+parciais. Fix em duas frentes: (a) usuário regerou o PNG via Canva
+com alpha real (1250×1250 RGBA), substituí em `public/brand/laura-
+portrait.png` e regenerei o `laura-face.png` (crop 800×800) sem
+chroma key; (b) removi o `bg-gradient` do inner wrapper de
+`LauraAvatar` — fundo do círculo agora é totalmente transparente
+(o PNG cobre 100%).
+
+**Tratamento premium fora-da-caixa.** Componente novo
+`src/components/brand/LauraShowcase.tsx` com a Laura full-bust **sem
+clip circular** + 3 camadas de halo animadas:
+1. Aura conic rotativa (`conic-gradient` violet→fuchsia→rose, blur-2xl,
+   22s linear infinite).
+2. Halo radial pulsante (`radial-gradient` violet/fuchsia/rose,
+   blur-3xl, opacity 0.55→0.95→0.55 em 5s).
+3. Lightspot superior (`radial-gradient` branco no topo, blur-2xl,
+   opacity 0.30) — luz natural caindo.
+
+Mais: PNG anima com **breathing** (`scale 1 → 1.018`, 5s),
+**float** vertical (Y `0 → -5px`, 7s, fora de fase), **parallax**
+opcional desktop only (`pointer:fine`, mousemove → translate ±8px
+via rAF throttled), **shimmer** diagonal periódico (`mix-blend-
+mode: screen`, 6s). Todas as animações usam easing **Expo.out
+`cubic-bezier(0.16, 1, 0.3, 1)`** — recomendação da skill
+`ui-ux-pro-max:ui-ux-pro-max` para o estilo "Modern Dark (Cinema
+Mobile)" típico de SaaS premium dark mode.
+
+**Aplicação em 3 surfaces "brincando com camadas":**
+- **AuthLayout** (`/login`, `/register`): `LauraShowcase size="lg"`
+  (288px) emergindo acima do card de login com `-mb-16` (puxa o
+  card pra colar visualmente). Wordmark "Laura Finance" em shelf
+  abaixo. Parallax ativo.
+- **Hero LP** (desktop only `lg:`): `LauraShowcase size="md"`
+  (192px) `absolute -top-24 -right-24 z-0` **atrás** do mockup do
+  dashboard (`z-10`), criando layered depth — Laura "espia" por
+  trás. Card flutuante WhatsApp original mantido.
+- **CTA Final**: `LauraShowcase size="hero"` (480px desktop / 384px
+  sm / 320px mobile) `absolute -top-8 z-20` **quebrando o topo do
+  card** (wrapper externo `pt-40 sm:pt-48` reserva espaço). Parallax
+  ativo. A skill confirmou que essa abordagem "out of frame" é
+  técnica de campanha publicitária Apple/Linear, não clichê.
+
+**`LauraAvatar` ganhou prop `pulse`** que aplica `animate-laura-halo-
+pulse` no halo. Usado no atalho "Falar com Laura" do sidebar para
+reforçar "online".
+
+**Reduced-motion:** `@media (prefers-reduced-motion: reduce)` desliga
+**todas** as animações Laura (breathing, halo-pulse, aura-rotate,
+float, shimmer) — bloco adicionado em `globals.css`.
+
+**Verificação local.** `pnpm typecheck` verde, `pnpm lint` sem novos
+errors (44 warnings pré-existentes), `pnpm dev` confirmou `/`,
+`/login`, `/register` HTTP 200 servindo `laura-portrait.png` via
+`next/image` (256px otimizado = 24KB). Tag `phase-19-1-laura-premium`
+no commit, `phase-19-1-deployed` após smoke prod.
+
 ### 2026-04-25 — Fase 19: Laura como rosto da marca (LP + plataforma)
 
 **Objetivo.** Substituir o brand mark "LF" (quadrado gradient violet→

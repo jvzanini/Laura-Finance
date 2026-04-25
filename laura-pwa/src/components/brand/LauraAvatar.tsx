@@ -16,6 +16,7 @@ export type LauraAvatarProps = {
     priority?: boolean;
     withStatusDot?: boolean;
     animate?: boolean;
+    pulse?: boolean;
     className?: string;
     alt?: string;
 };
@@ -77,6 +78,7 @@ export function LauraAvatar({
     priority = false,
     withStatusDot = false,
     animate = false,
+    pulse = false,
     className,
     alt = "Laura, sua assistente financeira da Laura Finance",
 }: LauraAvatarProps) {
@@ -96,11 +98,18 @@ export function LauraAvatar({
             )}
         >
             {halo !== "none" && (
-                <span aria-hidden className={cn(haloClass, "pointer-events-none")} />
+                <span
+                    aria-hidden
+                    className={cn(
+                        haloClass,
+                        "pointer-events-none",
+                        pulse && "animate-laura-halo-pulse"
+                    )}
+                />
             )}
             <span
                 className={cn(
-                    "relative inline-flex overflow-hidden rounded-full bg-gradient-to-br from-violet-900/20 to-fuchsia-900/20",
+                    "relative inline-flex overflow-hidden rounded-full",
                     sizeClass,
                     ringClass
                 )}

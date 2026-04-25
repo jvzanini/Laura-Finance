@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { LauraBrandMark } from "@/components/brand/LauraBrandMark";
+import { LauraShowcase } from "@/components/brand/LauraShowcase";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
     return (
@@ -17,20 +17,33 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             </div>
 
             <div className="relative mx-auto w-full max-w-md">
-                <div className="mb-6 flex flex-col items-center gap-2 sm:mb-8 sm:gap-3">
+                {/* Showcase da Laura — emerge acima do card, com camadas
+                    de halo animadas e respiração. Margem negativa puxa
+                    o card para colar visualmente nela. */}
+                <div className="relative z-10 -mb-16 flex justify-center sm:-mb-20">
                     <Link
                         href="/"
                         aria-label="Laura Finance"
-                        className="inline-flex flex-col items-center gap-3 rounded-2xl px-3 py-1.5 transition hover:opacity-90"
+                        className="group inline-flex items-center justify-center rounded-full transition hover:scale-[1.02]"
                     >
-                        <LauraBrandMark variant="auth" />
+                        <LauraShowcase size="lg" priority parallax />
                     </Link>
-                    <p className="text-xs text-white/40">
+                </div>
+
+                {/* Wordmark + tagline em "shelf" abaixo do showcase */}
+                <div className="relative z-20 mb-2 flex flex-col items-center gap-1.5 pt-2 sm:mb-3">
+                    <span className="text-2xl font-bold tracking-tight text-white">
+                        Laura{" "}
+                        <span className="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-rose-300 bg-clip-text text-transparent">
+                            Finance
+                        </span>
+                    </span>
+                    <p className="text-xs text-white/45">
                         Sua plataforma financeira completa.
                     </p>
                 </div>
 
-                {children}
+                <div className="relative z-20">{children}</div>
             </div>
         </div>
     );

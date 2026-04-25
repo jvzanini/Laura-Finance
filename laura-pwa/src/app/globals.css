@@ -225,3 +225,67 @@
     animation: none !important;
   }
 }
+
+/* ─── Fase 19.1: Laura premium showcase ─────────────────────────── */
+
+@keyframes laura-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.018); }
+}
+
+@keyframes laura-halo-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.95; }
+}
+
+@keyframes laura-aura-rotate {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes laura-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes laura-shimmer {
+  0% { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+  35% { opacity: 0.55; }
+  100% { transform: translateX(220%) skewX(-15deg); opacity: 0; }
+}
+
+/* Easing Expo.out (cinema dark premium — Apple HIG-like) */
+.animate-laura-breathe {
+  animation: laura-breathe 5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  will-change: transform;
+  transform-origin: center bottom;
+}
+
+.animate-laura-halo-pulse {
+  animation: laura-halo-pulse 5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  will-change: opacity;
+}
+
+.animate-laura-aura-rotate {
+  animation: laura-aura-rotate 22s linear infinite;
+  will-change: transform;
+}
+
+.animate-laura-float {
+  animation: laura-float 7s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  will-change: transform;
+}
+
+.animate-laura-shimmer {
+  animation: laura-shimmer 6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-laura-breathe,
+  .animate-laura-halo-pulse,
+  .animate-laura-aura-rotate,
+  .animate-laura-float,
+  .animate-laura-shimmer {
+    animation: none !important;
+  }
+}

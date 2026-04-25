@@ -6,6 +6,7 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { LauraAvatar } from "@/components/brand/LauraAvatar";
+import { LauraShowcase } from "@/components/brand/LauraShowcase";
 
 import { DashboardMockup } from "./DashboardMockup";
 
@@ -111,7 +112,15 @@ export function Hero() {
                             className="pointer-events-none absolute -inset-10 -z-10 rounded-[3rem] bg-gradient-to-br from-violet-600/30 via-fuchsia-500/20 to-rose-400/10 opacity-70 blur-2xl"
                         />
 
-                        <DashboardMockup />
+                        {/* Laura "espiando" por trás/cima do mockup — só desktop,
+                            cria sensação de camadas e protagonismo da personagem. */}
+                        <div className="pointer-events-none absolute -top-24 -right-24 z-0 hidden lg:block">
+                            <LauraShowcase size="md" priority />
+                        </div>
+
+                        <div className="relative z-10">
+                            <DashboardMockup />
+                        </div>
 
                         {/* Card flutuante WhatsApp */}
                         <motion.div

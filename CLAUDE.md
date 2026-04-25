@@ -217,7 +217,7 @@ das mais sensíveis:
 
 ---
 
-## Status atual (snapshot 2026-04-17)
+## Status atual (snapshot 2026-04-25)
 
 ### Done
 - Epics 1–9 + Super Admin Panel — features completas.
@@ -225,19 +225,29 @@ das mais sensíveis:
   timeout, migration 035).
 - Deploy produção em `laura.nexusai360.com` (Portainer + GHCR + Traefik).
 - Fase 17A lint sweep + Fase 17B Playwright E2E real + Fase 17B.2 data-testids.
-- **Fase 18 (este commit):** LP pública imersiva + trial 7d sem cartão +
-  signup wizard OTP (email+WhatsApp) + redesign auth com olhinho senha +
-  seção `/subscription` + banners trial/past_due + paywall server-side
-  (middleware Go 402 + layout check PWA). Ver `docs/HANDOFF.md` para
+- Fase 18.x — LP pública imersiva + trial 7d sem cartão + signup wizard
+  OTP (email+WhatsApp) + redesign auth com olhinho senha + `/subscription`
+  + banners trial/past_due + paywall server-side (middleware Go 402 +
+  layout check PWA) + 8 polish iterations (LP responsiva, matemática
+  bate, Top Cats dinâmico, Pilar 3 expandido, altura fixa Pilar 2).
+- **Fase 19 (este commit):** Laura como rosto da marca em LP +
+  plataforma. `brand/LauraAvatar` + `brand/LauraBrandMark` substituem o
+  brand mark "LF" em 4 lugares (navbar/footer/sidebar/auth) e adicionam
+  presença visual em 5 pontos da LP (Hero card WhatsApp, headers de 3
+  pilares, CTA Final hero) + 2 pontos da plataforma interna (header
+  dashboard, atalho "Falar com Laura"). PNG tratada com Pillow para
+  alpha real (variantes `laura-portrait.png` 1254×1254 e
+  `laura-face.png` 800×800 em `public/brand/`). Sem mudança de cor,
+  componente, copy ou layout estrutural. Ver `docs/HANDOFF.md` para
   detalhe completo.
 
-### Pendências pré-deploy Fase 18
-1. Aplicar migrations 000038–000042 em prod.
-2. Configurar env vars novas (`OTP_SECRET`, `TRIAL_DAYS=7`,
-   `PAST_DUE_GRACE_DAYS=3`, `OTP_TEST_MODE=false`, `NEXT_PUBLIC_APP_URL`).
-3. Popular `stripe_price_id` (+ opcional `stripe_price_id_yearly`) via
-   super admin antes de testar checkout real.
-4. Smoke pós-deploy + tag `phase-18-deployed`.
+### Pendências pré-deploy Fase 19
+- Validar visual local (`pnpm dev` em `laura-pwa/`, testar `/`,
+  `/login`, `/register`, `/dashboard`).
+- `git push origin master --tags` para disparar deploy via Portainer
+  (rebuild da imagem PWA com a Laura).
+- Smoke pós-deploy em `laura.nexusai360.com` + aplicar tag
+  `phase-19-deployed` quando ok.
 
 ### Pendências gerais (próximas fases)
 - Ativar E2E Playwright novos em CI (`test.fixme` condicionais).
@@ -280,6 +290,17 @@ docs/superpowers/     Specs + plans novos (LEI #1)
 
 ## Para iniciar a próxima fase
 
-A próxima fase é a **Fase 10 — Security closeout + infraestrutura
-mínima de produção**. Iniciar via skill `superpowers:brainstorming`
-seguindo o ciclo da LEI #1.
+Após o deploy da Fase 19 (push + smoke + tag `phase-19-deployed`), a
+próxima fase fica em aberto — sugestões disponíveis para o usuário
+escolher:
+- **Fase 20A:** PWA icons (substituir os ícones SVG geométricos "LF"
+  em `public/icons/` e o `manifest.json` por uma versão da Laura
+  cropada/estilizada para tamanho pequeno — fora do escopo da Fase 19).
+- **Fase 20B:** Onboarding com Laura (avatar acompanha o tour pós-
+  signup, cards "Laura te explica" no dashboard).
+- **Fase 20C:** ativar os Playwright E2E novos em CI (remover
+  `test.fixme` condicionais).
+- **Fase 20D:** rotação de `GROQ_API_KEY` e auditoria de secrets prod.
+
+Iniciar a fase escolhida via skill `superpowers:brainstorming` seguindo
+o ciclo da LEI #1.

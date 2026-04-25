@@ -6,6 +6,103 @@
 
 ## Histórico de atualizações
 
+### 2026-04-25 — Fase 19: Laura como rosto da marca (LP + plataforma)
+
+**Objetivo.** Substituir o brand mark "LF" (quadrado gradient violet→
+fuchsia com letras) pela foto da Laura (modelo profissional, busto,
+blazer violeta + blusa rosada — casa direto com a paleta primária do
+produto). A Laura deixa de ser apenas uma palavra e vira presença
+visual contínua em todo o funil (LP → signup → plataforma interna).
+
+**Componentes novos (`laura-pwa/src/components/brand/`).**
+- `LauraAvatar.tsx`: 6 tamanhos (xs=20, sm=32, md=36, lg=56, xl=80→96
+  responsivo, hero=128→160 responsivo), `halo` none/soft/intense
+  (radial violet→fuchsia→rose blur escalonado), `ring` none/violet/
+  subtle/primary, `withStatusDot` (dot verde 6px ring `#0A0A0F`
+  para sinalizar online), `animate` opcional via `motion/react` (fade+
+  scale ao entrar no viewport, usado só em hero), `priority` para
+  next/image acima da dobra. Avatares pequenos (xs/sm/md) carregam o
+  crop facial mais apertado (`/brand/laura-face.png`); avatares
+  grandes (lg/xl/hero) carregam o busto completo (`/brand/laura-
+  portrait.png`).
+- `LauraBrandMark.tsx`: combina `LauraAvatar` + wordmark "Laura
+  Finance" idêntico ao código anterior (gradient white→violet-300→
+  fuchsia-300, font-bold tracking-tight). Variants navbar (avatar 32px),
+  footer (avatar 32px), sidebar (avatar 36px + sublinha "Gestão
+  Inteligente" colapsável), auth (avatar 96px + halo intense + priority).
+
+**9 pontos de aplicação.**
+1. `MarketingNavbar.tsx` — `LauraBrandMark variant="navbar"` no logo
+   principal e no header do mobile sheet (removida a função local
+   `LauraLogo`).
+2. `MarketingFooter.tsx` — `LauraBrandMark variant="footer"`.
+3. `AppSidebar.tsx` (header) — `LauraBrandMark variant="sidebar"`.
+   Mantém o `group-data-[collapsible=icon]:hidden` para esconder
+   wordmark+sublinha quando o sidebar colapsa.
+4. `(auth)/layout.tsx` — `LauraBrandMark variant="auth"` substitui o
+   quadrado 72×72 com letras "LF" por avatar 96px (80px mobile) com
+   halo intense.
+5. `Hero.tsx` (LP) — card flutuante WhatsApp: `MessageCircle` foi
+   trocado por `LauraAvatar size="sm" ring="violet" halo="soft"
+   priority withStatusDot`. Agora o card "Laura Finance · agora mesmo"
+   tem o rosto real da remetente.
+6. `PilarAssistente.tsx` — header do mockup interno do card direito
+   ganhou `LauraAvatar size="sm" ring="subtle" halo="soft"` à esquerda
+   do bloco "Laura Finance / Relatório por categoria / Abril de 2026".
+7. `PilarFamilia.tsx` — header do painel da família ganhou avatar
+   28px ao lado do label "Laura Finance · Família".
+8. `PilarViagens.tsx` — header do mockup ganhou avatar 28px ao lado
+   do label "Laura Finance · Viagem" (mantém ícone Globe2 inline).
+9. `CTAFinal.tsx` — adicionado avatar **hero (160px desktop / 128px
+   mobile)** centralizado acima do badge "Experimente sem
+   compromisso", com halo intense (radial violet→fuchsia→rose blur-
+   3xl) + ring violet/40 + animação fade+scale ao entrar no viewport.
+
+E na plataforma interna:
+10. `(dashboard)/layout.tsx` — `LauraAvatar size="xs" ring="subtle"`
+    no top bar antes do texto "Laura Finance" (continuidade visual
+    com o sidebar).
+11. `AppSidebar.tsx` (atalho "Falar com Laura") — `MessageCircle`
+    verde substituído por `LauraAvatar size="xs" ring="subtle"
+    withStatusDot` (dot verde mantém a semântica de "online").
+
+**Asset processing (Pillow).** O PNG enviado pelo usuário (1254×1254,
+RGB sem alfa, fundo branco opaco) foi tratado com Pillow para gerar
+alfa real via chroma key suave: pixels com luminância > 248 e baixa
+saturação (max-min < 12) viraram alpha 0; entre 235 e 248 com baixa
+saturação aplicou-se gradiente proporcional para evitar fringe
+serrilhado. Cópia tratada salva em `public/brand/laura-portrait.png`,
+e crop facial 800×800 (centralizado no rosto) salvo em `laura-
+face.png` para os avatares pequenos. Comando usado:
+`pip3 install --user --break-system-packages Pillow` + script Python
+inline. PWA icons (`public/icons/icon-*.svg` e `manifest.json`)
+**NÃO** foram alterados — "LF" geométrico mantém legibilidade em
+ícones pequenos do app instalado; substituir por avatar pode virar
+fase futura com tratamento dedicado.
+
+**Restrições respeitadas.** Nenhuma cor, componente shadcn,
+tipografia, espaçamento estrutural, layout de seções ou copy foi
+alterado fora dos pontos listados. O brand mark "LF" inteiro saiu
+porque foi substituído pelo `LauraBrandMark`. A iconografia
+`lucide-react` permaneceu em todos os ícones funcionais; só os
+ícones cujo significado é literalmente "Laura" (Hero `MessageCircle`,
+Sidebar "Falar com Laura") viraram avatar.
+
+**Verificação.** `pnpm typecheck` verde, `pnpm lint` sem novos errors
+(44 warnings pré-existentes intactos), `pnpm dev` no port 3100
+confirmou `/`, `/login`, `/register` retornando HTTP 200 com 7
+ocorrências do alt da Laura na LP e 1 no auth. `next/image` otimiza
+para 13 KB no tamanho 128px.
+
+**Specs/plans.** `docs/superpowers/{specs,plans}/2026-04-25-fase-19-
+laura-rosto-da-marca-{v1,v2,v3}.md`. Ciclo completo da LEI #1
+(brainstorm → spec v1→v2→v3 → plan v1→v2→v3 → execução → memory).
+
+**Tag aplicada localmente.** `phase-19-laura-rosto` no commit
+`e97a880`. Push para `origin/master` e tag `phase-19-deployed` ainda
+pendentes — usuário valida visual antes de disparar deploy via
+Portainer/GHCR.
+
 ### 2026-04-17 — Fase 18.5: polish final LP (matemática, top cats dinâmico, família Hoje/Mês, cota, pilar3 maior)
 
 Commits iterativos pós-deploy para ajustar feedback detalhado do usuário:

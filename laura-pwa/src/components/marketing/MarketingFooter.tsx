@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { LauraBrandMark } from "@/components/brand/LauraBrandMark";
+import { LFBrandMark } from "@/components/brand/LFBrandMark";
 
 export function MarketingFooter() {
     return (
@@ -17,7 +17,7 @@ export function MarketingFooter() {
                     aria-label="Laura Finance"
                     className="inline-flex min-h-11 items-center gap-2"
                 >
-                    <LauraBrandMark variant="footer" />
+                    <LFBrandMark variant="footer" />
                 </Link>
                 <p className="max-w-4xl text-sm text-zinc-400 md:whitespace-nowrap">
                     Sua plataforma financeira completa. Dashboard, app e WhatsApp em um só lugar.

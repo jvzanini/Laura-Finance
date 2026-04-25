@@ -127,10 +127,12 @@ export function LauraShowcase({
                 }}
             />
 
-            {/* PNG transparente da Laura — animação respiração + flutuação */}
+            {/* PNG transparente da Laura — apenas respiração sutil
+                (sem float vertical nem shimmer: feedback do usuário
+                "parece de jogo, fica feio"). Parallax opcional via prop. */}
             <div
                 ref={imageWrapperRef}
-                className="animate-laura-float relative z-10 h-full w-full transition-transform duration-300 ease-out"
+                className="relative z-10 h-full w-full transition-transform duration-300 ease-out"
             >
                 <div className="animate-laura-breathe relative h-full w-full">
                     <Image
@@ -143,17 +145,6 @@ export function LauraShowcase({
                     />
                 </div>
             </div>
-
-            {/* Shimmer sutil que atravessa o halo periodicamente — toque premium */}
-            <span
-                aria-hidden
-                className="animate-laura-shimmer pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-full"
-                style={{
-                    background:
-                        "linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.18) 50%, transparent 65%)",
-                    mixBlendMode: "screen",
-                }}
-            />
         </div>
     );
 }

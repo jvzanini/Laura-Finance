@@ -6,6 +6,71 @@
 
 ## Histórico de atualizações
 
+### 2026-04-25 — Fase 19.2: refinement feedback (LF maior + Laura atrás + sem float/shimmer)
+
+Iteração baseada em 5 prints + feedback do usuário em prod 19.1.
+
+**Mudanças cirúrgicas:**
+
+1. **Brand mark navbar + footer voltou ao "LF" rosa MAIOR.** Componente
+   novo `src/components/brand/LFBrandMark.tsx` (variants navbar/
+   footer): quadrado `size-10 rounded-xl` gradient violet-600→fuchsia-
+   500→rose-400 com ring white/20 + shadow violet/40, letras `text-
+   base font-extrabold tracking-tight text-white`. Aplicado em
+   `MarketingNavbar` e `MarketingFooter` substituindo o `LauraBrand-
+   Mark`. Sidebar interna, `AuthLayout` e Dashboard top bar **mantêm
+   Laura** — superfícies "íntimas" da plataforma.
+
+2. **CTA Final: Laura ATRÁS do texto.** Antes: showcase no topo do
+   card cobria a headline. Agora: `LauraShowcase size="lg"` (288px)
+   posicionada `absolute -right-12 top-1/2 z-0 -translate-y-1/2` à
+   direita, com `mix-blend-luminosity` em lg (suaviza, integra) e
+   `mix-blend-normal` em xl+ (presença total). Conteúdo (badge,
+   headline, CTA, microcopy) em `z-10` na frente — texto 100%
+   legível.
+
+3. **AuthLayout limpo.** Removidos o wordmark "Laura Finance" e a
+   tagline "Sua plataforma financeira completa" que ficavam por
+   cima do busto da Laura — texto branco/cinza em fundo violeta-
+   rosa = contraste insuficiente. O card "Bem-vindo de volta" já
+   tem subtitle "...da Laura Finance"; redundante. `LauraShowcase`
+   continua emergindo do card via `-mb-20 sm:-mb-24`.
+
+4. **Hero LP: Laura mais à direita.** Antes: `-top-24 -right-24`
+   tamanho `md` (192px) — busto cortado pelo mockup. Agora:
+   `-top-12 -right-56 lg:` → `xl:-right-64` → `2xl:-right-72`
+   tamanho `lg` (288px). Mostra busto inteiro ao lado.
+
+5. **Removidas animações "de jogo".** Usuário descreveu o float
+   vertical e o shimmer diagonal como "fica feio, parece de jogo".
+   Removidos do `LauraShowcase`:
+   - `animate-laura-float` (Y `0 → -5px → 0` em 7s) — REMOVIDO
+   - `animate-laura-shimmer` (linear-gradient atravessando 6s) —
+     REMOVIDO
+   Mantidas (sutis e "premium"): aura conic rotativa 22s, halo
+   radial pulse 5s, breathing scale 1→1.018 em 5s, parallax
+   mousemove ±8px (desktop only). Os keyframes `laura-float`/
+   `laura-shimmer` permanecem em `globals.css` (caso futuro), mas
+   sem uso.
+
+6. **Foto nova "Modelo Laura 3" (Canva, RGBA limpa, 1250×1250).**
+   Substituiu `public/brand/laura-portrait.png` e gerou `laura-
+   face.png` 800×800. Postura mais frontal, cabelo polido.
+
+7. **Validação visual via Playwright snapshots.** Adicionados
+   `playwright-snapshots.config.ts` + `tests/laura-visual-snapshots.
+   spec.ts` (5 cenas: LP fullpage, Login, CTA section, Hero
+   section, Navbar zoom — viewport 1440×900, system Chrome via
+   `channel: 'chrome'` para evitar headless-shell faltando). 5
+   tests verdes. Screenshots em `/tmp/laura-shot-*.png` confirmam:
+   Login com Laura emergindo limpa do card, CTA com headline
+   legível e Laura à direita como personagem-marca atrás, Hero
+   com Laura visível ao lado do mockup, Navbar com "LF" grande.
+
+Tag `phase-19-2-refinement` (commit) + `phase-19-2-deployed`
+(após smoke prod). Sem specs/plans em separado — feedback claro,
+mudanças cirúrgicas, ciclo curto.
+
 ### 2026-04-25 — Fase 19.1: Laura premium showcase (refinement + fix do xadrez)
 
 **Problema corrigido (xadrez no avatar circular).** A Fase 19 deixou

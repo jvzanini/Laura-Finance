@@ -112,10 +112,13 @@ export function Hero() {
                             className="pointer-events-none absolute -inset-10 -z-10 rounded-[3rem] bg-gradient-to-br from-violet-600/30 via-fuchsia-500/20 to-rose-400/10 opacity-70 blur-2xl"
                         />
 
-                        {/* Laura "espiando" por trás/cima do mockup — só desktop,
-                            cria sensação de camadas e protagonismo da personagem. */}
-                        <div className="pointer-events-none absolute -top-24 -right-24 z-0 hidden lg:block">
-                            <LauraShowcase size="md" priority />
+                        {/* Laura ao lado direito do mockup — fora dele, como
+                            personagem-marca acompanhando a tela do produto.
+                            Aparece a partir de telas grandes; em desktop padrão
+                            fica deslocada bem pra fora à direita pra mostrar
+                            o busto inteiro. */}
+                        <div className="pointer-events-none absolute -top-12 -right-56 z-0 hidden lg:block xl:-right-64 2xl:-right-72">
+                            <LauraShowcase size="lg" priority />
                         </div>
 
                         <div className="relative z-10">

@@ -6,7 +6,7 @@ import { Menu } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LauraBrandMark } from "@/components/brand/LauraBrandMark";
+import { LFBrandMark } from "@/components/brand/LFBrandMark";
 import {
     Sheet,
     SheetContent,
@@ -50,7 +50,7 @@ export function MarketingNavbar() {
                     aria-label="Ir para a página inicial da Laura Finance"
                     className="flex min-h-11 items-center rounded-lg px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
                 >
-                    <LauraBrandMark variant="navbar" />
+                    <LFBrandMark variant="navbar" />
                 </Link>
 
                 <nav className="hidden items-center gap-1 md:flex">
@@ -100,7 +100,7 @@ export function MarketingNavbar() {
                     >
                         <SheetHeader>
                             <SheetTitle className="flex items-center">
-                                <LauraBrandMark variant="navbar" />
+                                <LFBrandMark variant="navbar" />
                             </SheetTitle>
                         </SheetHeader>
                         <div className="flex flex-col gap-1 px-4">

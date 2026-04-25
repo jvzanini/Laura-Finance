@@ -235,27 +235,26 @@ das mais sensíveis:
   mark "LF" em 4 lugares (navbar/footer/sidebar/auth) e adicionam
   presença visual em 5 pontos da LP + 2 pontos da plataforma
   interna. Tags `phase-19-laura-rosto` + `phase-19-deployed`.
-- **Fase 19.1 (este commit):** Laura premium showcase — refinement.
-  Bug do "xadrez" no avatar circular corrigido (PNG RGBA real do
-  usuário substituiu o tratamento Pillow + removido `bg-gradient`
-  do wrapper). Componente novo `brand/LauraShowcase` full-bust sem
-  clip circular com 3 camadas de halo animadas (aura conic
-  rotativa 22s, halo radial pulsante 5s, lightspot superior),
-  breathing scale 1→1.018 5s, float vertical 7s, parallax mousemove
-  ±8px desktop only, shimmer diagonal 6s. Easing Expo.out
-  `cubic-bezier(0.16, 1, 0.3, 1)` em todas as animações (skill
-  ui-ux-pro-max recomendou estilo "Modern Dark / Cinema Mobile").
-  Aplicado "brincando com camadas" em AuthLayout (288px emergindo
-  do card), Hero (192px atrás do mockup), CTA Final (480px
-  quebrando topo do card). `LauraAvatar` ganhou prop `pulse`
-  usado no sidebar "Falar com Laura". `prefers-reduced-motion`
-  desliga todas as animações Laura. Ver `docs/HANDOFF.md`.
+- Fase 19.1 — Laura premium showcase. `LauraShowcase` full-bust
+  sem clip circular + 3 camadas de halo + breathing/parallax,
+  aplicado em AuthLayout/Hero/CTA. Bug do xadrez fixado.
+  Tags `phase-19-1-laura-premium` + `phase-19-1-deployed`.
+- **Fase 19.2 (este commit):** refinement baseado em feedback +
+  Playwright snapshots. Voltou "LF" rosa MAIOR (size-10 text-base
+  font-extrabold) em navbar+footer via `LFBrandMark` novo —
+  sidebar/auth/dashboard mantêm Laura. CTA Final invertido: Laura
+  ATRÁS do texto (lateral direita, mix-blend-luminosity em lg).
+  AuthLayout: removido wordmark/tagline duplicado que cobria o
+  busto. Hero: Laura mais à direita (-right-56 lg:-right-64) tamanho
+  lg. Removidas animações "de jogo" (float Y + shimmer diagonal),
+  manteve só breathing+halo-pulse+aura-rotate+parallax. Foto nova
+  "Modelo Laura 3" RGBA. 5 Playwright snapshots verdes. Ver
+  `docs/HANDOFF.md`.
 
-### Pendências pré-deploy Fase 19.1
-- `git push origin master --tags` para disparar deploy via Portainer
-  (rebuild da imagem PWA com a Laura premium).
+### Pendências pré-deploy Fase 19.2
+- `git push origin master --tags` para disparar deploy via Portainer.
 - Smoke pós-deploy em `laura.nexusai360.com` + aplicar tag
-  `phase-19-1-deployed` quando ok.
+  `phase-19-2-deployed` quando ok.
 
 ### Pendências gerais (próximas fases)
 - Ativar E2E Playwright novos em CI (`test.fixme` condicionais).
